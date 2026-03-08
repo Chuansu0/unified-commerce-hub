@@ -71,9 +71,10 @@ const ConversationsPage = () => {
     });
   }, []);
 
-  const isConnected = Boolean(config.openclaw.agentUrl || config.n8n.chatWebhookUrl);
-
-  const currentMessages = activeConvId ? (convMessages[activeConvId] ?? []) : [];
+  const aiSettings = loadAISettings();
+  const activeSource = getActiveAISource(aiSettings);
+  const isConnected = activeSource !== null;
+  const sourceLabel = activeSource === "openclaw" ? "OpenClaw" : activeSource === "llm" ? "LLM API" : null;
 
   // Merge AI messages into conversation when in AI mode
   useEffect(() => {
