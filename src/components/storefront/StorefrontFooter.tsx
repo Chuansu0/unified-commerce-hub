@@ -27,10 +27,10 @@ export function StorefrontFooter() {
           <div>
             <h4 className="font-display font-semibold text-foreground mb-3 text-sm">{st.header_categories}</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/shop?cat=electronics" className="hover:text-primary transition-colors">{st.cat_electronics}</Link></li>
-              <li><Link to="/shop?cat=clothing" className="hover:text-primary transition-colors">{st.cat_clothing}</Link></li>
-              <li><Link to="/shop?cat=home" className="hover:text-primary transition-colors">{st.cat_home}</Link></li>
-              <li><Link to="/shop?cat=sports" className="hover:text-primary transition-colors">{st.cat_sports}</Link></li>
+              <li><Link to="/shop?cat=literature" className="hover:text-primary transition-colors">{st.cat_literature}</Link></li>
+              <li><Link to="/shop?cat=business" className="hover:text-primary transition-colors">{st.cat_business}</Link></li>
+              <li><Link to="/shop?cat=computer" className="hover:text-primary transition-colors">{st.cat_computer}</Link></li>
+              <li><Link to="/shop?cat=acg" className="hover:text-primary transition-colors">{st.cat_acg}</Link></li>
             </ul>
           </div>
 
