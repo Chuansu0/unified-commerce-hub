@@ -19,6 +19,22 @@ const DashboardPage = () => {
   const totalRevenue = orders.reduce((sum, o) => sum + (o.status !== "cancelled" ? o.total : 0), 0);
   const unreadCount = conversations.reduce((sum, c) => sum + (c.unread || 0), 0);
 
+  const revenueByDay = useMemo(() => {
+    const map: Record<string, number> = {};
+    orders.forEach((o) => {
+      if (o.status === "cancelled") return;
+      const day = new Date(o.created_at).toLocaleDateString("zh-TW", { month: "numeric", day: "numeric" });
+      map[day] = (map[day] || 0) + o.total;
+    });
+    return Object.entries(map)
+      .map(([date, revenue]) => ({ date, revenue }))
+      .sort((a, b) => {
+        const pa = a.date.split("/").map(Number);
+        const pb = b.date.split("/").map(Number);
+        return pa[0] - pb[0] || pa[1] - pb[1];
+      });
+  }, [orders]);
+
   const stats = [
     { title: "訂單總數", value: orders.length.toString(), sub: `${orders.filter(o => o.status === "pending").length} 筆待處理`, icon: ShoppingCart, color: "text-primary" },
     { title: "商品數量", value: products.length.toString(), sub: `${products.filter(p => p.status === "active").length} 件上架中`, icon: Package, color: "text-accent-foreground" },
