@@ -10,6 +10,7 @@ const DashboardPage = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [conversations, setConversations] = useState<any[]>([]);
+  const [granularity, setGranularity] = useState<"day" | "month">("day");
 
   useEffect(() => {
     insforgeOrders.list().then(setOrders);
