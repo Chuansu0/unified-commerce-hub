@@ -35,14 +35,14 @@ const MOCK_ORDERS = [
 ];
 
 const MOCK_PRODUCTS = [
-  { id: "prod-001", name: "經典白T恤", category: "上衣", price: 590, currency: "TWD", stock: 120, status: "active", image_url: "/placeholder.svg", created_at: "2026-02-10T08:00:00Z" },
-  { id: "prod-002", name: "修身牛仔褲", category: "下身", price: 1480, currency: "TWD", stock: 45, status: "active", image_url: "/placeholder.svg", created_at: "2026-02-12T10:00:00Z" },
-  { id: "prod-003", name: "防風機能外套", category: "外套", price: 2980, currency: "TWD", stock: 0, status: "out_of_stock", image_url: "/placeholder.svg", created_at: "2026-01-20T14:00:00Z" },
-  { id: "prod-004", name: "棉質休閒短褲", category: "下身", price: 780, currency: "TWD", stock: 88, status: "active", image_url: "/placeholder.svg", created_at: "2026-02-28T09:30:00Z" },
-  { id: "prod-005", name: "印花帆布包", category: "配件", price: 450, currency: "TWD", stock: 200, status: "active", image_url: "/placeholder.svg", created_at: "2026-03-01T11:00:00Z" },
-  { id: "prod-006", name: "羊毛針織衫", category: "上衣", price: 1890, currency: "TWD", stock: 15, status: "low_stock", image_url: "/placeholder.svg", created_at: "2026-01-15T16:00:00Z" },
-  { id: "prod-007", name: "皮革短靴", category: "鞋類", price: 3200, currency: "TWD", stock: 30, status: "active", image_url: "/placeholder.svg", created_at: "2026-02-05T13:00:00Z" },
-  { id: "prod-008", name: "格紋圍巾", category: "配件", price: 680, currency: "TWD", stock: 0, status: "draft", image_url: "/placeholder.svg", created_at: "2026-03-06T10:00:00Z" },
+  { id: "prod-001", name: "經典白T恤", category: "上衣", price: 590, currency: "TWD", stock: 120, status: "active", image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop", description: "100%有機棉材質，透氣舒適。寬鬆版型設計，適合日常穿搭。提供白、黑、灰三色選擇。", created_at: "2026-02-10T08:00:00Z" },
+  { id: "prod-002", name: "修身牛仔褲", category: "下身", price: 1480, currency: "TWD", stock: 45, status: "active", image: "https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&h=400&fit=crop", description: "彈性丹寧布料，修身剪裁。中腰設計，搭配舒適腰頭。深藍色經典款，適合各種場合。", created_at: "2026-02-12T10:00:00Z" },
+  { id: "prod-003", name: "防風機能外套", category: "外套", price: 2980, currency: "TWD", stock: 0, status: "out_of_stock", image: "https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=400&h=400&fit=crop", description: "防風防水面料，可收納式設計。適合登山與城市通勤，反光條設計提升夜間安全性。", created_at: "2026-01-20T14:00:00Z" },
+  { id: "prod-004", name: "棉質休閒短褲", category: "下身", price: 780, currency: "TWD", stock: 88, status: "active", image: "https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=400&h=400&fit=crop", description: "輕量棉質面料，鬆緊腰頭設計。側邊口袋實用方便，適合夏季日常穿著。", created_at: "2026-02-28T09:30:00Z" },
+  { id: "prod-005", name: "印花帆布包", category: "配件", price: 450, currency: "TWD", stock: 200, status: "active", image: "https://images.unsplash.com/photo-1544816155-12df9643f363?w=400&h=400&fit=crop", description: "環保帆布材質，獨家印花設計。內含拉鏈夾層，容量充足適合通勤與購物使用。", created_at: "2026-03-01T11:00:00Z" },
+  { id: "prod-006", name: "羊毛針織衫", category: "上衣", price: 1890, currency: "TWD", stock: 15, status: "low_stock", image: "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=400&fit=crop", description: "100%美麗諾羊毛，柔軟保暖。圓領經典設計，可單穿或作為內搭層次穿搭。", created_at: "2026-01-15T16:00:00Z" },
+  { id: "prod-007", name: "皮革短靴", category: "鞋類", price: 3200, currency: "TWD", stock: 30, status: "active", image: "https://images.unsplash.com/photo-1608256246200-53e635b5b65f?w=400&h=400&fit=crop", description: "頂級牛皮材質，耐磨橡膠底。側拉鏈設計方便穿脫，經典款式百搭耐看。", created_at: "2026-02-05T13:00:00Z" },
+  { id: "prod-008", name: "格紋圍巾", category: "配件", price: 680, currency: "TWD", stock: 0, status: "draft", image: "https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=400&h=400&fit=crop", description: "柔軟混紡材質，經典格紋圖案。大尺寸設計可多種圍法，秋冬必備配件。", created_at: "2026-03-06T10:00:00Z" },
 ];
 
 const MOCK_CONVERSATIONS = [
