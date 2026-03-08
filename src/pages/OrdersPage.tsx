@@ -6,8 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { insforgeOrders } from "@/services/insforge";
-import { ArrowUpDown, Search, RefreshCw } from "lucide-react";
+import { ArrowUpDown, Search, RefreshCw, Package } from "lucide-react";
+
+interface OrderItem {
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+}
 
 interface Order {
   id: string;
@@ -18,18 +26,30 @@ interface Order {
   currency?: string;
   created_at?: string;
   items_count?: number;
+  items?: OrderItem[];
 }
 
 type SortKey = "created_at" | "total" | "customer_name" | "status";
 type SortDir = "asc" | "desc";
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400",
-  processing: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  shipped: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
-  delivered: "bg-green-500/15 text-green-700 dark:text-green-400",
-  cancelled: "bg-destructive/15 text-destructive",
+  pending: "bg-warning/15 text-warning border-warning/30",
+  processing: "bg-primary/15 text-primary border-primary/30",
+  shipped: "bg-accent text-accent-foreground",
+  delivered: "bg-primary/10 text-primary border-primary/20",
+  cancelled: "bg-destructive/15 text-destructive border-destructive/30",
 };
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: "待處理",
+  processing: "處理中",
+  shipped: "已出貨",
+  delivered: "已送達",
+  cancelled: "已取消",
+};
+
+const formatCurrency = (amount: number, currency = "TWD") =>
+  new Intl.NumberFormat("zh-TW", { style: "currency", currency }).format(amount);
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -39,6 +59,7 @@ const OrdersPage = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -135,7 +156,7 @@ const OrdersPage = () => {
                   <SelectItem value="all">All statuses</SelectItem>
                   {statuses.map((s) => (
                     <SelectItem key={s} value={s}>
-                      {s.charAt(0).toUpperCase() + s.slice(1)}
+                      {STATUS_LABELS[s] || s}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -170,7 +191,11 @@ const OrdersPage = () => {
               </TableHeader>
               <TableBody>
                 {filtered.map((order) => (
-                  <TableRow key={order.id}>
+                  <TableRow
+                    key={order.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setSelectedOrder(order)}
+                  >
                     <TableCell className="font-mono text-xs">{order.id?.slice(0, 8)}…</TableCell>
                     <TableCell>
                       <div className="font-medium">{order.customer_name ?? "—"}</div>
@@ -181,20 +206,15 @@ const OrdersPage = () => {
                         variant="secondary"
                         className={STATUS_COLORS[order.status ?? ""] ?? ""}
                       >
-                        {order.status ?? "unknown"}
+                        {STATUS_LABELS[order.status ?? ""] ?? order.status ?? "unknown"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-medium tabular-nums">
-                      {order.total != null
-                        ? new Intl.NumberFormat(undefined, {
-                            style: "currency",
-                            currency: order.currency ?? "USD",
-                          }).format(order.total)
-                        : "—"}
+                      {order.total != null ? formatCurrency(order.total, order.currency) : "—"}
                     </TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">
                       {order.created_at
-                        ? new Date(order.created_at).toLocaleDateString()
+                        ? new Date(order.created_at).toLocaleDateString("zh-TW")
                         : "—"}
                     </TableCell>
                   </TableRow>
@@ -204,6 +224,85 @@ const OrdersPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Order Detail Dialog */}
+      <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+        <DialogContent className="sm:max-w-[480px]">
+          {selectedOrder && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-display flex items-center gap-2">
+                  訂單詳情
+                  <Badge variant="secondary" className={STATUS_COLORS[selectedOrder.status ?? ""] ?? ""}>
+                    {STATUS_LABELS[selectedOrder.status ?? ""] ?? selectedOrder.status}
+                  </Badge>
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4 pt-2">
+                {/* Order info */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">訂單編號</p>
+                    <p className="font-mono text-xs mt-0.5">{selectedOrder.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">建立日期</p>
+                    <p className="mt-0.5">
+                      {selectedOrder.created_at
+                        ? new Date(selectedOrder.created_at).toLocaleString("zh-TW")
+                        : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">客戶姓名</p>
+                    <p className="font-medium mt-0.5">{selectedOrder.customer_name ?? "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">電子郵件</p>
+                    <p className="mt-0.5 truncate">{selectedOrder.customer_email ?? "—"}</p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Items */}
+                <div>
+                  <h4 className="text-sm font-medium flex items-center gap-1.5 mb-3">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                    商品明細
+                  </h4>
+                  {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedOrder.items.map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-sm rounded-md bg-muted/50 px-3 py-2">
+                          <div>
+                            <span className="font-medium">{item.product_name}</span>
+                            <span className="text-muted-foreground ml-2">× {item.quantity}</span>
+                          </div>
+                          <span className="tabular-nums">{formatCurrency(item.unit_price * item.quantity)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">無商品資料</p>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Total */}
+                <div className="flex items-center justify-between font-medium">
+                  <span>訂單總額</span>
+                  <span className="text-lg tabular-nums">
+                    {selectedOrder.total != null ? formatCurrency(selectedOrder.total, selectedOrder.currency) : "—"}
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
