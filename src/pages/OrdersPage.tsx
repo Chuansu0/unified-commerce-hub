@@ -141,8 +141,8 @@ const OrdersPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-display font-bold tracking-tight">Orders</h1>
-        <p className="text-muted-foreground mt-1">Manage and track customer orders</p>
+        <h1 className="text-2xl font-display font-bold tracking-tight">{t.page_orders_title}</h1>
+        <p className="text-muted-foreground mt-1">{t.page_orders_desc}</p>
       </div>
 
       <Card>

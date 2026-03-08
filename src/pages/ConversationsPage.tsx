@@ -215,9 +215,9 @@ const ConversationsPage = () => {
     <div className="flex flex-col h-[calc(100vh-2rem)] gap-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold tracking-tight">Conversations</h1>
+          <h1 className="text-2xl font-display font-bold tracking-tight">{t.page_conversations_title}</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            AI chatbot conversations &amp; live takeover
+            {t.page_conversations_desc}
           </p>
         </div>
         <div className="flex items-center gap-2">

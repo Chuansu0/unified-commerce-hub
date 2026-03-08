@@ -133,8 +133,8 @@ const ProductsPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold tracking-tight">Products</h1>
-          <p className="text-muted-foreground mt-1 text-sm">管理你的商品目錄</p>
+          <h1 className="text-2xl font-display font-bold tracking-tight">{t.page_products_title}</h1>
+          <p className="text-muted-foreground mt-1 text-sm">{t.page_products_desc}</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="font-mono text-xs gap-1.5">
