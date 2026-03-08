@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Search, ShoppingCart, User, Globe, Menu } from "lucide-react";
+import { Search, ShoppingCart, User, Globe, Menu, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -14,7 +15,9 @@ import { useI18n } from "@/i18n/I18nContext";
 import { LOCALE_LABELS, LOCALE_FLAGS, type Locale } from "@/i18n/locales";
 import storefrontTranslations from "@/i18n/storefront-locales";
 import { getCartCount } from "@/store/cartStore";
+import { useAuthStore } from "@/store/authStore";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 export function StorefrontHeader() {
   const { locale, setLocale } = useI18n();
@@ -22,6 +25,13 @@ export function StorefrontHeader() {
   const navigate = useNavigate();
   const [cartCount, setCartCount] = useState(getCartCount());
   const [searchQuery, setSearchQuery] = useState("");
+  const { isAuthenticated, username, role, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    toast.success(locale === "en" ? "Logged out" : "已登出");
+    navigate("/shop");
+  };
 
   // Poll cart count (simple approach without external state management)
   useEffect(() => {
@@ -86,9 +96,25 @@ export function StorefrontHeader() {
               <Link to="/shop/cart" className="text-lg font-medium text-foreground hover:text-primary transition-colors">
                 {st.header_cart}
               </Link>
-              <Link to="/shop/login" className="text-lg font-medium text-foreground hover:text-primary transition-colors">
-                {st.header_login}
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <span className="text-sm text-muted-foreground px-1">{username}</span>
+                  {role === "superadmin" && (
+                    <Link to="/" className="text-lg font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      {locale === "en" ? "Admin Panel" : "後台管理"}
+                    </Link>
+                  )}
+                  <button onClick={handleLogout} className="text-lg font-medium text-destructive hover:opacity-80 transition-colors flex items-center gap-2">
+                    <LogOut className="h-4 w-4" />
+                    {locale === "en" ? "Logout" : "登出"}
+                  </button>
+                </>
+              ) : (
+                <Link to="/shop/login" className="text-lg font-medium text-foreground hover:text-primary transition-colors">
+                  {st.header_login}
+                </Link>
+              )}
             </nav>
           </SheetContent>
         </Sheet>
@@ -131,17 +157,46 @@ export function StorefrontHeader() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="relative">
                 <User className="h-5 w-5" />
+                {isAuthenticated && (
+                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-card" />
+                )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigate("/shop/login")}>
-                {st.header_login}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/shop/register")}>
-                {st.header_register}
-              </DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-48">
+              {isAuthenticated ? (
+                <>
+                  <div className="px-2 py-1.5 text-sm font-medium text-foreground truncate">
+                    {username}
+                  </div>
+                  <div className="px-2 pb-1.5 text-xs text-muted-foreground">
+                    {role === "superadmin"
+                      ? (locale === "en" ? "Super Admin" : "超級管理員")
+                      : (locale === "en" ? "Member" : "會員")}
+                  </div>
+                  <DropdownMenuSeparator />
+                  {role === "superadmin" && (
+                    <DropdownMenuItem onClick={() => navigate("/")}>
+                      <Shield className="mr-2 h-4 w-4" />
+                      {locale === "en" ? "Admin Panel" : "後台管理"}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {locale === "en" ? "Logout" : "登出"}
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem onClick={() => navigate("/shop/login")}>
+                    {st.header_login}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/shop/register")}>
+                    {st.header_register}
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
