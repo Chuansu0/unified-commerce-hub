@@ -378,7 +378,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     footer_contact: "联系我们",
     footer_privacy: "隐私政策",
     footer_terms: "服务条款",
-    footer_copyright: "© 2026 InsForge. 保留所有权利。",
+    footer_copyright: "© 2026 NeoVega. 保留所有权利。",
   },
   ja: {
     header_home: "ホーム",
