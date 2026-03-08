@@ -20,9 +20,20 @@ export interface RegisterResponse {
   };
 }
 
-/** 後端基礎 URL */
+/**
+ * 後端基礎 URL
+ * 若環境變數遺漏 https:// 協定（如 "www.neovega.cc"），自動補上
+ * 這可防止 VITE_AUTH_API_URL 設定不完整時 fetch 把 URL 當相對路徑
+ */
 function getBaseUrl(): string | undefined {
-  return config.auth?.apiUrl;
+  const url = config.auth?.apiUrl;
+  if (!url) return undefined;
+  // 若缺少 http:// 或 https:// 協定，自動補上 https://
+  if (!/^https?:\/\//i.test(url)) {
+    console.warn(`[Auth] VITE_AUTH_API_URL "${url}" 缺少協定，自動補上 https://`);
+    return `https://${url}`;
+  }
+  return url;
 }
 
 /**
