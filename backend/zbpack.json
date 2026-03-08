@@ -1,0 +1,4 @@
+{
+    "build_command": "cd .. && npm ci && npm run build",
+    "start_command": "node server.js"
+}
