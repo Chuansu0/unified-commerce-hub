@@ -51,11 +51,21 @@ app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 
 // Health check（Zeabur 用於服務偵測）
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", async (_req, res) => {
+  let dbOk = false;
+  if (process.env.DATABASE_URL) {
+    try {
+      const db = require("./db");
+      await db.query("SELECT 1");
+      dbOk = true;
+    } catch (e) {
+      dbOk = false;
+    }
+  }
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
-    db: !!process.env.DATABASE_URL,
+    db: dbOk,
   });
 });
 

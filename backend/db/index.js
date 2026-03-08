@@ -6,7 +6,10 @@ const { Pool } = require("pg");
  */
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_URL?.includes("localhost")
+    // Zeabur 內部 PostgreSQL 不支援 SSL；外部雲端資料庫才需要 SSL
+    ssl: (process.env.DATABASE_URL?.includes("localhost") ||
+        process.env.DATABASE_URL?.includes("zeabur.internal") ||
+        process.env.DATABASE_URL?.includes("127.0.0.1"))
         ? false
         : { rejectUnauthorized: false },
     max: 10,
