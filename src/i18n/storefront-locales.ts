@@ -299,7 +299,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     header_logout: "登出",
 
     home_hero_title: "探索知识的无限可能",
-    home_hero_subtitle: "从文学到科技，InsForge 为您严选最优质的内容产品",
+    home_hero_subtitle: "从文学到科技，NeoVega 为您严选最优质的内容产品",
     home_hero_cta: "立即选购",
     home_featured: "精选推荐",
     home_new_arrivals: "新品上架",
