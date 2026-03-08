@@ -158,7 +158,7 @@ const ConversationsPage = () => {
           : c
       )
     );
-  }, [activeConvId, replyMode, aiSend]);
+  }, [activeConvId, replyMode, aiSend, convMessages]);
 
   const filtered = conversations.filter(
     (c) =>
