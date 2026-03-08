@@ -61,6 +61,15 @@ const OrdersPage = () => {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  const ALL_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"];
+
+  const handleStatusChange = (orderId: string, newStatus: string) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+    );
+    setSelectedOrder((prev) => (prev?.id === orderId ? { ...prev, status: newStatus } : prev));
+  };
+
   const fetchOrders = async () => {
     setLoading(true);
     setError(null);
