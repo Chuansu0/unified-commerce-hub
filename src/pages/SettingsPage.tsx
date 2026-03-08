@@ -10,59 +10,24 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Save, Bot, Sparkles, Eye, EyeOff, RotateCcw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-
-const STORAGE_KEY = "insforge-ai-settings";
-
-interface OpenClawConfig {
-  agentUrl: string;
-  apiKey: string;
-  enabled: boolean;
-  systemPrompt: string;
-  timeout: string;
-}
-
-interface LLMConfig {
-  baseUrl: string;
-  apiToken: string;
-  model: string;
-  temperature: string;
-  maxTokens: string;
-  enabled: boolean;
-}
-
-interface AISettings {
-  openclaw: OpenClawConfig;
-  llm: LLMConfig;
-  priority: "openclaw" | "llm";
-}
-
-const defaultSettings: AISettings = {
-  openclaw: {
-    agentUrl: "",
-    apiKey: "",
-    enabled: true,
-    systemPrompt: "",
-    timeout: "30",
-  },
-  llm: {
-    baseUrl: "",
-    apiToken: "",
-    model: "gpt-4o",
-    temperature: "0.7",
-    maxTokens: "2048",
-    enabled: false,
-  },
-  priority: "openclaw",
-};
+import {
+  type AISettings,
+  type OpenClawConfig,
+  type LLMConfig,
+  defaultAISettings,
+  loadAISettings,
+  saveAISettings,
+  clearAISettings,
+} from "@/services/aiSettings";
 
 const SettingsPage = () => {
-  const [settings, setSettings] = useState<AISettings>(defaultSettings);
+  const [settings, setSettings] = useState<AISettings>(defaultAISettings);
   const [showOpenClawKey, setShowOpenClawKey] = useState(false);
   const [showLLMToken, setShowLLMToken] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    try {
+    setSettings(loadAISettings());
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) setSettings(JSON.parse(stored));
     } catch { /* ignore */ }
