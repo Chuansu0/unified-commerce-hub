@@ -72,11 +72,28 @@ export interface StorefrontTranslations {
 
   // Categories
   cat_all: string;
-  cat_electronics: string;
-  cat_clothing: string;
-  cat_home: string;
-  cat_sports: string;
-  cat_books: string;
+  cat_literature: string;
+  cat_art_design: string;
+  cat_humanities: string;
+  cat_social_science: string;
+  cat_philosophy: string;
+  cat_business: string;
+  cat_language: string;
+  cat_health: string;
+  cat_travel: string;
+  cat_food_craft: string;
+  cat_science: string;
+  cat_computer: string;
+  cat_children: string;
+  cat_exam: string;
+  cat_acg: string;
+
+  // Recommend tabs
+  rec_all: string;
+  rec_ranking: string;
+  rec_new: string;
+  rec_sale: string;
+  rec_rare: string;
 
   // Footer
   footer_about: string;
@@ -97,8 +114,8 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     header_my_orders: "我的訂單",
     header_logout: "登出",
 
-    home_hero_title: "探索精選好物",
-    home_hero_subtitle: "從科技到生活，InsForge 為您嚴選最優質的商品",
+    home_hero_title: "探索知識的無限可能",
+    home_hero_subtitle: "從文學到科技，InsForge 為您嚴選最優質的內容產品",
     home_hero_cta: "立即選購",
     home_featured: "精選推薦",
     home_new_arrivals: "新品上架",
@@ -151,11 +168,27 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     chat_greeting: "您好！有什麼可以幫您的嗎？",
 
     cat_all: "全部",
-    cat_electronics: "3C 電子",
-    cat_clothing: "服飾",
-    cat_home: "居家生活",
-    cat_sports: "運動戶外",
-    cat_books: "書籍",
+    cat_literature: "文學小說",
+    cat_art_design: "藝術設計",
+    cat_humanities: "人文史地",
+    cat_social_science: "社會科學",
+    cat_philosophy: "哲學/宗教",
+    cat_business: "商業理財",
+    cat_language: "語言學習",
+    cat_health: "醫療保健",
+    cat_travel: "旅遊休閒",
+    cat_food_craft: "飲食手作",
+    cat_science: "自然科普",
+    cat_computer: "電腦資訊",
+    cat_children: "童書/親子",
+    cat_exam: "考試用書",
+    cat_acg: "動漫/遊戲",
+
+    rec_all: "全部",
+    rec_ranking: "排行榜",
+    rec_new: "新產品",
+    rec_sale: "特價品",
+    rec_rare: "珍藏品",
 
     footer_about: "關於我們",
     footer_contact: "聯絡我們",
@@ -173,8 +206,8 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     header_my_orders: "My Orders",
     header_logout: "Logout",
 
-    home_hero_title: "Discover Quality Products",
-    home_hero_subtitle: "From tech to lifestyle, InsForge curates the best products for you",
+    home_hero_title: "Explore Infinite Knowledge",
+    home_hero_subtitle: "From literature to technology, InsForge curates the finest content products for you",
     home_hero_cta: "Shop Now",
     home_featured: "Featured",
     home_new_arrivals: "New Arrivals",
@@ -227,11 +260,27 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     chat_greeting: "Hello! How can I help you today?",
 
     cat_all: "All",
-    cat_electronics: "Electronics",
-    cat_clothing: "Clothing",
-    cat_home: "Home & Living",
-    cat_sports: "Sports",
-    cat_books: "Books",
+    cat_literature: "Literature & Fiction",
+    cat_art_design: "Art & Design",
+    cat_humanities: "Humanities & History",
+    cat_social_science: "Social Science",
+    cat_philosophy: "Philosophy & Religion",
+    cat_business: "Business & Finance",
+    cat_language: "Language Learning",
+    cat_health: "Health & Wellness",
+    cat_travel: "Travel & Leisure",
+    cat_food_craft: "Food & Craft",
+    cat_science: "Science & Nature",
+    cat_computer: "Computer & IT",
+    cat_children: "Children & Parenting",
+    cat_exam: "Test Prep",
+    cat_acg: "Anime/Comics/Games",
+
+    rec_all: "All",
+    rec_ranking: "Best Sellers",
+    rec_new: "New Arrivals",
+    rec_sale: "On Sale",
+    rec_rare: "Collector's",
 
     footer_about: "About Us",
     footer_contact: "Contact Us",
@@ -249,8 +298,8 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     header_my_orders: "我的订单",
     header_logout: "登出",
 
-    home_hero_title: "探索精选好物",
-    home_hero_subtitle: "从科技到生活，InsForge 为您严选最优质的商品",
+    home_hero_title: "探索知识的无限可能",
+    home_hero_subtitle: "从文学到科技，InsForge 为您严选最优质的内容产品",
     home_hero_cta: "立即选购",
     home_featured: "精选推荐",
     home_new_arrivals: "新品上架",
@@ -303,11 +352,27 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     chat_greeting: "您好！有什么可以帮您的吗？",
 
     cat_all: "全部",
-    cat_electronics: "3C 电子",
-    cat_clothing: "服饰",
-    cat_home: "居家生活",
-    cat_sports: "运动户外",
-    cat_books: "书籍",
+    cat_literature: "文学小说",
+    cat_art_design: "艺术设计",
+    cat_humanities: "人文史地",
+    cat_social_science: "社会科学",
+    cat_philosophy: "哲学/宗教",
+    cat_business: "商业理财",
+    cat_language: "语言学习",
+    cat_health: "医疗保健",
+    cat_travel: "旅游休闲",
+    cat_food_craft: "饮食手作",
+    cat_science: "自然科普",
+    cat_computer: "电脑资讯",
+    cat_children: "童书/亲子",
+    cat_exam: "考试用书",
+    cat_acg: "动漫/游戏",
+
+    rec_all: "全部",
+    rec_ranking: "排行榜",
+    rec_new: "新产品",
+    rec_sale: "特价品",
+    rec_rare: "珍藏品",
 
     footer_about: "关于我们",
     footer_contact: "联系我们",
@@ -325,8 +390,8 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     header_my_orders: "注文履歴",
     header_logout: "ログアウト",
 
-    home_hero_title: "厳選アイテムを発見",
-    home_hero_subtitle: "テクノロジーからライフスタイルまで、InsForge が最高の商品をお届け",
+    home_hero_title: "知識の無限の可能性を探る",
+    home_hero_subtitle: "文学からテクノロジーまで、InsForge が最高のコンテンツ商品をお届け",
     home_hero_cta: "今すぐ購入",
     home_featured: "おすすめ",
     home_new_arrivals: "新着商品",
@@ -379,11 +444,27 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     chat_greeting: "こんにちは！何かお手伝いできることはありますか？",
 
     cat_all: "すべて",
-    cat_electronics: "電子機器",
-    cat_clothing: "ファッション",
-    cat_home: "ホーム＆リビング",
-    cat_sports: "スポーツ",
-    cat_books: "書籍",
+    cat_literature: "文学・小説",
+    cat_art_design: "アート・デザイン",
+    cat_humanities: "人文・歴史",
+    cat_social_science: "社会科学",
+    cat_philosophy: "哲学・宗教",
+    cat_business: "ビジネス・マネー",
+    cat_language: "語学学習",
+    cat_health: "健康・医療",
+    cat_travel: "旅行・レジャー",
+    cat_food_craft: "料理・手芸",
+    cat_science: "自然科学",
+    cat_computer: "コンピュータ・IT",
+    cat_children: "児童書・育児",
+    cat_exam: "試験対策",
+    cat_acg: "アニメ・漫画・ゲーム",
+
+    rec_all: "すべて",
+    rec_ranking: "ランキング",
+    rec_new: "新着",
+    rec_sale: "セール",
+    rec_rare: "コレクション",
 
     footer_about: "会社概要",
     footer_contact: "お問い合わせ",
