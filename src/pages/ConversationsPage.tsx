@@ -76,6 +76,8 @@ const ConversationsPage = () => {
   const isConnected = activeSource !== null;
   const sourceLabel = activeSource === "openclaw" ? "OpenClaw" : activeSource === "llm" ? "LLM API" : null;
 
+  const currentMessages = activeConvId ? (convMessages[activeConvId] ?? []) : [];
+
   // Merge AI messages into conversation when in AI mode
   useEffect(() => {
     if (replyMode === "ai" && activeConvId && aiMessages.length > 0) {
