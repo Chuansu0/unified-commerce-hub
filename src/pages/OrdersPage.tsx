@@ -61,6 +61,15 @@ const OrdersPage = () => {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  const ALL_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"];
+
+  const handleStatusChange = (orderId: string, newStatus: string) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+    );
+    setSelectedOrder((prev) => (prev?.id === orderId ? { ...prev, status: newStatus } : prev));
+  };
+
   const fetchOrders = async () => {
     setLoading(true);
     setError(null);
@@ -297,6 +306,25 @@ const OrdersPage = () => {
                   <span className="text-lg tabular-nums">
                     {selectedOrder.total != null ? formatCurrency(selectedOrder.total, selectedOrder.currency) : "—"}
                   </span>
+                </div>
+                <Separator />
+
+                {/* Change status */}
+                <div>
+                  <h4 className="text-sm font-medium mb-2">變更狀態</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {ALL_STATUSES.filter((s) => s !== selectedOrder.status).map((s) => (
+                      <Button
+                        key={s}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => handleStatusChange(selectedOrder.id, s)}
+                      >
+                        {STATUS_LABELS[s] || s}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </>
