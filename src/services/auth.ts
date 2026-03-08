@@ -1,28 +1,42 @@
 import { config } from "./config";
+import type { AuthUser } from "../store/authStore";
 
-interface LoginResponse {
+// ── 型別定義 ────────────────────────────────────────────────────
+export interface LoginResponse {
   success: boolean;
-  role: "superadmin" | "user";
-  message?: string;
+  message: string;
+  data?: {
+    token: string;
+    user: AuthUser;
+  };
+}
+
+export interface RegisterResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    token: string;
+    user: AuthUser;
+  };
+}
+
+/** 後端基礎 URL */
+function getBaseUrl(): string | undefined {
+  return config.auth?.apiUrl;
 }
 
 /**
  * 呼叫 Zeabur 後端 API 進行登入驗證。
- * 後端會檢查 ROOT_ID / ROOT_PASSWORD 環境變數來判斷是否為超級管理員。
- *
- * 後端 API 規格（您需要在 Zeabur 實作）：
- * POST /api/auth/login
- * Body: { username: string, password: string }
- * Response: { success: boolean, role: "superadmin" | "user", message?: string }
+ * 後端簽發 JWT Token，回應格式：
+ * { success, message, data: { token, user } }
  */
 export async function loginApi(
   username: string,
   password: string
 ): Promise<LoginResponse> {
-  const baseUrl = config.auth?.apiUrl;
+  const baseUrl = getBaseUrl();
 
   if (!baseUrl) {
-    // 開發模式：未設定 API URL 時使用本地模擬
     console.warn("[Auth] VITE_AUTH_API_URL 未設定，使用本地模擬模式");
     return mockLogin(username, password);
   }
@@ -33,20 +47,74 @@ export async function loginApi(
     body: JSON.stringify({ username, password }),
   });
 
+  const data = await res.json().catch(() => ({ success: false, message: "伺服器回應格式錯誤" }));
+
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(err || "登入失敗");
+    return { success: false, message: data.message || "登入失敗" };
   }
 
-  return res.json();
+  return data as LoginResponse;
+}
+
+/**
+ * 呼叫後端 API 進行用戶註冊
+ */
+export async function registerApi(
+  username: string,
+  email: string,
+  password: string
+): Promise<RegisterResponse> {
+  const baseUrl = getBaseUrl();
+
+  if (!baseUrl) {
+    return { success: false, message: "VITE_AUTH_API_URL 未設定，無法完成註冊" };
+  }
+
+  const res = await fetch(`${baseUrl}/api/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, email, password }),
+  });
+
+  const data = await res.json().catch(() => ({ success: false, message: "伺服器回應格式錯誤" }));
+
+  if (!res.ok) {
+    return { success: false, message: data.message || "註冊失敗" };
+  }
+
+  return data as RegisterResponse;
+}
+
+/**
+ * 取得當前登入用戶資訊（需帶 Bearer Token）
+ */
+export async function getMeApi(token: string): Promise<AuthUser | null> {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) return null;
+
+  const res = await fetch(`${baseUrl}/api/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) return null;
+
+  const data = await res.json().catch(() => null);
+  return data?.data ?? null;
 }
 
 /** 本地開發模擬（正式環境請勿使用） */
 function mockLogin(username: string, _password: string): LoginResponse {
-  // 模擬：任何帳號都可登入，username 包含 "admin" 視為管理員
+  const isAdmin = username.toLowerCase().includes("admin");
   return {
     success: true,
-    role: username.toLowerCase().includes("admin") ? "superadmin" : "user",
     message: "模擬登入成功（開發模式）",
+    data: {
+      token: "mock-jwt-token-dev",
+      user: {
+        id: isAdmin ? "root" : "mock-user-1",
+        username,
+        role: isAdmin ? "superadmin" : "user",
+      },
+    },
   };
 }

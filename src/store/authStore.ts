@@ -2,28 +2,73 @@ import { create } from "zustand";
 
 export type UserRole = "superadmin" | "user" | "guest";
 
-interface AuthState {
-  isAuthenticated: boolean;
-  username: string | null;
+export interface AuthUser {
+  id: string | number;
+  username: string;
+  email?: string;
   role: UserRole;
-  login: (username: string, role: UserRole) => void;
-  logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  isAuthenticated: !!sessionStorage.getItem("auth_token"),
-  username: sessionStorage.getItem("auth_user"),
-  role: (sessionStorage.getItem("auth_role") as UserRole) || "guest",
-  login: (username, role) => {
-    sessionStorage.setItem("auth_token", "1");
-    sessionStorage.setItem("auth_user", username);
-    sessionStorage.setItem("auth_role", role);
-    set({ isAuthenticated: true, username, role });
+interface AuthState {
+  isAuthenticated: boolean;
+  token: string | null;
+  user: AuthUser | null;
+  /** @deprecated 使用 user.role 取代 */
+  role: UserRole;
+  /** @deprecated 使用 user.username 取代 */
+  username: string | null;
+  login: (token: string, user: AuthUser) => void;
+  logout: () => void;
+  getAuthHeader: () => Record<string, string>;
+}
+
+const TOKEN_KEY = "neovega_token";
+const USER_KEY = "neovega_user";
+
+function loadStoredUser(): AuthUser | null {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? (JSON.parse(raw) as AuthUser) : null;
+  } catch {
+    return null;
+  }
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  isAuthenticated: !!localStorage.getItem(TOKEN_KEY),
+  token: localStorage.getItem(TOKEN_KEY),
+  user: loadStoredUser(),
+  // 向下相容舊版欄位
+  role: (loadStoredUser()?.role ?? "guest") as UserRole,
+  username: loadStoredUser()?.username ?? null,
+
+  login: (token, user) => {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    set({
+      isAuthenticated: true,
+      token,
+      user,
+      role: user.role,
+      username: user.username,
+    });
   },
+
   logout: () => {
-    sessionStorage.removeItem("auth_token");
-    sessionStorage.removeItem("auth_user");
-    sessionStorage.removeItem("auth_role");
-    set({ isAuthenticated: false, username: null, role: "guest" });
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    set({
+      isAuthenticated: false,
+      token: null,
+      user: null,
+      role: "guest",
+      username: null,
+    });
+  },
+
+  /** 取得 Authorization Bearer 標頭，供 API 呼叫使用 */
+  getAuthHeader: () => {
+    const { token } = get();
+    return token ? { Authorization: `Bearer ${token}` } : {};
   },
 }));

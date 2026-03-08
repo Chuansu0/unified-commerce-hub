@@ -28,15 +28,17 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await loginApi(username.trim(), password);
-      if (res.success) {
-        login(username.trim(), res.role);
+      if (res.success && res.data) {
+        // 使用 JWT token 與用戶資訊登入
+        login(res.data.token, res.data.user);
+        const role = res.data.user.role;
         toast.success(
-          res.role === "superadmin"
+          role === "superadmin"
             ? locale === "en" ? "Welcome, Super Admin!" : "歡迎，超級管理員！"
             : locale === "en" ? "Login successful" : "登入成功"
         );
         // 超級管理員導向後台，一般用戶留在商城
-        navigate(res.role === "superadmin" ? "/" : "/shop");
+        navigate(role === "superadmin" ? "/" : "/shop");
       } else {
         toast.error(res.message || (locale === "en" ? "Login failed" : "登入失敗"));
       }
