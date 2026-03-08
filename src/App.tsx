@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { StorefrontLayout } from "@/components/storefront/StorefrontLayout";
 import { I18nProvider } from "@/i18n/I18nContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import DashboardPage from "./pages/DashboardPage";
 import OrdersPage from "./pages/OrdersPage";
 import ProductsPage from "./pages/ProductsPage";
@@ -31,15 +32,17 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Admin Dashboard */}
-            <Route element={<DashboardLayout />}>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/orders" element={<OrdersPage />} />
-              <Route path="/products" element={<ProductsPage />} />
-              <Route path="/conversations" element={<ConversationsPage />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/agent" element={<AgentPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+            {/* Admin Dashboard — 需超級管理員權限 */}
+            <Route element={<ProtectedRoute requiredRole="superadmin" />}>
+              <Route element={<DashboardLayout />}>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/products" element={<ProductsPage />} />
+                <Route path="/conversations" element={<ConversationsPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/agent" element={<AgentPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Route>
             </Route>
 
             {/* Consumer Storefront */}
