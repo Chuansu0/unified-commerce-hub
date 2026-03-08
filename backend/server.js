@@ -7,8 +7,14 @@ const authRoutes = require("./routes/auth");
 const productRoutes = require("./routes/products");
 const orderRoutes = require("./routes/orders");
 
+const { runMigration } = require("./db/migrate");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// ── 信任反向代理（Zeabur / Cloudflare）────────────
+// 必須在 rate-limit 之前設定，否則 X-Forwarded-For 驗證失敗
+app.set("trust proxy", 1);
 
 // ── Middleware ────────────────────────────────────
 app.use(express.json({ limit: "1mb" }));
@@ -68,4 +74,11 @@ app.listen(PORT, () => {
   console.log(`[NeoVega API] ROOT_ID configured: ${!!process.env.ROOT_ID}`);
   console.log(`[NeoVega API] JWT_SECRET configured: ${!!process.env.JWT_SECRET}`);
   console.log(`[NeoVega API] Database configured: ${!!process.env.DATABASE_URL}`);
+
+  // 自動執行資料庫初始化（idempotent，安全重複執行）
+  if (process.env.DATABASE_URL) {
+    runMigration().catch((err) => {
+      console.error("[NeoVega API] Migration warning:", err.message);
+    });
+  }
 });

@@ -95,19 +95,30 @@ DO $$ BEGIN
 END $$;
 `;
 
-async function migrate() {
-    const client = await pool.connect();
-    try {
-        console.log("[Migrate] 開始初始化資料庫...");
-        await client.query(SQL_INIT);
-        console.log("[Migrate] ✅ 資料庫初始化完成");
-    } catch (err) {
-        console.error("[Migrate] ❌ 錯誤:", err.message);
-        process.exit(1);
-    } finally {
-        client.release();
-        await pool.end();
-    }
+/**
+ * 執行 Migration（可由外部呼叫，不關閉 pool）
+ * @param {import('pg').Pool} [customPool] - 可選，傳入外部 pool；預設使用本模組的 pool
+ */
+async function runMigration(customPool) {
+  const p = customPool || pool;
+  const client = await p.connect();
+  try {
+    console.log("[Migrate] 開始初始化資料庫...");
+    await client.query(SQL_INIT);
+    console.log("[Migrate] ✅ 資料庫初始化完成");
+  } catch (err) {
+    console.error("[Migrate] ❌ 錯誤:", err.message);
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
-migrate();
+// 獨立執行模式（node db/migrate.js）
+if (require.main === module) {
+  runMigration()
+    .catch(() => process.exit(1))
+    .finally(() => pool.end());
+}
+
+module.exports = { runMigration };
