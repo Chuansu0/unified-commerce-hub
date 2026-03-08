@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useI18n } from "@/i18n/I18nContext";
 import storefrontTranslations from "@/i18n/storefront-locales";
-import { MOCK_PRODUCTS } from "@/store/mockProducts";
+import { useProducts } from "@/store/productStore";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { addToCart } from "@/store/cartStore";
 import { toast } from "sonner";
@@ -17,8 +17,8 @@ export default function ProductDetailPage() {
   const st = storefrontTranslations[locale];
   const isEn = locale === "en";
   const [quantity, setQuantity] = useState(1);
-
-  const product = MOCK_PRODUCTS.find((p) => p.id === id);
+  const products = useProducts();
+  const product = products.find((p) => p.id === id);
   if (!product) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
@@ -32,7 +32,7 @@ export default function ProductDetailPage() {
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : null;
 
-  const relatedProducts = MOCK_PRODUCTS.filter(
+  const relatedProducts = products.filter(
     (p) => p.category === product.category && p.id !== product.id
   ).slice(0, 4);
 

@@ -7,25 +7,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Search, Package, Plus, ImagePlus, X } from "lucide-react";
-import { insforgeProducts } from "@/services/insforge";
 import { toast } from "sonner";
 import { useI18n } from "@/i18n/I18nContext";
-
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  currency: string;
-  stock: number;
-  status: string;
-  created_at: string;
-  image?: string;
-  description?: string;
-}
+import { useProducts, addProduct, ADMIN_CATEGORIES, CATEGORY_LABELS } from "@/store/productStore";
+import type { Product } from "@/store/mockProducts";
 
 const statusVariant = (s: string) => {
   switch (s) {
@@ -47,34 +36,40 @@ const statusLabel = (s: string) => {
   }
 };
 
-const CATEGORIES = ["上衣", "下身", "外套", "鞋類", "配件"];
-const STATUSES = [
-  { value: "active", label: "上架中" },
-  { value: "draft", label: "草稿" },
-  { value: "out_of_stock", label: "缺貨" },
-  { value: "low_stock", label: "庫存低" },
+const deriveStatus = (stock: number) => {
+  if (stock === 0) return "out_of_stock";
+  if (stock <= 20) return "low_stock";
+  return "active";
+};
+
+const RECOMMEND_OPTIONS = [
+  { value: "ranking", label: "排行榜" },
+  { value: "new", label: "新產品" },
+  { value: "sale", label: "特價品" },
+  { value: "rare", label: "珍藏品" },
 ];
 
 const ProductsPage = () => {
   const { t } = useI18n();
-  const [products, setProducts] = useState<Product[]>([]);
+  const products = useProducts();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Form state
   const [formName, setFormName] = useState("");
+  const [formNameEn, setFormNameEn] = useState("");
   const [formCategory, setFormCategory] = useState("");
   const [formPrice, setFormPrice] = useState("");
+  const [formOriginalPrice, setFormOriginalPrice] = useState("");
   const [formStock, setFormStock] = useState("");
-  const [formStatus, setFormStatus] = useState("active");
   const [formImage, setFormImage] = useState<string | null>(null);
   const [formDescription, setFormDescription] = useState("");
+  const [formDescriptionEn, setFormDescriptionEn] = useState("");
+  const [formRecommend, setFormRecommend] = useState<string[]>([]);
+  const [formBadges, setFormBadges] = useState("");
+  const [formFeatures, setFormFeatures] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    insforgeProducts.list().then((data) => setProducts(data as Product[]));
-  }, []);
 
   const categories = useMemo(
     () => [...new Set(products.map((p) => p.category))],
@@ -85,17 +80,23 @@ const ProductsPage = () => {
     (p) =>
       (category === "all" || p.category === category) &&
       (p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.category.toLowerCase().includes(search.toLowerCase()))
+        p.nameEn.toLowerCase().includes(search.toLowerCase()) ||
+        (CATEGORY_LABELS[p.category] || p.category).toLowerCase().includes(search.toLowerCase()))
   );
 
   const resetForm = () => {
     setFormName("");
+    setFormNameEn("");
     setFormCategory("");
     setFormPrice("");
+    setFormOriginalPrice("");
     setFormStock("");
-    setFormStatus("active");
     setFormImage(null);
     setFormDescription("");
+    setFormDescriptionEn("");
+    setFormRecommend([]);
+    setFormBadges("");
+    setFormFeatures("");
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,11 +117,18 @@ const ProductsPage = () => {
     reader.readAsDataURL(file);
   };
 
+  const toggleRecommend = (value: string) => {
+    setFormRecommend((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+    );
+  };
+
   const handleSubmit = () => {
     const name = formName.trim();
     const cat = formCategory;
     const price = Number(formPrice);
     const stock = Number(formStock);
+    const originalPrice = formOriginalPrice ? Number(formOriginalPrice) : undefined;
 
     if (!name || name.length > 100) {
       toast.error("請輸入有效的商品名稱（1–100 字）");
@@ -139,23 +147,25 @@ const ProductsPage = () => {
       return;
     }
 
-    const newProduct: Product = {
-      id: `prod-${Date.now()}`,
+    addProduct({
       name,
+      nameEn: formNameEn.trim() || name,
       category: cat,
       price,
-      currency: "TWD",
+      originalPrice,
       stock,
-      status: formStatus,
-      created_at: new Date().toISOString(),
+      status: deriveStatus(stock),
       image: formImage || undefined,
       description: formDescription.trim() || undefined,
-    };
+      descriptionEn: formDescriptionEn.trim() || undefined,
+      badges: formBadges.trim() ? formBadges.split(",").map((b) => b.trim()) : undefined,
+      features: formFeatures.trim() ? formFeatures.split(",").map((f) => f.trim()) : undefined,
+      recommend: formRecommend.length > 0 ? formRecommend : undefined,
+    });
 
-    setProducts((prev) => [newProduct, ...prev]);
     resetForm();
     setDialogOpen(false);
-    toast.success("商品已新增");
+    toast.success("商品已新增，前台商城即時同步更新");
   };
 
   return (
@@ -193,12 +203,8 @@ const ProductsPage = () => {
                     onChange={handleImageUpload}
                   />
                   {formImage ? (
-                    <div className="relative w-full aspect-square rounded-lg overflow-hidden border border-border bg-secondary">
-                      <img
-                        src={formImage}
-                        alt="商品預覽"
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="relative w-full aspect-[3/2] rounded-lg overflow-hidden border border-border bg-secondary">
+                      <img src={formImage} alt="商品預覽" className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => setFormImage(null)}
@@ -211,7 +217,7 @@ const ProductsPage = () => {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex flex-col items-center justify-center gap-2 w-full aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 bg-secondary/50 hover:bg-secondary hover:border-primary/50 transition-colors cursor-pointer"
+                      className="flex flex-col items-center justify-center gap-2 w-full aspect-[3/2] rounded-lg border-2 border-dashed border-muted-foreground/30 bg-secondary/50 hover:bg-secondary hover:border-primary/50 transition-colors cursor-pointer"
                     >
                       <ImagePlus className="h-10 w-10 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">點擊上傳商品圖片</span>
@@ -221,22 +227,37 @@ const ProductsPage = () => {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="product-name">商品名稱</Label>
-                  <Input id="product-name" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="例如：經典白T恤" maxLength={100} />
+                  <Label htmlFor="product-name">商品名稱（中文）</Label>
+                  <Input id="product-name" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="例如：百年孤寂（典藏版）" maxLength={100} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="product-name-en">商品名稱（英文）</Label>
+                  <Input id="product-name-en" value={formNameEn} onChange={(e) => setFormNameEn(e.target.value)} placeholder="e.g. One Hundred Years of Solitude" maxLength={100} />
                 </div>
 
                 {/* Description */}
                 <div className="grid gap-2">
-                  <Label htmlFor="product-desc">商品詳細說明</Label>
+                  <Label htmlFor="product-desc">商品詳細說明（中文）</Label>
                   <Textarea
                     id="product-desc"
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
-                    placeholder="詳細描述商品的材質、功能、規格等資訊…（游標移至圖片上方時將顯示此說明）"
-                    rows={4}
+                    placeholder="詳細描述商品內容、特色…"
+                    rows={3}
                     maxLength={1000}
                   />
                   <span className="text-xs text-muted-foreground text-right">{formDescription.length}/1000</span>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="product-desc-en">商品詳細說明（英文）</Label>
+                  <Textarea
+                    id="product-desc-en"
+                    value={formDescriptionEn}
+                    onChange={(e) => setFormDescriptionEn(e.target.value)}
+                    placeholder="Product description in English..."
+                    rows={3}
+                    maxLength={1000}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -245,33 +266,53 @@ const ProductsPage = () => {
                     <Select value={formCategory} onValueChange={setFormCategory}>
                       <SelectTrigger><SelectValue placeholder="選擇分類" /></SelectTrigger>
                       <SelectContent>
-                        {CATEGORIES.map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        {ADMIN_CATEGORIES.map((c) => (
+                          <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label>狀態</Label>
-                    <Select value={formStatus} onValueChange={setFormStatus}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {STATUSES.map((s) => (
-                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>推薦分類</Label>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {RECOMMEND_OPTIONS.map((opt) => (
+                        <label key={opt.value} className="flex items-center gap-1 text-xs cursor-pointer">
+                          <Checkbox
+                            checked={formRecommend.includes(opt.value)}
+                            onCheckedChange={() => toggleRecommend(opt.value)}
+                          />
+                          {opt.label}
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="product-price">價格（NT$）</Label>
+                    <Label htmlFor="product-price">售價（NT$）</Label>
                     <Input id="product-price" type="number" min="1" value={formPrice} onChange={(e) => setFormPrice(e.target.value)} placeholder="0" />
                   </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="product-original-price">原價（選填）</Label>
+                    <Input id="product-original-price" type="number" min="1" value={formOriginalPrice} onChange={(e) => setFormOriginalPrice(e.target.value)} placeholder="留空表示無折扣" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="product-stock">庫存數量</Label>
                     <Input id="product-stock" type="number" min="0" value={formStock} onChange={(e) => setFormStock(e.target.value)} placeholder="0" />
                   </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="product-badges">標籤（逗號分隔）</Label>
+                    <Input id="product-badges" value={formBadges} onChange={(e) => setFormBadges(e.target.value)} placeholder="熱銷, 新品" />
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="product-features">特色標籤（逗號分隔）</Label>
+                  <Input id="product-features" value={formFeatures} onChange={(e) => setFormFeatures(e.target.value)} placeholder="精裝版, 全新翻譯" />
                 </div>
               </div>
               <DialogFooter>
@@ -297,7 +338,7 @@ const ProductsPage = () => {
                 <SelectContent>
                   <SelectItem value="all">所有分類</SelectItem>
                   {categories.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                    <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -323,7 +364,7 @@ const ProductsPage = () => {
                 <TableHead className="text-right">價格</TableHead>
                 <TableHead className="text-right">庫存</TableHead>
                 <TableHead>狀態</TableHead>
-                <TableHead className="pr-6">建立日期</TableHead>
+                <TableHead>推薦</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -334,62 +375,69 @@ const ProductsPage = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="pl-6">
-                      {p.image ? (
-                        <HoverCard openDelay={200} closeDelay={100}>
-                          <HoverCardTrigger asChild>
-                            <div className="w-12 h-12 rounded-md overflow-hidden border border-border cursor-pointer flex-shrink-0">
-                              <img
-                                src={p.image}
-                                alt={p.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          </HoverCardTrigger>
-                          <HoverCardContent side="right" className="w-80 p-0 overflow-hidden">
-                            <div className="aspect-video w-full overflow-hidden">
-                              <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
-                            </div>
-                            {p.description && (
+                filtered.map((p) => {
+                  const status = deriveStatus(p.stock);
+                  return (
+                    <TableRow key={p.id}>
+                      <TableCell className="pl-6">
+                        {p.image ? (
+                          <HoverCard openDelay={200} closeDelay={100}>
+                            <HoverCardTrigger asChild>
+                              <div className="w-12 h-12 rounded-md overflow-hidden border border-border cursor-pointer flex-shrink-0">
+                                <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                              </div>
+                            </HoverCardTrigger>
+                            <HoverCardContent side="right" className="w-80 p-0 overflow-hidden">
+                              <div className="aspect-video w-full overflow-hidden">
+                                <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                              </div>
                               <div className="p-3">
                                 <p className="text-sm font-medium text-foreground mb-1">{p.name}</p>
-                                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{p.description}</p>
+                                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                                  {p.description || "尚未填寫商品說明"}
+                                </p>
                               </div>
-                            )}
-                            {!p.description && (
-                              <div className="p-3">
-                                <p className="text-sm font-medium text-foreground">{p.name}</p>
-                                <p className="text-xs text-muted-foreground mt-1">尚未填寫商品說明</p>
-                              </div>
-                            )}
-                          </HoverCardContent>
-                        </HoverCard>
-                      ) : (
-                        <div className="w-12 h-12 rounded-md border border-dashed border-muted-foreground/30 bg-secondary/50 flex items-center justify-center flex-shrink-0">
-                          <Package className="h-4 w-4 text-muted-foreground/50" />
+                            </HoverCardContent>
+                          </HoverCard>
+                        ) : (
+                          <div className="w-12 h-12 rounded-md border border-dashed border-muted-foreground/30 bg-secondary/50 flex items-center justify-center flex-shrink-0">
+                            <Package className="h-4 w-4 text-muted-foreground/50" />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium max-w-[200px]">
+                        <div className="truncate">{p.name}</div>
+                        {p.nameEn !== p.name && (
+                          <div className="text-xs text-muted-foreground truncate">{p.nameEn}</div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px] font-mono">{CATEGORY_LABELS[p.category] || p.category}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        <div>NT${p.price.toLocaleString()}</div>
+                        {p.originalPrice && (
+                          <div className="text-xs text-muted-foreground line-through">NT${p.originalPrice.toLocaleString()}</div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm">{p.stock}</TableCell>
+                      <TableCell>
+                        <Badge variant={statusVariant(status) as any} className="text-[10px]">
+                          {statusLabel(status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {p.recommend?.map((r) => (
+                            <Badge key={r} variant="secondary" className="text-[9px]">
+                              {RECOMMEND_OPTIONS.find((o) => o.value === r)?.label || r}
+                            </Badge>
+                          ))}
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-[10px] font-mono">{p.category}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      NT${p.price.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">{p.stock}</TableCell>
-                    <TableCell>
-                      <Badge variant={statusVariant(p.status) as any} className="text-[10px]">
-                        {statusLabel(p.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="pr-6 text-xs text-muted-foreground">
-                      {new Date(p.created_at).toLocaleDateString("zh-TW")}
-                    </TableCell>
-                  </TableRow>
-                ))
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
