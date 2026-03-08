@@ -28,9 +28,6 @@ const SettingsPage = () => {
 
   useEffect(() => {
     setSettings(loadAISettings());
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) setSettings(JSON.parse(stored));
-    } catch { /* ignore */ }
   }, []);
 
   const updateOpenClaw = (patch: Partial<OpenClawConfig>) => {
