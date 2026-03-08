@@ -177,7 +177,7 @@ const SettingsPage = () => {
                 id="oc-prompt"
                 value={settings.openclaw.systemPrompt}
                 onChange={(e) => updateOpenClaw({ systemPrompt: e.target.value })}
-                placeholder="你是 InsForge 的智慧客服助理，擅長回答商品與訂單相關問題…"
+                placeholder="你是 NeoVega 的智慧客服助理，擅長回答商品與訂單相關問題…"
                 rows={3}
                 className="text-sm resize-none"
                 maxLength={2000}
