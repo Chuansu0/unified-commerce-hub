@@ -7,12 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/i18n/I18nContext";
 import storefrontTranslations from "@/i18n/storefront-locales";
 import { ProductCard } from "@/components/storefront/ProductCard";
-import { MOCK_PRODUCTS, CATEGORIES, RECOMMEND_TABS } from "@/store/mockProducts";
+import { CATEGORIES, RECOMMEND_TABS } from "@/store/mockProducts";
+import { useProducts } from "@/store/productStore";
 import type { RecommendTab } from "@/store/mockProducts";
 
 export default function ShopHomePage() {
   const { locale } = useI18n();
   const st = storefrontTranslations[locale];
+  const products = useProducts();
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get("search") || "";
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -46,30 +48,24 @@ export default function ShopHomePage() {
   };
 
   const filteredProducts = useMemo(() => {
-    let products = MOCK_PRODUCTS;
-
-    // Filter by category
+    let list = products;
     if (activeCategory !== "all") {
-      products = products.filter((p) => p.category === activeCategory);
+      list = list.filter((p) => p.category === activeCategory);
     }
-
-    // Filter by recommend tab
     if (activeRecommend !== "all") {
-      products = products.filter((p) => p.recommend?.includes(activeRecommend));
+      list = list.filter((p) => p.recommend?.includes(activeRecommend));
     }
-
-    // Filter by search query
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      products = products.filter(
+      list = list.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
           p.nameEn.toLowerCase().includes(q) ||
           p.description.toLowerCase().includes(q)
       );
     }
-    return products;
-  }, [activeCategory, activeRecommend, searchQuery]);
+    return list;
+  }, [products, activeCategory, activeRecommend, searchQuery]);
 
   return (
     <div>
