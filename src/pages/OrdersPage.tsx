@@ -307,6 +307,25 @@ const OrdersPage = () => {
                     {selectedOrder.total != null ? formatCurrency(selectedOrder.total, selectedOrder.currency) : "—"}
                   </span>
                 </div>
+                <Separator />
+
+                {/* Change status */}
+                <div>
+                  <h4 className="text-sm font-medium mb-2">變更狀態</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {ALL_STATUSES.filter((s) => s !== selectedOrder.status).map((s) => (
+                      <Button
+                        key={s}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => handleStatusChange(selectedOrder.id, s)}
+                      >
+                        {STATUS_LABELS[s] || s}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </>
           )}
