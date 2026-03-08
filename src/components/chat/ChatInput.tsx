@@ -9,7 +9,7 @@ interface ChatInputProps {
   placeholder?: string;
 }
 
-const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
+const ChatInput = ({ onSend, disabled, placeholder }: ChatInputProps) => {
   const [value, setValue] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
 
