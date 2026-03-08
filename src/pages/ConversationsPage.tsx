@@ -181,9 +181,17 @@ const ConversationsPage = () => {
             variant={isConnected ? "default" : "secondary"}
             className="gap-1.5 font-mono text-xs"
           >
-            {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-            {isConnected ? "Connected" : "Not configured"}
+            <Sparkles className="h-3 w-3" />
+            {isConnected ? sourceLabel : "AI 未設定"}
           </Badge>
+          {!isConnected && (
+            <Link to="/settings">
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                <Settings className="h-3 w-3" />
+                前往設定
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
