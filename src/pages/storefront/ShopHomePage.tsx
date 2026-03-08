@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { ArrowRight, Zap, Truck, Shield, BookOpen } from "lucide-react";
+import heroImage from "@/assets/neovega-hero.jpg";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -70,12 +71,17 @@ export default function ShopHomePage() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative bg-gradient-to-br from-primary/10 via-background to-accent/5 overflow-hidden">
-        <div className="container mx-auto px-4 py-16 md:py-24">
+      <section className="relative overflow-hidden min-h-[420px] md:min-h-[480px]">
+        {/* Background image */}
+        <div className="absolute inset-0">
+          <img src={heroImage} alt="NeoVega" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/70 to-transparent" />
+        </div>
+        <div className="container mx-auto px-4 py-16 md:py-24 relative z-10">
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="h-6 w-6 text-primary" />
-              <Badge variant="secondary" className="text-xs">InsForge Books</Badge>
+              <Badge variant="secondary" className="text-xs">NeoVega Books</Badge>
             </div>
             <h1 className="font-display text-3xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
               {st.home_hero_title}
@@ -90,8 +96,6 @@ export default function ShopHomePage() {
             </Button>
           </div>
         </div>
-        <div className="absolute -top-20 -right-20 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-16 right-1/4 w-48 h-48 bg-accent/10 rounded-full blur-2xl" />
       </section>
 
       {/* Trust badges */}

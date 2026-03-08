@@ -13,7 +13,7 @@ const AnalyticsPage = () => {
         <CardHeader><CardTitle className="font-display text-base">{t.page_analytics_title}</CardTitle></CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Analytics data will appear here once InsForge tracking is active.
+            Analytics data will appear here once NeoVega tracking is active.
           </p>
         </CardContent>
       </Card>

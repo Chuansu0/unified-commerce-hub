@@ -115,7 +115,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     header_logout: "登出",
 
     home_hero_title: "探索知識的無限可能",
-    home_hero_subtitle: "從文學到科技，InsForge 為您嚴選最優質的內容產品",
+    home_hero_subtitle: "從文學到科技，NeoVega 為您嚴選最優質的內容產品",
     home_hero_cta: "立即選購",
     home_featured: "精選推薦",
     home_new_arrivals: "新品上架",
@@ -194,7 +194,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     footer_contact: "聯絡我們",
     footer_privacy: "隱私權政策",
     footer_terms: "服務條款",
-    footer_copyright: "© 2026 InsForge. 保留所有權利。",
+    footer_copyright: "© 2026 NeoVega. 保留所有權利。",
   },
   en: {
     header_home: "Home",
@@ -207,7 +207,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     header_logout: "Logout",
 
     home_hero_title: "Explore Infinite Knowledge",
-    home_hero_subtitle: "From literature to technology, InsForge curates the finest content products for you",
+    home_hero_subtitle: "From literature to technology, NeoVega curates the finest content products for you",
     home_hero_cta: "Shop Now",
     home_featured: "Featured",
     home_new_arrivals: "New Arrivals",
@@ -286,7 +286,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     footer_contact: "Contact Us",
     footer_privacy: "Privacy Policy",
     footer_terms: "Terms of Service",
-    footer_copyright: "© 2026 InsForge. All rights reserved.",
+    footer_copyright: "© 2026 NeoVega. All rights reserved.",
   },
   "zh-CN": {
     header_home: "首页",
@@ -299,7 +299,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     header_logout: "登出",
 
     home_hero_title: "探索知识的无限可能",
-    home_hero_subtitle: "从文学到科技，InsForge 为您严选最优质的内容产品",
+    home_hero_subtitle: "从文学到科技，NeoVega 为您严选最优质的内容产品",
     home_hero_cta: "立即选购",
     home_featured: "精选推荐",
     home_new_arrivals: "新品上架",
@@ -378,7 +378,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     footer_contact: "联系我们",
     footer_privacy: "隐私政策",
     footer_terms: "服务条款",
-    footer_copyright: "© 2026 InsForge. 保留所有权利。",
+    footer_copyright: "© 2026 NeoVega. 保留所有权利。",
   },
   ja: {
     header_home: "ホーム",
@@ -391,7 +391,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     header_logout: "ログアウト",
 
     home_hero_title: "知識の無限の可能性を探る",
-    home_hero_subtitle: "文学からテクノロジーまで、InsForge が最高のコンテンツ商品をお届け",
+    home_hero_subtitle: "文学からテクノロジーまで、NeoVega が最高のコンテンツ商品をお届け",
     home_hero_cta: "今すぐ購入",
     home_featured: "おすすめ",
     home_new_arrivals: "新着商品",
@@ -470,7 +470,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     footer_contact: "お問い合わせ",
     footer_privacy: "プライバシーポリシー",
     footer_terms: "利用規約",
-    footer_copyright: "© 2026 InsForge. All rights reserved.",
+    footer_copyright: "© 2026 NeoVega. All rights reserved.",
   },
 };
 

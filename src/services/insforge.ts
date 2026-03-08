@@ -58,16 +58,16 @@ function getMockData<T>(path: string): T {
   return [] as T;
 }
 
-// Generic InsForge HTTP client for the main database.
+// Generic NeoVega HTTP client for the main database.
 
-async function insforgeRequest<T>(
+async function neovegaRequest<T>(
   path: string,
   options?: RequestInit
 ): Promise<T> {
   const baseUrl = config.insforge.baseUrl;
   const apiKey = config.insforge.apiKey;
   if (!baseUrl) {
-    console.warn("INSFORGE_BASE_URL not configured – using mock data");
+    console.warn("NEOVEGA_BASE_URL not configured – using mock data");
     return getMockData<T>(path);
   }
 
@@ -79,44 +79,50 @@ async function insforgeRequest<T>(
       ...options?.headers,
     },
   });
-  if (!res.ok) throw new Error(`InsForge ${path}: ${res.status}`);
+  if (!res.ok) throw new Error(`NeoVega ${path}: ${res.status}`);
   return res.json();
 }
 
 // ─── Users ────────────────────────────────────────────────────────
-export const insforgeUsers = {
-  list: () => insforgeRequest<unknown[]>("/users"),
-  get: (id: string) => insforgeRequest<unknown>(`/users/${id}`),
+export const neovegaUsers = {
+  list: () => neovegaRequest<unknown[]>("/users"),
+  get: (id: string) => neovegaRequest<unknown>(`/users/${id}`),
 };
+// Backward compat
+export const insforgeUsers = neovegaUsers;
 
 // ─── Products ─────────────────────────────────────────────────────
-export const insforgeProducts = {
-  list: () => insforgeRequest<unknown[]>("/products"),
-  get: (id: string) => insforgeRequest<unknown>(`/products/${id}`),
+export const neovegaProducts = {
+  list: () => neovegaRequest<unknown[]>("/products"),
+  get: (id: string) => neovegaRequest<unknown>(`/products/${id}`),
 };
+export const insforgeProducts = neovegaProducts;
 
 // ─── Orders ───────────────────────────────────────────────────────
-export const insforgeOrders = {
-  list: () => insforgeRequest<unknown[]>("/orders"),
-  get: (id: string) => insforgeRequest<unknown>(`/orders/${id}`),
+export const neovegaOrders = {
+  list: () => neovegaRequest<unknown[]>("/orders"),
+  get: (id: string) => neovegaRequest<unknown>(`/orders/${id}`),
   create: (data: unknown) =>
-    insforgeRequest<unknown>("/orders", {
+    neovegaRequest<unknown>("/orders", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 };
+export const insforgeOrders = neovegaOrders;
 
 // ─── Conversations ────────────────────────────────────────────────
-export const insforgeConversations = {
-  list: () => insforgeRequest<unknown[]>("/conversations"),
-  get: (id: string) => insforgeRequest<unknown>(`/conversations/${id}`),
+export const neovegaConversations = {
+  list: () => neovegaRequest<unknown[]>("/conversations"),
+  get: (id: string) => neovegaRequest<unknown>(`/conversations/${id}`),
 };
+export const insforgeConversations = neovegaConversations;
 
 // ─── Analytics ────────────────────────────────────────────────────
-export const insforgeAnalytics = {
+export const neovegaAnalytics = {
   track: (event: Record<string, unknown>) =>
-    insforgeRequest<unknown>("/analytics", {
+    neovegaRequest<unknown>("/analytics", {
       method: "POST",
       body: JSON.stringify(event),
     }),
 };
+export const insforgeAnalytics = neovegaAnalytics;

@@ -75,7 +75,7 @@ export function useChat(userId: string) {
           }
         } else {
           // LLM mode
-          const systemPrompt = settings.openclaw.systemPrompt || "你是 InsForge 的智慧客服助理，擅長回答商品與訂單相關問題。請使用繁體中文回覆。";
+          const systemPrompt = settings.openclaw.systemPrompt || "你是 NeoVega 的智慧客服助理，擅長回答商品與訂單相關問題。請使用繁體中文回覆。";
           const llmMessages = buildLLMMessages(recentHistory, systemPrompt);
 
           try {

@@ -52,10 +52,10 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-              <span className="text-sidebar-primary-foreground font-display font-bold text-sm">IF</span>
+              <span className="text-sidebar-primary-foreground font-display font-bold text-sm">NV</span>
             </div>
             <div>
-              <h2 className="font-display text-sm font-semibold text-sidebar-accent-foreground">InsForge</h2>
+              <h2 className="font-display text-sm font-semibold text-sidebar-accent-foreground">NeoVega</h2>
               <p className="text-xs text-sidebar-foreground">{t.sidebar_admin_dashboard}</p>
             </div>
           </div>
@@ -63,7 +63,7 @@ export function AppSidebar() {
         {collapsed && (
           <div className="flex justify-center">
             <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-              <span className="text-sidebar-primary-foreground font-display font-bold text-sm">IF</span>
+              <span className="text-sidebar-primary-foreground font-display font-bold text-sm">NV</span>
             </div>
           </div>
         )}
@@ -128,7 +128,7 @@ export function AppSidebar() {
             </div>
             <div className="text-xs">
               <p className="text-sidebar-accent-foreground font-medium">Admin</p>
-              <p className="text-sidebar-foreground">admin@insforge.app</p>
+              <p className="text-sidebar-foreground">admin@neovega.cc</p>
             </div>
           </div>
         )}

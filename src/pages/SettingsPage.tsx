@@ -177,7 +177,7 @@ const SettingsPage = () => {
                 id="oc-prompt"
                 value={settings.openclaw.systemPrompt}
                 onChange={(e) => updateOpenClaw({ systemPrompt: e.target.value })}
-                placeholder="你是 InsForge 的智慧客服助理，擅長回答商品與訂單相關問題…"
+                placeholder="你是 NeoVega 的智慧客服助理，擅長回答商品與訂單相關問題…"
                 rows={3}
                 className="text-sm resize-none"
                 maxLength={2000}
@@ -310,7 +310,7 @@ const SettingsPage = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           {[
-            { name: "InsForge", env: "INSFORGE_BASE_URL", desc: "主資料庫" },
+            { name: "NeoVega", env: "INSFORGE_BASE_URL", desc: "主資料庫" },
             { name: "n8n Chat", env: "N8N_CHAT_WEBHOOK_URL", desc: "聊天工作流" },
             { name: "n8n Order", env: "N8N_ORDER_WEBHOOK_URL", desc: "訂單工作流" },
             { name: "OpenClaw", env: "OPENCLAW_AGENT_URL", desc: "AI Agent" },

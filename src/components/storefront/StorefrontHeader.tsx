@@ -45,7 +45,7 @@ export function StorefrontHeader() {
       {/* Top bar */}
       <div className="bg-foreground text-primary-foreground">
         <div className="container mx-auto px-4 py-1.5 flex items-center justify-between text-xs">
-          <span className="opacity-80">InsForge — {st.home_hero_subtitle.slice(0, 40)}...</span>
+          <span className="opacity-80">NeoVega — {st.home_hero_subtitle.slice(0, 40)}...</span>
           <div className="flex items-center gap-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -96,9 +96,9 @@ export function StorefrontHeader() {
         {/* Logo */}
         <Link to="/shop" className="flex items-center gap-2 shrink-0">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-display font-bold text-sm">IF</span>
+            <span className="text-primary-foreground font-display font-bold text-sm">NV</span>
           </div>
-          <span className="font-display font-bold text-lg text-foreground hidden sm:block">InsForge</span>
+          <span className="font-display font-bold text-lg text-foreground hidden sm:block">NeoVega</span>
         </Link>
 
         {/* Search */}

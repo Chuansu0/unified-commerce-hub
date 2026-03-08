@@ -59,7 +59,7 @@ const translations: Record<Locale, Translations> = {
     sidebar_admin_dashboard: "管理後台",
 
     page_dashboard_title: "儀表板",
-    page_dashboard_desc: "InsForge 平台總覽",
+    page_dashboard_desc: "NeoVega 平台總覽",
     page_orders_title: "訂單管理",
     page_orders_desc: "查看與管理所有訂單",
     page_products_title: "商品管理",
@@ -86,7 +86,7 @@ const translations: Record<Locale, Translations> = {
     sidebar_admin_dashboard: "Admin Dashboard",
 
     page_dashboard_title: "Dashboard",
-    page_dashboard_desc: "InsForge platform overview",
+    page_dashboard_desc: "NeoVega platform overview",
     page_orders_title: "Orders",
     page_orders_desc: "View and manage all orders",
     page_products_title: "Products",
@@ -113,7 +113,7 @@ const translations: Record<Locale, Translations> = {
     sidebar_admin_dashboard: "管理后台",
 
     page_dashboard_title: "仪表盘",
-    page_dashboard_desc: "InsForge 平台总览",
+    page_dashboard_desc: "NeoVega 平台总览",
     page_orders_title: "订单管理",
     page_orders_desc: "查看与管理所有订单",
     page_products_title: "商品管理",
@@ -140,7 +140,7 @@ const translations: Record<Locale, Translations> = {
     sidebar_admin_dashboard: "管理ダッシュボード",
 
     page_dashboard_title: "ダッシュボード",
-    page_dashboard_desc: "InsForge プラットフォーム概要",
+    page_dashboard_desc: "NeoVega プラットフォーム概要",
     page_orders_title: "注文管理",
     page_orders_desc: "すべての注文を表示・管理",
     page_products_title: "商品管理",
