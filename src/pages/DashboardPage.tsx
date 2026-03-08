@@ -73,6 +73,23 @@ const DashboardPage = () => {
         ))}
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-display text-base">營收趨勢</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart data={revenueByDay}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+              <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" tickFormatter={(v) => `$${v.toLocaleString()}`} />
+              <Tooltip formatter={(value: number) => [`NT$${value.toLocaleString()}`, "營收"]} />
+              <Line type="monotone" dataKey="revenue" className="stroke-primary" strokeWidth={2} dot={{ r: 4, className: "fill-primary" }} activeDot={{ r: 6 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
