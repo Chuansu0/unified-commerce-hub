@@ -157,17 +157,46 @@ export function StorefrontHeader() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="relative">
                 <User className="h-5 w-5" />
+                {isAuthenticated && (
+                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-card" />
+                )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigate("/shop/login")}>
-                {st.header_login}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/shop/register")}>
-                {st.header_register}
-              </DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-48">
+              {isAuthenticated ? (
+                <>
+                  <div className="px-2 py-1.5 text-sm font-medium text-foreground truncate">
+                    {username}
+                  </div>
+                  <div className="px-2 pb-1.5 text-xs text-muted-foreground">
+                    {role === "superadmin"
+                      ? (locale === "en" ? "Super Admin" : "超級管理員")
+                      : (locale === "en" ? "Member" : "會員")}
+                  </div>
+                  <DropdownMenuSeparator />
+                  {role === "superadmin" && (
+                    <DropdownMenuItem onClick={() => navigate("/")}>
+                      <Shield className="mr-2 h-4 w-4" />
+                      {locale === "en" ? "Admin Panel" : "後台管理"}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {locale === "en" ? "Logout" : "登出"}
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem onClick={() => navigate("/shop/login")}>
+                    {st.header_login}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/shop/register")}>
+                    {st.header_register}
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
