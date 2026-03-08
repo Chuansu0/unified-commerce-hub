@@ -14,6 +14,7 @@ import CustomerInfoPanel, { type CustomerInfo } from "@/components/chat/Customer
 import { useChat } from "@/hooks/useChat";
 import { insforgeConversations, insforgeOrders } from "@/services/insforge";
 import { loadAISettings, getActiveAISource } from "@/services/aiSettings";
+import { useI18n } from "@/i18n/I18nContext";
 import type { Message } from "@/components/chat/ChatMessage";
 
 // Map conversation user names to customer data
