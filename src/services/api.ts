@@ -1,4 +1,5 @@
 import { config } from "./config";
+import type { AISettings } from "./aiSettings";
 
 // ─── OpenClaw Agent ───────────────────────────────────────────────
 export interface OpenClawRequest {
@@ -17,17 +18,79 @@ export interface OpenClawResponse {
   analyticsEvents: unknown[];
 }
 
-export async function callOpenClaw(req: OpenClawRequest): Promise<OpenClawResponse> {
-  const url = config.openclaw.agentUrl;
-  if (!url) throw new Error("OPENCLAW_AGENT_URL not configured");
+export async function callOpenClaw(req: OpenClawRequest, settings?: AISettings): Promise<OpenClawResponse> {
+  const url = settings?.openclaw?.agentUrl || config.openclaw.agentUrl;
+  if (!url) throw new Error("OpenClaw Agent URL 未設定，請至 Settings 頁面設定");
+
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const apiKey = settings?.openclaw?.apiKey;
+  if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+
+  const body: Record<string, unknown> = {
+    userId: req.userId,
+    message: req.message,
+    context: req.context,
+    historySummary: req.historySummary,
+  };
+  if (settings?.openclaw?.systemPrompt) {
+    body.systemPrompt = settings.openclaw.systemPrompt;
+  }
+
+  const timeout = Number(settings?.openclaw?.timeout) || 30;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout * 1000);
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`OpenClaw error: ${res.status}`);
+    return res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ─── Generic LLM (OpenAI-compatible) ─────────────────────────────
+export interface LLMChatMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+export async function callLLM(
+  messages: LLMChatMessage[],
+  settings: AISettings
+): Promise<string> {
+  const { baseUrl, apiToken, model, temperature, maxTokens } = settings.llm;
+  if (!baseUrl) throw new Error("大模型 Base URL 未設定，請至 Settings 頁面設定");
+  if (!apiToken) throw new Error("大模型 API Token 未設定，請至 Settings 頁面設定");
+
+  const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
 
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiToken}`,
+    },
+    body: JSON.stringify({
+      model: model || "gpt-4o",
+      messages,
+      temperature: Number(temperature) || 0.7,
+      max_tokens: Number(maxTokens) || 2048,
+    }),
   });
-  if (!res.ok) throw new Error(`OpenClaw error: ${res.status}`);
-  return res.json();
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`LLM API error: ${res.status} ${text.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content ?? "";
 }
 
 // ─── n8n Chat Webhook ─────────────────────────────────────────────
