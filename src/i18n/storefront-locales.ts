@@ -272,7 +272,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     cat_food_craft: "Food & Craft",
     cat_science: "Science & Nature",
     cat_computer: "Computer & IT",
-    cat_children: "Children & Parenting",
+    cat_children: "Curated Programs",
     cat_exam: "Test Prep",
     cat_acg: "Anime/Comics/Games",
 
