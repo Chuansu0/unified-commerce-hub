@@ -180,7 +180,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     cat_food_craft: "飲食手作",
     cat_science: "自然科普",
     cat_computer: "電腦資訊",
-    cat_children: "童書/親子",
+    cat_children: "精選程式",
     cat_exam: "考試用書",
     cat_acg: "動漫/遊戲",
 
@@ -272,7 +272,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     cat_food_craft: "Food & Craft",
     cat_science: "Science & Nature",
     cat_computer: "Computer & IT",
-    cat_children: "Children & Parenting",
+    cat_children: "Curated Programs",
     cat_exam: "Test Prep",
     cat_acg: "Anime/Comics/Games",
 
@@ -364,7 +364,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     cat_food_craft: "饮食手作",
     cat_science: "自然科普",
     cat_computer: "电脑资讯",
-    cat_children: "童书/亲子",
+    cat_children: "精选程式",
     cat_exam: "考试用书",
     cat_acg: "动漫/游戏",
 
@@ -456,7 +456,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     cat_food_craft: "料理・手芸",
     cat_science: "自然科学",
     cat_computer: "コンピュータ・IT",
-    cat_children: "児童書・育児",
+    cat_children: "厳選プログラム",
     cat_exam: "試験対策",
     cat_acg: "アニメ・漫画・ゲーム",
 
