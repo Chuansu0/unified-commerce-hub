@@ -5,13 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Plus, Search, Bot, User, Wifi, WifiOff, Sparkles, Pencil } from "lucide-react";
+import { Plus, Search, Bot, User, Sparkles, Pencil, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 import ChatMessage from "@/components/chat/ChatMessage";
 import ChatInput from "@/components/chat/ChatInput";
 import ConversationList, { type Conversation } from "@/components/chat/ConversationList";
 import { useChat } from "@/hooks/useChat";
-import { config } from "@/services/config";
 import { insforgeConversations } from "@/services/insforge";
+import { loadAISettings, getActiveAISource } from "@/services/aiSettings";
 import type { Message } from "@/components/chat/ChatMessage";
 
 const DEMO_USER_ID = "admin-operator";
@@ -70,7 +71,10 @@ const ConversationsPage = () => {
     });
   }, []);
 
-  const isConnected = Boolean(config.openclaw.agentUrl || config.n8n.chatWebhookUrl);
+  const aiSettings = loadAISettings();
+  const activeSource = getActiveAISource(aiSettings);
+  const isConnected = activeSource !== null;
+  const sourceLabel = activeSource === "openclaw" ? "OpenClaw" : activeSource === "llm" ? "LLM API" : null;
 
   const currentMessages = activeConvId ? (convMessages[activeConvId] ?? []) : [];
 
@@ -130,8 +134,9 @@ const ConversationsPage = () => {
         [activeConvId]: [...(prev[activeConvId] ?? []), adminMsg],
       }));
     } else {
-      // AI mode — send through useChat
-      aiSend(text);
+      // AI mode — send through useChat with conversation history for context
+      const convHistory = convMessages[activeConvId] ?? [];
+      aiSend(text, convHistory);
       // Also store user message in convMessages
       const userMsg: Message = {
         id: crypto.randomUUID(),
@@ -153,7 +158,7 @@ const ConversationsPage = () => {
           : c
       )
     );
-  }, [activeConvId, replyMode, aiSend]);
+  }, [activeConvId, replyMode, aiSend, convMessages]);
 
   const filtered = conversations.filter(
     (c) =>
@@ -177,9 +182,17 @@ const ConversationsPage = () => {
             variant={isConnected ? "default" : "secondary"}
             className="gap-1.5 font-mono text-xs"
           >
-            {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-            {isConnected ? "Connected" : "Not configured"}
+            <Sparkles className="h-3 w-3" />
+            {isConnected ? sourceLabel : "AI 未設定"}
           </Badge>
+          {!isConnected && (
+            <Link to="/settings">
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                <Settings className="h-3 w-3" />
+                前往設定
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
