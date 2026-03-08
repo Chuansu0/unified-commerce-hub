@@ -1,19 +1,29 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Plus, Search, Bot, User, Sparkles, Pencil, Settings } from "lucide-react";
+import { Plus, Search, Bot, User, Sparkles, Pencil, Settings, UserCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import ChatMessage from "@/components/chat/ChatMessage";
 import ChatInput from "@/components/chat/ChatInput";
 import ConversationList, { type Conversation } from "@/components/chat/ConversationList";
+import CustomerInfoPanel, { type CustomerInfo } from "@/components/chat/CustomerInfoPanel";
 import { useChat } from "@/hooks/useChat";
-import { insforgeConversations } from "@/services/insforge";
+import { insforgeConversations, insforgeOrders } from "@/services/insforge";
 import { loadAISettings, getActiveAISource } from "@/services/aiSettings";
 import type { Message } from "@/components/chat/ChatMessage";
+
+// Map conversation user names to customer data
+const CUSTOMER_JOIN_DATES: Record<string, string> = {
+  "Alice Chen": "2025-08-15",
+  "Bob Wang": "2025-11-02",
+  "Carol Lin": "2025-12-20",
+  "David Huang": "2026-01-10",
+  "Eva Wu": "2025-09-05",
+};
 
 const DEMO_USER_ID = "admin-operator";
 
@@ -54,8 +64,15 @@ const ConversationsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [replyMode, setReplyMode] = useState<"ai" | "manual">("manual");
   const [convMessages, setConvMessages] = useState<Record<string, Message[]>>({ ...MOCK_MESSAGES });
+  const [showCustomerInfo, setShowCustomerInfo] = useState(true);
+  const [allOrders, setAllOrders] = useState<any[]>([]);
   const { messages: aiMessages, loading: aiLoading, sendMessage: aiSend, clearMessages } = useChat(DEMO_USER_ID);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Load orders for customer info panel
+  useEffect(() => {
+    insforgeOrders.list().then((data: any[]) => setAllOrders(data));
+  }, []);
 
   useEffect(() => {
     insforgeConversations.list().then((data: any[]) => {
@@ -168,6 +185,30 @@ const ConversationsPage = () => {
 
   const activeConv = conversations.find((c) => c.id === activeConvId);
 
+  // Derive customer info from active conversation + orders
+  const customerInfo: CustomerInfo | null = useMemo(() => {
+    if (!activeConv) return null;
+    const name = activeConv.userId;
+    const customerOrders = allOrders.filter((o: any) => o.customer_name === name);
+    const totalSpent = customerOrders.reduce((sum: number, o: any) => sum + (o.total ?? 0), 0);
+    const email = customerOrders[0]?.customer_email ?? `${name.toLowerCase().replace(/\s/g, ".")}@example.com`;
+    return {
+      name,
+      email,
+      totalOrders: customerOrders.length,
+      totalSpent,
+      joinDate: CUSTOMER_JOIN_DATES[name] ?? "2026-01-01",
+      orders: customerOrders.map((o: any) => ({
+        id: o.id,
+        status: o.status ?? "pending",
+        total: o.total ?? 0,
+        currency: o.currency ?? "TWD",
+        created_at: o.created_at ?? "",
+        items: o.items,
+      })),
+    };
+  }, [activeConv, allOrders]);
+
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)] gap-4">
       <div className="flex items-center justify-between">
@@ -241,6 +282,15 @@ const ConversationsPage = () => {
                   {activeConv?.intent && (
                     <Badge variant="secondary" className="text-[10px] font-mono">{activeConv.intent}</Badge>
                   )}
+                  <Button
+                    variant={showCustomerInfo ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => setShowCustomerInfo(!showCustomerInfo)}
+                  >
+                    <UserCircle className="h-3 w-3" />
+                    客戶
+                  </Button>
                 </div>
                 <div className="flex items-center gap-2">
                   {currentMessages.length > 0 && (
@@ -316,6 +366,14 @@ const ConversationsPage = () => {
             </div>
           )}
         </div>
+
+        {/* Customer info sidebar */}
+        {activeConvId && showCustomerInfo && (
+          <CustomerInfoPanel
+            customer={customerInfo}
+            onClose={() => setShowCustomerInfo(false)}
+          />
+        )}
       </Card>
     </div>
   );
