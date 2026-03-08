@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Search, Package, Plus } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Search, Package, Plus, ImagePlus, X } from "lucide-react";
 import { insforgeProducts } from "@/services/insforge";
 import { toast } from "sonner";
 import { useI18n } from "@/i18n/I18nContext";
@@ -21,6 +23,8 @@ interface Product {
   stock: number;
   status: string;
   created_at: string;
+  image?: string;
+  description?: string;
 }
 
 const statusVariant = (s: string) => {
@@ -64,6 +68,9 @@ const ProductsPage = () => {
   const [formPrice, setFormPrice] = useState("");
   const [formStock, setFormStock] = useState("");
   const [formStatus, setFormStatus] = useState("active");
+  const [formImage, setFormImage] = useState<string | null>(null);
+  const [formDescription, setFormDescription] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     insforgeProducts.list().then((data) => setProducts(data as Product[]));
@@ -87,6 +94,26 @@ const ProductsPage = () => {
     setFormPrice("");
     setFormStock("");
     setFormStatus("active");
+    setFormImage(null);
+    setFormDescription("");
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("請選擇圖片檔案");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("圖片大小不得超過 5MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setFormImage(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = () => {
@@ -121,6 +148,8 @@ const ProductsPage = () => {
       stock,
       status: formStatus,
       created_at: new Date().toISOString(),
+      image: formImage || undefined,
+      description: formDescription.trim() || undefined,
     };
 
     setProducts((prev) => [newProduct, ...prev]);
@@ -148,15 +177,68 @@ const ProductsPage = () => {
                 新增商品
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-display">新增商品</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4">
+                {/* Image Upload */}
+                <div className="grid gap-2">
+                  <Label>商品圖片</Label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                  {formImage ? (
+                    <div className="relative w-full aspect-square rounded-lg overflow-hidden border border-border bg-secondary">
+                      <img
+                        src={formImage}
+                        alt="商品預覽"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormImage(null)}
+                        className="absolute top-2 right-2 p-1 rounded-full bg-background/80 hover:bg-background text-foreground transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex flex-col items-center justify-center gap-2 w-full aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 bg-secondary/50 hover:bg-secondary hover:border-primary/50 transition-colors cursor-pointer"
+                    >
+                      <ImagePlus className="h-10 w-10 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">點擊上傳商品圖片</span>
+                      <span className="text-xs text-muted-foreground/60">支援 JPG、PNG，最大 5MB</span>
+                    </button>
+                  )}
+                </div>
+
                 <div className="grid gap-2">
                   <Label htmlFor="product-name">商品名稱</Label>
                   <Input id="product-name" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="例如：經典白T恤" maxLength={100} />
                 </div>
+
+                {/* Description */}
+                <div className="grid gap-2">
+                  <Label htmlFor="product-desc">商品詳細說明</Label>
+                  <Textarea
+                    id="product-desc"
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    placeholder="詳細描述商品的材質、功能、規格等資訊…（游標移至圖片上方時將顯示此說明）"
+                    rows={4}
+                    maxLength={1000}
+                  />
+                  <span className="text-xs text-muted-foreground text-right">{formDescription.length}/1000</span>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label>分類</Label>
@@ -235,7 +317,8 @@ const ProductsPage = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-6">商品名稱</TableHead>
+                <TableHead className="pl-6 w-16">圖片</TableHead>
+                <TableHead>商品名稱</TableHead>
                 <TableHead>分類</TableHead>
                 <TableHead className="text-right">價格</TableHead>
                 <TableHead className="text-right">庫存</TableHead>
@@ -246,14 +329,50 @@ const ProductsPage = () => {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
                     沒有符合條件的商品
                   </TableCell>
                 </TableRow>
               ) : (
                 filtered.map((p) => (
                   <TableRow key={p.id}>
-                    <TableCell className="pl-6 font-medium">{p.name}</TableCell>
+                    <TableCell className="pl-6">
+                      {p.image ? (
+                        <HoverCard openDelay={200} closeDelay={100}>
+                          <HoverCardTrigger asChild>
+                            <div className="w-12 h-12 rounded-md overflow-hidden border border-border cursor-pointer flex-shrink-0">
+                              <img
+                                src={p.image}
+                                alt={p.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          </HoverCardTrigger>
+                          <HoverCardContent side="right" className="w-80 p-0 overflow-hidden">
+                            <div className="aspect-video w-full overflow-hidden">
+                              <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                            </div>
+                            {p.description && (
+                              <div className="p-3">
+                                <p className="text-sm font-medium text-foreground mb-1">{p.name}</p>
+                                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{p.description}</p>
+                              </div>
+                            )}
+                            {!p.description && (
+                              <div className="p-3">
+                                <p className="text-sm font-medium text-foreground">{p.name}</p>
+                                <p className="text-xs text-muted-foreground mt-1">尚未填寫商品說明</p>
+                              </div>
+                            )}
+                          </HoverCardContent>
+                        </HoverCard>
+                      ) : (
+                        <div className="w-12 h-12 rounded-md border border-dashed border-muted-foreground/30 bg-secondary/50 flex items-center justify-center flex-shrink-0">
+                          <Package className="h-4 w-4 text-muted-foreground/50" />
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-[10px] font-mono">{p.category}</Badge>
                     </TableCell>
