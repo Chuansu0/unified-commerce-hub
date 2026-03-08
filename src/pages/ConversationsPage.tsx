@@ -364,6 +364,14 @@ const ConversationsPage = () => {
             </div>
           )}
         </div>
+
+        {/* Customer info sidebar */}
+        {activeConvId && showCustomerInfo && (
+          <CustomerInfoPanel
+            customer={customerInfo}
+            onClose={() => setShowCustomerInfo(false)}
+          />
+        )}
       </Card>
     </div>
   );
