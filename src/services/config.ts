@@ -16,4 +16,7 @@ export const config = {
   app: {
     baseUrl: import.meta.env.VITE_PUBLIC_APP_BASE_URL as string | undefined,
   },
+  auth: {
+    apiUrl: import.meta.env.VITE_AUTH_API_URL as string | undefined,
+  },
 };
