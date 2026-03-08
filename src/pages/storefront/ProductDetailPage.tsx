@@ -31,7 +31,7 @@ export default function ProductDetailPage() {
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : null;
 
-  const relatedProducts = MOCK_PRODUCTS.filter(
+  const relatedProducts = products.filter(
     (p) => p.category === product.category && p.id !== product.id
   ).slice(0, 4);
 
