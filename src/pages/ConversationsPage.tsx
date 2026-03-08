@@ -5,13 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Plus, Search, Bot, User, Wifi, WifiOff, Sparkles, Pencil } from "lucide-react";
+import { Plus, Search, Bot, User, Sparkles, Pencil, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 import ChatMessage from "@/components/chat/ChatMessage";
 import ChatInput from "@/components/chat/ChatInput";
 import ConversationList, { type Conversation } from "@/components/chat/ConversationList";
 import { useChat } from "@/hooks/useChat";
-import { config } from "@/services/config";
 import { insforgeConversations } from "@/services/insforge";
+import { loadAISettings, getActiveAISource } from "@/services/aiSettings";
 import type { Message } from "@/components/chat/ChatMessage";
 
 const DEMO_USER_ID = "admin-operator";
