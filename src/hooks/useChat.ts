@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
-import { callOpenClaw } from "@/services/api";
-import { callN8nChat } from "@/services/api";
+import { callOpenClaw, callN8nChat, callLLM } from "@/services/api";
+import type { LLMChatMessage } from "@/services/api";
+import { loadAISettings, getActiveAISource } from "@/services/aiSettings";
 import type { Message } from "@/components/chat/ChatMessage";
 
 const generateId = () => crypto.randomUUID();
@@ -11,7 +12,7 @@ export function useChat(userId: string) {
   const [error, setError] = useState<string | null>(null);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, conversationHistory?: Message[]) => {
       setError(null);
       const userMsg: Message = {
         id: generateId(),
@@ -23,52 +24,98 @@ export function useChat(userId: string) {
       setLoading(true);
 
       try {
-        // Build history summary from recent messages
-        const recentMessages = [...messages, userMsg].slice(-10);
-        const historySummary = recentMessages
-          .map((m) => `${m.role}: ${m.content}`)
-          .join("\n");
+        const settings = loadAISettings();
+        const source = getActiveAISource(settings);
 
-        // Call OpenClaw first
-        const clawRes = await callOpenClaw({
-          userId,
-          message: text,
-          context: {},
-          historySummary,
-        });
+        if (!source) {
+          throw new Error("尚未設定 AI 服務，請至 Settings 頁面設定 OpenClaw 或大模型 API");
+        }
 
-        // If OpenClaw requests n8n workflows, also call n8n chat
-        let n8nReply: string | null = null;
-        if (clawRes.n8nWorkflowsToTrigger?.length > 0) {
+        // Build history from conversation context
+        const history = conversationHistory
+          ? [...conversationHistory, userMsg]
+          : [...messages, userMsg];
+        const recentHistory = history.slice(-10);
+
+        let reply = "";
+        let intent: string | undefined;
+        let suggestedProducts: unknown[] | undefined;
+
+        if (source === "openclaw") {
+          const historySummary = recentHistory
+            .map((m) => `${m.role}: ${m.content}`)
+            .join("\n");
+
           try {
-            const n8nRes = await callN8nChat({ userId, message: text, context: {} });
-            n8nReply = n8nRes.reply;
-          } catch {
-            // n8n is optional; don't block the conversation
+            const clawRes = await callOpenClaw(
+              { userId, message: text, context: {}, historySummary },
+              settings
+            );
+            reply = clawRes.reply;
+            intent = clawRes.intent;
+            suggestedProducts = clawRes.productSuggestions;
+
+            // Trigger n8n if needed
+            if (clawRes.n8nWorkflowsToTrigger?.length > 0) {
+              try {
+                const n8nRes = await callN8nChat({ userId, message: text, context: {} });
+                if (n8nRes.reply) reply = n8nRes.reply;
+              } catch { /* n8n is optional */ }
+            }
+          } catch (err) {
+            // Try fallback to LLM
+            const fallback = settings.llm.enabled && settings.llm.baseUrl.trim() && settings.llm.apiToken.trim();
+            if (fallback) {
+              console.warn("OpenClaw failed, falling back to LLM:", err);
+              const llmMessages = buildLLMMessages(recentHistory, settings.openclaw.systemPrompt);
+              reply = await callLLM(llmMessages, settings);
+            } else {
+              throw err;
+            }
+          }
+        } else {
+          // LLM mode
+          const systemPrompt = settings.openclaw.systemPrompt || "你是 InsForge 的智慧客服助理，擅長回答商品與訂單相關問題。請使用繁體中文回覆。";
+          const llmMessages = buildLLMMessages(recentHistory, systemPrompt);
+
+          try {
+            reply = await callLLM(llmMessages, settings);
+          } catch (err) {
+            // Try fallback to OpenClaw
+            const fallback = settings.openclaw.enabled && settings.openclaw.agentUrl.trim();
+            if (fallback) {
+              console.warn("LLM failed, falling back to OpenClaw:", err);
+              const historySummary = recentHistory.map((m) => `${m.role}: ${m.content}`).join("\n");
+              const clawRes = await callOpenClaw(
+                { userId, message: text, context: {}, historySummary },
+                settings
+              );
+              reply = clawRes.reply;
+              intent = clawRes.intent;
+            } else {
+              throw err;
+            }
           }
         }
 
         const assistantMsg: Message = {
           id: generateId(),
           role: "assistant",
-          content: n8nReply || clawRes.reply,
+          content: reply,
           timestamp: new Date(),
-          intent: clawRes.intent,
-          suggestedProducts: clawRes.productSuggestions,
+          intent,
+          suggestedProducts,
         };
         setMessages((prev) => [...prev, assistantMsg]);
       } catch (err) {
-        const errMessage =
-          err instanceof Error ? err.message : "Failed to get response";
+        const errMessage = err instanceof Error ? err.message : "Failed to get response";
         setError(errMessage);
-
-        // Add a system error message so the user can see it in chat
         setMessages((prev) => [
           ...prev,
           {
             id: generateId(),
-            role: "assistant",
-            content: `⚠️ ${errMessage}. Make sure the backend services are configured and running.`,
+            role: "assistant" as const,
+            content: `⚠️ ${errMessage}`,
             timestamp: new Date(),
           },
         ]);
@@ -85,4 +132,17 @@ export function useChat(userId: string) {
   }, []);
 
   return { messages, loading, error, sendMessage, clearMessages };
+}
+
+function buildLLMMessages(history: Message[], systemPrompt?: string): LLMChatMessage[] {
+  const msgs: LLMChatMessage[] = [];
+  if (systemPrompt) {
+    msgs.push({ role: "system", content: systemPrompt });
+  }
+  for (const m of history) {
+    if (m.role === "user" || m.role === "assistant") {
+      msgs.push({ role: m.role, content: m.content });
+    }
+  }
+  return msgs;
 }
