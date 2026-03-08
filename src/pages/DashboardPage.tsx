@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, MessageSquare, TrendingUp, Package } from "lucide-react";
 import { insforgeOrders, insforgeProducts, insforgeConversations } from "@/services/insforge";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const DashboardPage = () => {
   const [orders, setOrders] = useState<any[]>([]);
@@ -17,6 +18,22 @@ const DashboardPage = () => {
 
   const totalRevenue = orders.reduce((sum, o) => sum + (o.status !== "cancelled" ? o.total : 0), 0);
   const unreadCount = conversations.reduce((sum, c) => sum + (c.unread || 0), 0);
+
+  const revenueByDay = useMemo(() => {
+    const map: Record<string, number> = {};
+    orders.forEach((o) => {
+      if (o.status === "cancelled") return;
+      const day = new Date(o.created_at).toLocaleDateString("zh-TW", { month: "numeric", day: "numeric" });
+      map[day] = (map[day] || 0) + o.total;
+    });
+    return Object.entries(map)
+      .map(([date, revenue]) => ({ date, revenue }))
+      .sort((a, b) => {
+        const pa = a.date.split("/").map(Number);
+        const pb = b.date.split("/").map(Number);
+        return pa[0] - pb[0] || pa[1] - pb[1];
+      });
+  }, [orders]);
 
   const stats = [
     { title: "訂單總數", value: orders.length.toString(), sub: `${orders.filter(o => o.status === "pending").length} 筆待處理`, icon: ShoppingCart, color: "text-primary" },
@@ -55,6 +72,23 @@ const DashboardPage = () => {
           </Card>
         ))}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-display text-base">營收趨勢</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart data={revenueByDay}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+              <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" tickFormatter={(v) => `$${v.toLocaleString()}`} />
+              <Tooltip formatter={(value: number) => [`NT$${value.toLocaleString()}`, "營收"]} />
+              <Line type="monotone" dataKey="revenue" className="stroke-primary" strokeWidth={2} dot={{ r: 4, className: "fill-primary" }} activeDot={{ r: 6 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
