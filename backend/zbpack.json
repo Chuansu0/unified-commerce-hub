@@ -1,4 +1,0 @@
-{
-    "build_command": "cd .. && bun install && bun run build",
-    "start_command": "node server.js"
-}
