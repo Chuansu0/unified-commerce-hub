@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Search, ShoppingCart, User, Globe, Menu } from "lucide-react";
+import { Search, ShoppingCart, User, Globe, Menu, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -14,7 +15,9 @@ import { useI18n } from "@/i18n/I18nContext";
 import { LOCALE_LABELS, LOCALE_FLAGS, type Locale } from "@/i18n/locales";
 import storefrontTranslations from "@/i18n/storefront-locales";
 import { getCartCount } from "@/store/cartStore";
+import { useAuthStore } from "@/store/authStore";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 export function StorefrontHeader() {
   const { locale, setLocale } = useI18n();
