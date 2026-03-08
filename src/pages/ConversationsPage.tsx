@@ -134,8 +134,9 @@ const ConversationsPage = () => {
         [activeConvId]: [...(prev[activeConvId] ?? []), adminMsg],
       }));
     } else {
-      // AI mode — send through useChat
-      aiSend(text);
+      // AI mode — send through useChat with conversation history for context
+      const convHistory = convMessages[activeConvId] ?? [];
+      aiSend(text, convHistory);
       // Also store user message in convMessages
       const userMsg: Message = {
         id: crypto.randomUUID(),
