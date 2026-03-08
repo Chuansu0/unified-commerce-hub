@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Search, Package, Plus, ImagePlus, X } from "lucide-react";
+import { Search, Package, Plus, ImagePlus, X, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/i18n/I18nContext";
-import { useProducts, addProduct, ADMIN_CATEGORIES, CATEGORY_LABELS } from "@/store/productStore";
+import { useProducts, addProduct, updateProduct, deleteProduct, ADMIN_CATEGORIES, CATEGORY_LABELS } from "@/store/productStore";
 import type { Product } from "@/store/mockProducts";
 
 const statusVariant = (s: string) => {
@@ -55,6 +56,8 @@ const ProductsPage = () => {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -97,6 +100,35 @@ const ProductsPage = () => {
     setFormRecommend([]);
     setFormBadges("");
     setFormFeatures("");
+    setEditingProduct(null);
+  };
+
+  const populateForm = (p: Product) => {
+    setFormName(p.name);
+    setFormNameEn(p.nameEn || "");
+    setFormCategory(p.category);
+    setFormPrice(String(p.price));
+    setFormOriginalPrice(p.originalPrice ? String(p.originalPrice) : "");
+    setFormStock(String(p.stock));
+    setFormImage(p.image || null);
+    setFormDescription(p.description || "");
+    setFormDescriptionEn(p.descriptionEn || "");
+    setFormRecommend(p.recommend || []);
+    setFormBadges(p.badges?.join(", ") || "");
+    setFormFeatures(p.features?.join(", ") || "");
+  };
+
+  const handleEdit = (p: Product) => {
+    setEditingProduct(p);
+    populateForm(p);
+    setDialogOpen(true);
+  };
+
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    deleteProduct(deleteTarget.id);
+    toast.success(`已刪除「${deleteTarget.name}」`);
+    setDeleteTarget(null);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,26 +179,128 @@ const ProductsPage = () => {
       return;
     }
 
-    addProduct({
+    const data = {
       name,
       nameEn: formNameEn.trim() || name,
       category: cat,
       price,
       originalPrice,
       stock,
-      status: deriveStatus(stock),
       image: formImage || undefined,
       description: formDescription.trim() || undefined,
       descriptionEn: formDescriptionEn.trim() || undefined,
       badges: formBadges.trim() ? formBadges.split(",").map((b) => b.trim()) : undefined,
       features: formFeatures.trim() ? formFeatures.split(",").map((f) => f.trim()) : undefined,
       recommend: formRecommend.length > 0 ? formRecommend : undefined,
-    });
+    };
+
+    if (editingProduct) {
+      updateProduct(editingProduct.id, data);
+      toast.success("商品已更新，前台商城即時同步");
+    } else {
+      addProduct({ ...data, status: deriveStatus(stock) });
+      toast.success("商品已新增，前台商城即時同步更新");
+    }
 
     resetForm();
     setDialogOpen(false);
-    toast.success("商品已新增，前台商城即時同步更新");
   };
+
+  // ----- Form fields shared between add / edit -----
+  const renderFormFields = () => (
+    <div className="grid gap-4 py-4">
+      {/* Image Upload */}
+      <div className="grid gap-2">
+        <Label>商品圖片</Label>
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+        {formImage ? (
+          <div className="relative w-full aspect-[3/2] rounded-lg overflow-hidden border border-border bg-secondary">
+            <img src={formImage} alt="商品預覽" className="w-full h-full object-cover" />
+            <button type="button" onClick={() => setFormImage(null)} className="absolute top-2 right-2 p-1 rounded-full bg-background/80 hover:bg-background text-foreground transition-colors">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <button type="button" onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center justify-center gap-2 w-full aspect-[3/2] rounded-lg border-2 border-dashed border-muted-foreground/30 bg-secondary/50 hover:bg-secondary hover:border-primary/50 transition-colors cursor-pointer">
+            <ImagePlus className="h-10 w-10 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">點擊上傳商品圖片</span>
+            <span className="text-xs text-muted-foreground/60">支援 JPG、PNG，最大 5MB</span>
+          </button>
+        )}
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="product-name">商品名稱（中文）</Label>
+        <Input id="product-name" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="例如：百年孤寂（典藏版）" maxLength={100} />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="product-name-en">商品名稱（英文）</Label>
+        <Input id="product-name-en" value={formNameEn} onChange={(e) => setFormNameEn(e.target.value)} placeholder="e.g. One Hundred Years of Solitude" maxLength={100} />
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="product-desc">商品詳細說明（中文）</Label>
+        <Textarea id="product-desc" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="詳細描述商品內容、特色…" rows={3} maxLength={1000} />
+        <span className="text-xs text-muted-foreground text-right">{formDescription.length}/1000</span>
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="product-desc-en">商品詳細說明（英文）</Label>
+        <Textarea id="product-desc-en" value={formDescriptionEn} onChange={(e) => setFormDescriptionEn(e.target.value)} placeholder="Product description in English..." rows={3} maxLength={1000} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label>分類</Label>
+          <Select value={formCategory} onValueChange={setFormCategory}>
+            <SelectTrigger><SelectValue placeholder="選擇分類" /></SelectTrigger>
+            <SelectContent>
+              {ADMIN_CATEGORIES.map((c) => (
+                <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid gap-2">
+          <Label>推薦分類</Label>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {RECOMMEND_OPTIONS.map((opt) => (
+              <label key={opt.value} className="flex items-center gap-1 text-xs cursor-pointer">
+                <Checkbox checked={formRecommend.includes(opt.value)} onCheckedChange={() => toggleRecommend(opt.value)} />
+                {opt.label}
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="product-price">售價（NT$）</Label>
+          <Input id="product-price" type="number" min="1" value={formPrice} onChange={(e) => setFormPrice(e.target.value)} placeholder="0" />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="product-original-price">原價（選填）</Label>
+          <Input id="product-original-price" type="number" min="1" value={formOriginalPrice} onChange={(e) => setFormOriginalPrice(e.target.value)} placeholder="留空表示無折扣" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="product-stock">庫存數量</Label>
+          <Input id="product-stock" type="number" min="0" value={formStock} onChange={(e) => setFormStock(e.target.value)} placeholder="0" />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="product-badges">標籤（逗號分隔）</Label>
+          <Input id="product-badges" value={formBadges} onChange={(e) => setFormBadges(e.target.value)} placeholder="熱銷, 新品" />
+        </div>
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="product-features">特色標籤（逗號分隔）</Label>
+        <Input id="product-features" value={formFeatures} onChange={(e) => setFormFeatures(e.target.value)} placeholder="精裝版, 全新翻譯" />
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -189,142 +323,36 @@ const ProductsPage = () => {
             </DialogTrigger>
             <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="font-display">新增商品</DialogTitle>
+                <DialogTitle className="font-display">{editingProduct ? "編輯商品" : "新增商品"}</DialogTitle>
+                <DialogDescription>{editingProduct ? "修改商品資訊後點擊儲存" : "填寫商品資訊以新增至商城"}</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                {/* Image Upload */}
-                <div className="grid gap-2">
-                  <Label>商品圖片</Label>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageUpload}
-                  />
-                  {formImage ? (
-                    <div className="relative w-full aspect-[3/2] rounded-lg overflow-hidden border border-border bg-secondary">
-                      <img src={formImage} alt="商品預覽" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setFormImage(null)}
-                        className="absolute top-2 right-2 p-1 rounded-full bg-background/80 hover:bg-background text-foreground transition-colors"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex flex-col items-center justify-center gap-2 w-full aspect-[3/2] rounded-lg border-2 border-dashed border-muted-foreground/30 bg-secondary/50 hover:bg-secondary hover:border-primary/50 transition-colors cursor-pointer"
-                    >
-                      <ImagePlus className="h-10 w-10 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">點擊上傳商品圖片</span>
-                      <span className="text-xs text-muted-foreground/60">支援 JPG、PNG，最大 5MB</span>
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="product-name">商品名稱（中文）</Label>
-                  <Input id="product-name" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="例如：百年孤寂（典藏版）" maxLength={100} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="product-name-en">商品名稱（英文）</Label>
-                  <Input id="product-name-en" value={formNameEn} onChange={(e) => setFormNameEn(e.target.value)} placeholder="e.g. One Hundred Years of Solitude" maxLength={100} />
-                </div>
-
-                {/* Description */}
-                <div className="grid gap-2">
-                  <Label htmlFor="product-desc">商品詳細說明（中文）</Label>
-                  <Textarea
-                    id="product-desc"
-                    value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                    placeholder="詳細描述商品內容、特色…"
-                    rows={3}
-                    maxLength={1000}
-                  />
-                  <span className="text-xs text-muted-foreground text-right">{formDescription.length}/1000</span>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="product-desc-en">商品詳細說明（英文）</Label>
-                  <Textarea
-                    id="product-desc-en"
-                    value={formDescriptionEn}
-                    onChange={(e) => setFormDescriptionEn(e.target.value)}
-                    placeholder="Product description in English..."
-                    rows={3}
-                    maxLength={1000}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label>分類</Label>
-                    <Select value={formCategory} onValueChange={setFormCategory}>
-                      <SelectTrigger><SelectValue placeholder="選擇分類" /></SelectTrigger>
-                      <SelectContent>
-                        {ADMIN_CATEGORIES.map((c) => (
-                          <SelectItem key={c} value={c}>{CATEGORY_LABELS[c] || c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>推薦分類</Label>
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {RECOMMEND_OPTIONS.map((opt) => (
-                        <label key={opt.value} className="flex items-center gap-1 text-xs cursor-pointer">
-                          <Checkbox
-                            checked={formRecommend.includes(opt.value)}
-                            onCheckedChange={() => toggleRecommend(opt.value)}
-                          />
-                          {opt.label}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="product-price">售價（NT$）</Label>
-                    <Input id="product-price" type="number" min="1" value={formPrice} onChange={(e) => setFormPrice(e.target.value)} placeholder="0" />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="product-original-price">原價（選填）</Label>
-                    <Input id="product-original-price" type="number" min="1" value={formOriginalPrice} onChange={(e) => setFormOriginalPrice(e.target.value)} placeholder="留空表示無折扣" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="product-stock">庫存數量</Label>
-                    <Input id="product-stock" type="number" min="0" value={formStock} onChange={(e) => setFormStock(e.target.value)} placeholder="0" />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="product-badges">標籤（逗號分隔）</Label>
-                    <Input id="product-badges" value={formBadges} onChange={(e) => setFormBadges(e.target.value)} placeholder="熱銷, 新品" />
-                  </div>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="product-features">特色標籤（逗號分隔）</Label>
-                  <Input id="product-features" value={formFeatures} onChange={(e) => setFormFeatures(e.target.value)} placeholder="精裝版, 全新翻譯" />
-                </div>
-              </div>
+              {renderFormFields()}
               <DialogFooter>
                 <DialogClose asChild>
                   <Button variant="outline">取消</Button>
                 </DialogClose>
-                <Button onClick={handleSubmit}>確認新增</Button>
+                <Button onClick={handleSubmit}>{editingProduct ? "儲存變更" : "確認新增"}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
       </div>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確定要刪除此商品？</AlertDialogTitle>
+            <AlertDialogDescription>
+              將永久刪除「{deleteTarget?.name}」，此操作無法復原，前台商城也會同步移除。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">確認刪除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Card>
         <CardHeader className="pb-3">
@@ -344,12 +372,7 @@ const ProductsPage = () => {
               </Select>
               <div className="relative w-60">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="搜尋商品名稱或分類…"
-                  className="h-8 pl-8 text-xs"
-                />
+                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜尋商品名稱或分類…" className="h-8 pl-8 text-xs" />
               </div>
             </div>
           </div>
@@ -365,12 +388,13 @@ const ProductsPage = () => {
                 <TableHead className="text-right">庫存</TableHead>
                 <TableHead>狀態</TableHead>
                 <TableHead>推薦</TableHead>
+                <TableHead className="text-right pr-6 w-24">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
                     沒有符合條件的商品
                   </TableCell>
                 </TableRow>
@@ -433,6 +457,16 @@ const ProductsPage = () => {
                               {RECOMMEND_OPTIONS.find((o) => o.value === r)?.label || r}
                             </Badge>
                           ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(p)} title="編輯">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(p)} title="刪除">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
