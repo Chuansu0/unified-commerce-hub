@@ -60,6 +60,7 @@ const MOCK_MESSAGES: Record<string, Message[]> = {
 };
 
 const ConversationsPage = () => {
+  const { t } = useI18n();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
