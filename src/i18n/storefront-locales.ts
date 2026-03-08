@@ -194,7 +194,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     footer_contact: "聯絡我們",
     footer_privacy: "隱私權政策",
     footer_terms: "服務條款",
-    footer_copyright: "© 2026 InsForge. 保留所有權利。",
+    footer_copyright: "© 2026 NeoVega. 保留所有權利。",
   },
   en: {
     header_home: "Home",
