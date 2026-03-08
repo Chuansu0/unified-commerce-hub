@@ -60,7 +60,7 @@ const SettingsPage = () => {
       return;
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    saveAISettings(settings);
     setSaved(true);
     toast.success("AI 設定已儲存");
   };
