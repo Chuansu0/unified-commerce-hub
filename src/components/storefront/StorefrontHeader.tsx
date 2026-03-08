@@ -149,25 +149,18 @@ export function StorefrontHeader() {
 
       {/* Category nav (desktop) */}
       <nav className="border-t border-border hidden md:block">
-        <div className="container mx-auto px-4 flex items-center gap-6 py-2 text-sm">
-          <Link to="/shop" className="text-foreground hover:text-primary transition-colors font-medium">
+        <div className="container mx-auto px-4 flex items-center gap-4 py-2 text-sm overflow-x-auto">
+          <Link to="/shop" className="text-foreground hover:text-primary transition-colors font-medium whitespace-nowrap">
             {st.header_home}
           </Link>
-          <Link to="/shop?cat=electronics" className="text-muted-foreground hover:text-primary transition-colors">
-            {st.cat_electronics}
-          </Link>
-          <Link to="/shop?cat=clothing" className="text-muted-foreground hover:text-primary transition-colors">
-            {st.cat_clothing}
-          </Link>
-          <Link to="/shop?cat=home" className="text-muted-foreground hover:text-primary transition-colors">
-            {st.cat_home}
-          </Link>
-          <Link to="/shop?cat=sports" className="text-muted-foreground hover:text-primary transition-colors">
-            {st.cat_sports}
-          </Link>
-          <Link to="/shop?cat=books" className="text-muted-foreground hover:text-primary transition-colors">
-            {st.cat_books}
-          </Link>
+          <Link to="/shop?cat=literature" className="text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">{st.cat_literature}</Link>
+          <Link to="/shop?cat=art_design" className="text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">{st.cat_art_design}</Link>
+          <Link to="/shop?cat=humanities" className="text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">{st.cat_humanities}</Link>
+          <Link to="/shop?cat=business" className="text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">{st.cat_business}</Link>
+          <Link to="/shop?cat=computer" className="text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">{st.cat_computer}</Link>
+          <Link to="/shop?cat=language" className="text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">{st.cat_language}</Link>
+          <Link to="/shop?cat=children" className="text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">{st.cat_children}</Link>
+          <Link to="/shop?cat=acg" className="text-muted-foreground hover:text-primary transition-colors whitespace-nowrap">{st.cat_acg}</Link>
         </div>
       </nav>
     </header>

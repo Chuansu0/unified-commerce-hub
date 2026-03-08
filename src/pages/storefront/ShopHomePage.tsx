@@ -1,35 +1,64 @@
 import { useMemo, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { ArrowRight, Zap, Truck, Shield } from "lucide-react";
+import { ArrowRight, Zap, Truck, Shield, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/i18n/I18nContext";
 import storefrontTranslations from "@/i18n/storefront-locales";
 import { ProductCard } from "@/components/storefront/ProductCard";
-import { MOCK_PRODUCTS, CATEGORIES } from "@/store/mockProducts";
+import { MOCK_PRODUCTS, CATEGORIES, RECOMMEND_TABS } from "@/store/mockProducts";
+import type { RecommendTab } from "@/store/mockProducts";
 
 export default function ShopHomePage() {
   const { locale } = useI18n();
   const st = storefrontTranslations[locale];
   const [searchParams] = useSearchParams();
-  const catParam = searchParams.get("cat") || "all";
   const searchQuery = searchParams.get("search") || "";
-  const [activeTab, setActiveTab] = useState<string>(catParam);
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [activeRecommend, setActiveRecommend] = useState<RecommendTab>("all");
 
   const categoryLabels: Record<string, string> = {
     all: st.cat_all,
-    electronics: st.cat_electronics,
-    clothing: st.cat_clothing,
-    home: st.cat_home,
-    sports: st.cat_sports,
-    books: st.cat_books,
+    literature: st.cat_literature,
+    art_design: st.cat_art_design,
+    humanities: st.cat_humanities,
+    social_science: st.cat_social_science,
+    philosophy: st.cat_philosophy,
+    business: st.cat_business,
+    language: st.cat_language,
+    health: st.cat_health,
+    travel: st.cat_travel,
+    food_craft: st.cat_food_craft,
+    science: st.cat_science,
+    computer: st.cat_computer,
+    children: st.cat_children,
+    exam: st.cat_exam,
+    acg: st.cat_acg,
+  };
+
+  const recommendLabels: Record<string, string> = {
+    all: st.rec_all,
+    ranking: st.rec_ranking,
+    new: st.rec_new,
+    sale: st.rec_sale,
+    rare: st.rec_rare,
   };
 
   const filteredProducts = useMemo(() => {
     let products = MOCK_PRODUCTS;
-    if (activeTab !== "all") {
-      products = products.filter((p) => p.category === activeTab);
+
+    // Filter by category
+    if (activeCategory !== "all") {
+      products = products.filter((p) => p.category === activeCategory);
     }
+
+    // Filter by recommend tab
+    if (activeRecommend !== "all") {
+      products = products.filter((p) => p.recommend?.includes(activeRecommend));
+    }
+
+    // Filter by search query
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       products = products.filter(
@@ -40,7 +69,7 @@ export default function ShopHomePage() {
       );
     }
     return products;
-  }, [activeTab, searchQuery]);
+  }, [activeCategory, activeRecommend, searchQuery]);
 
   return (
     <div>
@@ -48,6 +77,10 @@ export default function ShopHomePage() {
       <section className="relative bg-gradient-to-br from-primary/10 via-background to-accent/5 overflow-hidden">
         <div className="container mx-auto px-4 py-16 md:py-24">
           <div className="max-w-2xl">
+            <div className="flex items-center gap-2 mb-4">
+              <BookOpen className="h-6 w-6 text-primary" />
+              <Badge variant="secondary" className="text-xs">InsForge Books</Badge>
+            </div>
             <h1 className="font-display text-3xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
               {st.home_hero_title}
             </h1>
@@ -61,7 +94,6 @@ export default function ShopHomePage() {
             </Button>
           </div>
         </div>
-        {/* Decorative circles */}
         <div className="absolute -top-20 -right-20 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
         <div className="absolute -bottom-16 right-1/4 w-48 h-48 bg-accent/10 rounded-full blur-2xl" />
       </section>
@@ -84,23 +116,41 @@ export default function ShopHomePage() {
         </div>
       </section>
 
+      {/* Recommend tabs */}
+      <section className="container mx-auto px-4 pt-10 pb-2">
+        <h2 className="font-display text-2xl font-bold text-foreground mb-4">{st.home_featured}</h2>
+        <Tabs value={activeRecommend} onValueChange={(v) => setActiveRecommend(v as RecommendTab)} className="mb-2">
+          <TabsList className="bg-secondary h-auto gap-1 p-1">
+            {RECOMMEND_TABS.map((tab) => (
+              <TabsTrigger
+                key={tab}
+                value={tab}
+                className="text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                {recommendLabels[tab]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      </section>
+
       {/* Products */}
-      <section id="products" className="container mx-auto px-4 py-12">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="font-display text-2xl font-bold text-foreground">{st.home_featured}</h2>
+      <section id="products" className="container mx-auto px-4 pb-12">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display text-lg font-semibold text-foreground">{st.header_categories}</h3>
           <Link to="/shop" className="text-sm text-primary hover:underline flex items-center gap-1">
             {st.home_view_all} <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
 
         {/* Category tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+        <Tabs value={activeCategory} onValueChange={setActiveCategory} className="mb-8">
           <TabsList className="bg-secondary flex-wrap h-auto gap-1 p-1">
             {CATEGORIES.map((cat) => (
               <TabsTrigger
                 key={cat}
                 value={cat}
-                className="text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 {categoryLabels[cat]}
               </TabsTrigger>
