@@ -50,6 +50,23 @@ app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 
+// API 根路徑歡迎頁（說明此服務是後端 API）
+app.get("/", (_req, res) => {
+  res.json({
+    name: "NeoVega API",
+    version: "1.0.0",
+    status: "running",
+    endpoints: {
+      health: "/api/health",
+      login: "POST /api/auth/login",
+      register: "POST /api/auth/register",
+      me: "GET /api/auth/me",
+      products: "/api/products",
+      orders: "/api/orders",
+    },
+  });
+});
+
 // Health check（Zeabur 用於服務偵測）
 app.get("/api/health", async (_req, res) => {
   let dbOk = false;
