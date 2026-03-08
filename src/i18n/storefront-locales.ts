@@ -456,7 +456,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     cat_food_craft: "料理・手芸",
     cat_science: "自然科学",
     cat_computer: "コンピュータ・IT",
-    cat_children: "児童書・育児",
+    cat_children: "厳選プログラム",
     cat_exam: "試験対策",
     cat_acg: "アニメ・漫画・ゲーム",
 
