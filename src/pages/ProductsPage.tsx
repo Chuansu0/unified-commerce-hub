@@ -41,15 +41,22 @@ const statusLabel = (s: string) => {
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
 
   useEffect(() => {
     insforgeProducts.list().then((data) => setProducts(data as Product[]));
   }, []);
 
+  const categories = useMemo(
+    () => [...new Set(products.map((p) => p.category))],
+    [products]
+  );
+
   const filtered = products.filter(
     (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.category.toLowerCase().includes(search.toLowerCase())
+      (category === "all" || p.category === category) &&
+      (p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.category.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
