@@ -16,6 +16,7 @@ export default function ProductDetailPage() {
   const { locale } = useI18n();
   const st = storefrontTranslations[locale];
   const isEn = locale === "en";
+  const [quantity, setQuantity] = useState(1);
   const products = useProducts();
   const product = products.find((p) => p.id === id);
   if (!product) {
