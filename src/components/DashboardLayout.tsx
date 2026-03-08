@@ -1,3 +1,4 @@
+import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useI18n } from "@/i18n/I18nContext";
@@ -13,11 +14,7 @@ import { Globe } from "lucide-react";
 
 const locales: Locale[] = ["zh-TW", "en", "zh-CN", "ja"];
 
-interface DashboardLayoutProps {
-  children: React.ReactNode;
-}
-
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout() {
   const { locale, setLocale } = useI18n();
 
   return (
@@ -49,7 +46,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </DropdownMenu>
           </header>
           <main className="flex-1 p-6 overflow-auto animate-fade-in">
-            {children}
+            <Outlet />
           </main>
         </div>
       </div>

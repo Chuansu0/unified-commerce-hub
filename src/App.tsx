@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { StorefrontLayout } from "@/components/storefront/StorefrontLayout";
 import { I18nProvider } from "@/i18n/I18nContext";
 import DashboardPage from "./pages/DashboardPage";
 import OrdersPage from "./pages/OrdersPage";
@@ -12,6 +13,12 @@ import ConversationsPage from "./pages/ConversationsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AgentPage from "./pages/AgentPage";
 import SettingsPage from "./pages/SettingsPage";
+import ShopHomePage from "./pages/storefront/ShopHomePage";
+import ProductDetailPage from "./pages/storefront/ProductDetailPage";
+import CartPage from "./pages/storefront/CartPage";
+import CheckoutPage from "./pages/storefront/CheckoutPage";
+import LoginPage from "./pages/storefront/LoginPage";
+import RegisterPage from "./pages/storefront/RegisterPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,8 +30,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <DashboardLayout>
-            <Routes>
+          <Routes>
+            {/* Admin Dashboard */}
+            <Route element={<DashboardLayout />}>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/orders" element={<OrdersPage />} />
               <Route path="/products" element={<ProductsPage />} />
@@ -32,9 +40,20 @@ const App = () => (
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/agent" element={<AgentPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </DashboardLayout>
+            </Route>
+
+            {/* Consumer Storefront */}
+            <Route path="/shop" element={<StorefrontLayout />}>
+              <Route index element={<ShopHomePage />} />
+              <Route path="product/:id" element={<ProductDetailPage />} />
+              <Route path="cart" element={<CartPage />} />
+              <Route path="checkout" element={<CheckoutPage />} />
+              <Route path="login" element={<LoginPage />} />
+              <Route path="register" element={<RegisterPage />} />
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </I18nProvider>
