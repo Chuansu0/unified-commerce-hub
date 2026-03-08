@@ -16,9 +16,8 @@ export default function ProductDetailPage() {
   const { locale } = useI18n();
   const st = storefrontTranslations[locale];
   const isEn = locale === "en";
-  const [quantity, setQuantity] = useState(1);
-
-  const product = MOCK_PRODUCTS.find((p) => p.id === id);
+  const products = useProducts();
+  const product = products.find((p) => p.id === id);
   if (!product) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
