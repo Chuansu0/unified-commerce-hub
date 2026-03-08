@@ -80,12 +80,16 @@ const DashboardPage = () => {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="font-display text-base">營收趨勢</CardTitle>
+          <ToggleGroup type="single" value={granularity} onValueChange={(v) => v && setGranularity(v as "day" | "month")} size="sm">
+            <ToggleGroupItem value="day" className="text-xs px-3">日</ToggleGroupItem>
+            <ToggleGroupItem value="month" className="text-xs px-3">月</ToggleGroupItem>
+          </ToggleGroup>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={revenueByDay}>
+            <LineChart data={revenueData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis dataKey="date" tick={{ fontSize: 12 }} className="text-muted-foreground" />
               <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" tickFormatter={(v) => `$${v.toLocaleString()}`} />
