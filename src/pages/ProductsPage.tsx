@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Search, Package, Plus } from "lucide-react";
 import { insforgeProducts } from "@/services/insforge";
 import { toast } from "sonner";
+import { useI18n } from "@/i18n/I18nContext";
 
 interface Product {
   id: string;
