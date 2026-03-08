@@ -71,8 +71,13 @@ export default function ShopHomePage() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative bg-gradient-to-br from-primary/10 via-background to-accent/5 overflow-hidden">
-        <div className="container mx-auto px-4 py-16 md:py-24">
+      <section className="relative overflow-hidden min-h-[420px] md:min-h-[480px]">
+        {/* Background image */}
+        <div className="absolute inset-0">
+          <img src={heroImage} alt="NeoVega" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/70 to-transparent" />
+        </div>
+        <div className="container mx-auto px-4 py-16 md:py-24 relative z-10">
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="h-6 w-6 text-primary" />
@@ -91,8 +96,6 @@ export default function ShopHomePage() {
             </Button>
           </div>
         </div>
-        <div className="absolute -top-20 -right-20 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-16 right-1/4 w-48 h-48 bg-accent/10 rounded-full blur-2xl" />
       </section>
 
       {/* Trust badges */}
