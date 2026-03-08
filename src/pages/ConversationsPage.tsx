@@ -258,6 +258,15 @@ const ConversationsPage = () => {
                   {activeConv?.intent && (
                     <Badge variant="secondary" className="text-[10px] font-mono">{activeConv.intent}</Badge>
                   )}
+                  <Button
+                    variant={showCustomerInfo ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => setShowCustomerInfo(!showCustomerInfo)}
+                  >
+                    <UserCircle className="h-3 w-3" />
+                    客戶
+                  </Button>
                 </div>
                 <div className="flex items-center gap-2">
                   {currentMessages.length > 0 && (
