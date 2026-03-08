@@ -59,7 +59,7 @@ const translations: Record<Locale, Translations> = {
     sidebar_admin_dashboard: "管理後台",
 
     page_dashboard_title: "儀表板",
-    page_dashboard_desc: "InsForge 平台總覽",
+    page_dashboard_desc: "NeoVega 平台總覽",
     page_orders_title: "訂單管理",
     page_orders_desc: "查看與管理所有訂單",
     page_products_title: "商品管理",
