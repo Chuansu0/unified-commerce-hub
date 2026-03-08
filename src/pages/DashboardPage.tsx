@@ -21,21 +21,25 @@ const DashboardPage = () => {
   const totalRevenue = orders.reduce((sum, o) => sum + (o.status !== "cancelled" ? o.total : 0), 0);
   const unreadCount = conversations.reduce((sum, c) => sum + (c.unread || 0), 0);
 
-  const revenueByDay = useMemo(() => {
+  const revenueData = useMemo(() => {
     const map: Record<string, number> = {};
     orders.forEach((o) => {
       if (o.status === "cancelled") return;
-      const day = new Date(o.created_at).toLocaleDateString("zh-TW", { month: "numeric", day: "numeric" });
-      map[day] = (map[day] || 0) + o.total;
+      const d = new Date(o.created_at);
+      const key =
+        granularity === "day"
+          ? d.toLocaleDateString("zh-TW", { month: "numeric", day: "numeric" })
+          : `${d.getFullYear()}/${d.getMonth() + 1}月`;
+      map[key] = (map[key] || 0) + o.total;
     });
     return Object.entries(map)
       .map(([date, revenue]) => ({ date, revenue }))
       .sort((a, b) => {
-        const pa = a.date.split("/").map(Number);
-        const pb = b.date.split("/").map(Number);
-        return pa[0] - pb[0] || pa[1] - pb[1];
+        const pa = a.date.replace("月", "").split("/").map(Number);
+        const pb = b.date.replace("月", "").split("/").map(Number);
+        return pa[0] - pb[0] || (pa[1] ?? 0) - (pb[1] ?? 0);
       });
-  }, [orders]);
+  }, [orders, granularity]);
 
   const stats = [
     { title: "訂單總數", value: orders.length.toString(), sub: `${orders.filter(o => o.status === "pending").length} 筆待處理`, icon: ShoppingCart, color: "text-primary" },
