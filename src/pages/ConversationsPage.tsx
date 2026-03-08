@@ -183,7 +183,29 @@ const ConversationsPage = () => {
       c.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const activeConv = conversations.find((c) => c.id === activeConvId);
+  // Derive customer info from active conversation + orders
+  const customerInfo: CustomerInfo | null = useMemo(() => {
+    if (!activeConv) return null;
+    const name = activeConv.userId;
+    const customerOrders = allOrders.filter((o: any) => o.customer_name === name);
+    const totalSpent = customerOrders.reduce((sum: number, o: any) => sum + (o.total ?? 0), 0);
+    const email = customerOrders[0]?.customer_email ?? `${name.toLowerCase().replace(/\s/g, ".")}@example.com`;
+    return {
+      name,
+      email,
+      totalOrders: customerOrders.length,
+      totalSpent,
+      joinDate: CUSTOMER_JOIN_DATES[name] ?? "2026-01-01",
+      orders: customerOrders.map((o: any) => ({
+        id: o.id,
+        status: o.status ?? "pending",
+        total: o.total ?? 0,
+        currency: o.currency ?? "TWD",
+        created_at: o.created_at ?? "",
+        items: o.items,
+      })),
+    };
+  }, [activeConv, allOrders]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)] gap-4">
