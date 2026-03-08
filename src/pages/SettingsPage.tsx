@@ -19,8 +19,10 @@ import {
   saveAISettings,
   clearAISettings,
 } from "@/services/aiSettings";
+import { useI18n } from "@/i18n/I18nContext";
 
 const SettingsPage = () => {
+  const { t } = useI18n();
   const [settings, setSettings] = useState<AISettings>(defaultAISettings);
   const [showOpenClawKey, setShowOpenClawKey] = useState(false);
   const [showLLMToken, setShowLLMToken] = useState(false);
