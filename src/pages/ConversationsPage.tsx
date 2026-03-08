@@ -64,8 +64,15 @@ const ConversationsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [replyMode, setReplyMode] = useState<"ai" | "manual">("manual");
   const [convMessages, setConvMessages] = useState<Record<string, Message[]>>({ ...MOCK_MESSAGES });
+  const [showCustomerInfo, setShowCustomerInfo] = useState(true);
+  const [allOrders, setAllOrders] = useState<any[]>([]);
   const { messages: aiMessages, loading: aiLoading, sendMessage: aiSend, clearMessages } = useChat(DEMO_USER_ID);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Load orders for customer info panel
+  useEffect(() => {
+    insforgeOrders.list().then((data: any[]) => setAllOrders(data));
+  }, []);
 
   useEffect(() => {
     insforgeConversations.list().then((data: any[]) => {
