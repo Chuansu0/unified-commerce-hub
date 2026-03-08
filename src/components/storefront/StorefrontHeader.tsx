@@ -96,9 +96,25 @@ export function StorefrontHeader() {
               <Link to="/shop/cart" className="text-lg font-medium text-foreground hover:text-primary transition-colors">
                 {st.header_cart}
               </Link>
-              <Link to="/shop/login" className="text-lg font-medium text-foreground hover:text-primary transition-colors">
-                {st.header_login}
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <span className="text-sm text-muted-foreground px-1">{username}</span>
+                  {role === "superadmin" && (
+                    <Link to="/" className="text-lg font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      {locale === "en" ? "Admin Panel" : "後台管理"}
+                    </Link>
+                  )}
+                  <button onClick={handleLogout} className="text-lg font-medium text-destructive hover:opacity-80 transition-colors flex items-center gap-2">
+                    <LogOut className="h-4 w-4" />
+                    {locale === "en" ? "Logout" : "登出"}
+                  </button>
+                </>
+              ) : (
+                <Link to="/shop/login" className="text-lg font-medium text-foreground hover:text-primary transition-colors">
+                  {st.header_login}
+                </Link>
+              )}
             </nav>
           </SheetContent>
         </Sheet>
