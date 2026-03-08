@@ -470,7 +470,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     footer_contact: "お問い合わせ",
     footer_privacy: "プライバシーポリシー",
     footer_terms: "利用規約",
-    footer_copyright: "© 2026 InsForge. All rights reserved.",
+    footer_copyright: "© 2026 NeoVega. All rights reserved.",
   },
 };
 

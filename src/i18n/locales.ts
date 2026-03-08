@@ -140,7 +140,7 @@ const translations: Record<Locale, Translations> = {
     sidebar_admin_dashboard: "管理ダッシュボード",
 
     page_dashboard_title: "ダッシュボード",
-    page_dashboard_desc: "InsForge プラットフォーム概要",
+    page_dashboard_desc: "NeoVega プラットフォーム概要",
     page_orders_title: "注文管理",
     page_orders_desc: "すべての注文を表示・管理",
     page_products_title: "商品管理",
