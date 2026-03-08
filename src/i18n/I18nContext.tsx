@@ -38,6 +38,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
 export function useI18n() {
   const ctx = useContext(I18nContext);
-  if (!ctx) throw new Error("useI18n must be used within I18nProvider");
+  if (!ctx) {
+    // Fallback for HMR edge cases — return default locale
+    return {
+      locale: "zh-TW" as Locale,
+      setLocale: () => {},
+      t: translations["zh-TW"],
+    };
+  }
   return ctx;
 }
