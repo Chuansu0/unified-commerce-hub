@@ -6,6 +6,7 @@ import { Send } from "lucide-react";
 interface ChatInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
+  placeholder?: string;
 }
 
 const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
