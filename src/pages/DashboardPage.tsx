@@ -8,6 +8,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const DashboardPage = () => {
+  const { t } = useI18n();
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [conversations, setConversations] = useState<any[]>([]);
