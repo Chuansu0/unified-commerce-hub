@@ -52,6 +52,7 @@ const STATUSES = [
 ];
 
 const ProductsPage = () => {
+  const { t } = useI18n();
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
