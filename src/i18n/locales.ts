@@ -86,7 +86,7 @@ const translations: Record<Locale, Translations> = {
     sidebar_admin_dashboard: "Admin Dashboard",
 
     page_dashboard_title: "Dashboard",
-    page_dashboard_desc: "InsForge platform overview",
+    page_dashboard_desc: "NeoVega platform overview",
     page_orders_title: "Orders",
     page_orders_desc: "View and manage all orders",
     page_products_title: "Products",
