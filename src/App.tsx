@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { I18nProvider } from "@/i18n/I18nContext";
 import DashboardPage from "./pages/DashboardPage";
 import OrdersPage from "./pages/OrdersPage";
 import ProductsPage from "./pages/ProductsPage";
@@ -17,24 +18,26 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <DashboardLayout>
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/conversations" element={<ConversationsPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/agent" element={<AgentPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </DashboardLayout>
-      </BrowserRouter>
-    </TooltipProvider>
+    <I18nProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <DashboardLayout>
+            <Routes>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/conversations" element={<ConversationsPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/agent" element={<AgentPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </DashboardLayout>
+        </BrowserRouter>
+      </TooltipProvider>
+    </I18nProvider>
   </QueryClientProvider>
 );
 

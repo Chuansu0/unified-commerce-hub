@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Search, Package, Plus } from "lucide-react";
 import { insforgeProducts } from "@/services/insforge";
 import { toast } from "sonner";
+import { useI18n } from "@/i18n/I18nContext";
 
 interface Product {
   id: string;
@@ -51,6 +52,7 @@ const STATUSES = [
 ];
 
 const ProductsPage = () => {
+  const { t } = useI18n();
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
@@ -131,8 +133,8 @@ const ProductsPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold tracking-tight">Products</h1>
-          <p className="text-muted-foreground mt-1 text-sm">管理你的商品目錄</p>
+          <h1 className="text-2xl font-display font-bold tracking-tight">{t.page_products_title}</h1>
+          <p className="text-muted-foreground mt-1 text-sm">{t.page_products_desc}</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="font-mono text-xs gap-1.5">

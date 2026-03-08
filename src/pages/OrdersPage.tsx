@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Separator } from "@/components/ui/separator";
 import { insforgeOrders } from "@/services/insforge";
 import { ArrowUpDown, Search, RefreshCw, Package } from "lucide-react";
+import { useI18n } from "@/i18n/I18nContext";
 
 interface OrderItem {
   product_name: string;
@@ -52,6 +53,7 @@ const formatCurrency = (amount: number, currency = "TWD") =>
   new Intl.NumberFormat("zh-TW", { style: "currency", currency }).format(amount);
 
 const OrdersPage = () => {
+  const { t } = useI18n();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,8 +141,8 @@ const OrdersPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-display font-bold tracking-tight">Orders</h1>
-        <p className="text-muted-foreground mt-1">Manage and track customer orders</p>
+        <h1 className="text-2xl font-display font-bold tracking-tight">{t.page_orders_title}</h1>
+        <p className="text-muted-foreground mt-1">{t.page_orders_desc}</p>
       </div>
 
       <Card>

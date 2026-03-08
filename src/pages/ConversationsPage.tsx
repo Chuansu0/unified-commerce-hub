@@ -14,6 +14,7 @@ import CustomerInfoPanel, { type CustomerInfo } from "@/components/chat/Customer
 import { useChat } from "@/hooks/useChat";
 import { insforgeConversations, insforgeOrders } from "@/services/insforge";
 import { loadAISettings, getActiveAISource } from "@/services/aiSettings";
+import { useI18n } from "@/i18n/I18nContext";
 import type { Message } from "@/components/chat/ChatMessage";
 
 // Map conversation user names to customer data
@@ -59,6 +60,7 @@ const MOCK_MESSAGES: Record<string, Message[]> = {
 };
 
 const ConversationsPage = () => {
+  const { t } = useI18n();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -213,9 +215,9 @@ const ConversationsPage = () => {
     <div className="flex flex-col h-[calc(100vh-2rem)] gap-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold tracking-tight">Conversations</h1>
+          <h1 className="text-2xl font-display font-bold tracking-tight">{t.page_conversations_title}</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            AI chatbot conversations &amp; live takeover
+            {t.page_conversations_desc}
           </p>
         </div>
         <div className="flex items-center gap-2">

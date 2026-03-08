@@ -19,8 +19,10 @@ import {
   saveAISettings,
   clearAISettings,
 } from "@/services/aiSettings";
+import { useI18n } from "@/i18n/I18nContext";
 
 const SettingsPage = () => {
+  const { t } = useI18n();
   const [settings, setSettings] = useState<AISettings>(defaultAISettings);
   const [showOpenClawKey, setShowOpenClawKey] = useState(false);
   const [showLLMToken, setShowLLMToken] = useState(false);
@@ -75,8 +77,8 @@ const SettingsPage = () => {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-display font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-1 text-sm">AI 對話協助設定與整合管理</p>
+        <h1 className="text-2xl font-display font-bold tracking-tight">{t.page_settings_title}</h1>
+        <p className="text-muted-foreground mt-1 text-sm">{t.page_settings_desc}</p>
       </div>
 
       {/* Priority */}

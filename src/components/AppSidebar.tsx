@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { useI18n } from "@/i18n/I18nContext";
 import {
   Sidebar,
   SidebarContent,
@@ -23,23 +24,24 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const mainItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Orders", url: "/orders", icon: ShoppingCart },
-  { title: "Products", url: "/products", icon: Package },
-  { title: "Conversations", url: "/conversations", icon: MessageSquare },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
-];
-
-const systemItems = [
-  { title: "AI Agent", url: "/agent", icon: Bot },
-  { title: "Settings", url: "/settings", icon: Settings },
-];
-
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const { t } = useI18n();
+
+  const mainItems = [
+    { title: t.sidebar_dashboard, url: "/", icon: LayoutDashboard },
+    { title: t.sidebar_orders, url: "/orders", icon: ShoppingCart },
+    { title: t.sidebar_products, url: "/products", icon: Package },
+    { title: t.sidebar_conversations, url: "/conversations", icon: MessageSquare },
+    { title: t.sidebar_analytics, url: "/analytics", icon: BarChart3 },
+  ];
+
+  const systemItems = [
+    { title: t.sidebar_agent, url: "/agent", icon: Bot },
+    { title: t.sidebar_settings, url: "/settings", icon: Settings },
+  ];
 
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
@@ -54,7 +56,7 @@ export function AppSidebar() {
             </div>
             <div>
               <h2 className="font-display text-sm font-semibold text-sidebar-accent-foreground">InsForge</h2>
-              <p className="text-xs text-sidebar-foreground">Admin Dashboard</p>
+              <p className="text-xs text-sidebar-foreground">{t.sidebar_admin_dashboard}</p>
             </div>
           </div>
         )}
@@ -69,11 +71,11 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupLabel>{t.sidebar_main}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
@@ -94,11 +96,11 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>System</SidebarGroupLabel>
+          <SidebarGroupLabel>{t.sidebar_system}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {systemItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
