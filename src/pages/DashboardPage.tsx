@@ -4,11 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, MessageSquare, TrendingUp, Package } from "lucide-react";
 import { insforgeOrders, insforgeProducts, insforgeConversations } from "@/services/insforge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const DashboardPage = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [conversations, setConversations] = useState<any[]>([]);
+  const [granularity, setGranularity] = useState<"day" | "month">("day");
 
   useEffect(() => {
     insforgeOrders.list().then(setOrders);
@@ -19,21 +21,25 @@ const DashboardPage = () => {
   const totalRevenue = orders.reduce((sum, o) => sum + (o.status !== "cancelled" ? o.total : 0), 0);
   const unreadCount = conversations.reduce((sum, c) => sum + (c.unread || 0), 0);
 
-  const revenueByDay = useMemo(() => {
+  const revenueData = useMemo(() => {
     const map: Record<string, number> = {};
     orders.forEach((o) => {
       if (o.status === "cancelled") return;
-      const day = new Date(o.created_at).toLocaleDateString("zh-TW", { month: "numeric", day: "numeric" });
-      map[day] = (map[day] || 0) + o.total;
+      const d = new Date(o.created_at);
+      const key =
+        granularity === "day"
+          ? d.toLocaleDateString("zh-TW", { month: "numeric", day: "numeric" })
+          : `${d.getFullYear()}/${d.getMonth() + 1}月`;
+      map[key] = (map[key] || 0) + o.total;
     });
     return Object.entries(map)
       .map(([date, revenue]) => ({ date, revenue }))
       .sort((a, b) => {
-        const pa = a.date.split("/").map(Number);
-        const pb = b.date.split("/").map(Number);
-        return pa[0] - pb[0] || pa[1] - pb[1];
+        const pa = a.date.replace("月", "").split("/").map(Number);
+        const pb = b.date.replace("月", "").split("/").map(Number);
+        return pa[0] - pb[0] || (pa[1] ?? 0) - (pb[1] ?? 0);
       });
-  }, [orders]);
+  }, [orders, granularity]);
 
   const stats = [
     { title: "訂單總數", value: orders.length.toString(), sub: `${orders.filter(o => o.status === "pending").length} 筆待處理`, icon: ShoppingCart, color: "text-primary" },
@@ -74,12 +80,16 @@ const DashboardPage = () => {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="font-display text-base">營收趨勢</CardTitle>
+          <ToggleGroup type="single" value={granularity} onValueChange={(v) => v && setGranularity(v as "day" | "month")} size="sm">
+            <ToggleGroupItem value="day" className="text-xs px-3">日</ToggleGroupItem>
+            <ToggleGroupItem value="month" className="text-xs px-3">月</ToggleGroupItem>
+          </ToggleGroup>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={revenueByDay}>
+            <LineChart data={revenueData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis dataKey="date" tick={{ fontSize: 12 }} className="text-muted-foreground" />
               <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" tickFormatter={(v) => `$${v.toLocaleString()}`} />
