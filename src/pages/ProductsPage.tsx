@@ -76,14 +76,27 @@ const ProductsPage = () => {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="font-display text-base">商品列表</CardTitle>
-            <div className="relative w-60">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="搜尋商品名稱或分類…"
-                className="h-8 pl-8 text-xs"
-              />
+            <div className="flex items-center gap-2">
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="h-8 w-36 text-xs">
+                  <SelectValue placeholder="所有分類" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">所有分類</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="relative w-60">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="搜尋商品名稱或分類…"
+                  className="h-8 pl-8 text-xs"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
