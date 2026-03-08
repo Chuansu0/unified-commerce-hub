@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Separator } from "@/components/ui/separator";
 import { insforgeOrders } from "@/services/insforge";
 import { ArrowUpDown, Search, RefreshCw, Package } from "lucide-react";
+import { useI18n } from "@/i18n/I18nContext";
 
 interface OrderItem {
   product_name: string;
