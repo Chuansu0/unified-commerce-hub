@@ -1,6 +1,8 @@
 require("dotenv").config();
 
 const express = require("express");
+const path = require("path");
+const fs = require("fs");
 const rateLimit = require("express-rate-limit");
 const { corsMiddleware } = require("./middleware/cors");
 const authRoutes = require("./routes/auth");
@@ -27,7 +29,7 @@ const globalLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
-  validate: false, // 關閉 x-forwarded-for 額外驗證（已由 trust proxy 處理）
+  validate: false,
   message: { success: false, message: "請求過於頻繁，請稍後再試" },
 });
 
@@ -37,35 +39,18 @@ const loginLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  validate: false, // 關閉 x-forwarded-for 額外驗證
+  validate: false,
   message: { success: false, message: "嘗試次數過多，請 15 分鐘後再試" },
   skipSuccessfulRequests: true,
 });
 
 app.use(globalLimiter);
 
-// ── Routes ───────────────────────────────────────
-app.use("/api/auth/login", loginLimiter); // 登入限制套用在 router 之前
+// ── API Routes ────────────────────────────────────
+app.use("/api/auth/login", loginLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
-
-// API 根路徑歡迎頁（說明此服務是後端 API）
-app.get("/", (_req, res) => {
-  res.json({
-    name: "NeoVega API",
-    version: "1.0.0",
-    status: "running",
-    endpoints: {
-      health: "/api/health",
-      login: "POST /api/auth/login",
-      register: "POST /api/auth/register",
-      me: "GET /api/auth/me",
-      products: "/api/products",
-      orders: "/api/orders",
-    },
-  });
-});
 
 // Health check（Zeabur 用於服務偵測）
 app.get("/api/health", async (_req, res) => {
@@ -86,14 +71,40 @@ app.get("/api/health", async (_req, res) => {
   });
 });
 
-// ── 404 ──────────────────────────────────────────
-app.use((_req, res) => {
-  res.status(404).json({ success: false, message: "Not found" });
-});
+// ── 前端靜態檔案（Vite build → dist/）────────────
+// 優先順序：API routes → 靜態資源 → SPA fallback
+const distPath = path.join(__dirname, "../dist");
+const hasDistFolder = fs.existsSync(path.join(distPath, "index.html"));
+
+if (hasDistFolder) {
+  console.log("[NeoVega API] Serving frontend from", distPath);
+  // 提供靜態資源（JS, CSS, 圖片等）
+  app.use(express.static(distPath));
+  // SPA fallback：所有非 /api 路徑都回傳 index.html
+  app.get("*", (req, res) => {
+    if (req.path.startsWith("/api/")) {
+      return res.status(404).json({ success: false, message: "Not found" });
+    }
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+} else {
+  // 沒有 dist 資料夾（開發環境）：回傳 API 資訊
+  console.log("[NeoVega API] No frontend build found, API-only mode");
+  app.get("/", (_req, res) => {
+    res.json({
+      name: "NeoVega API",
+      version: "1.0.0",
+      status: "running",
+      note: "Frontend not built. Access via /api/* endpoints.",
+    });
+  });
+  app.use((_req, res) => {
+    res.status(404).json({ success: false, message: "Not found" });
+  });
+}
 
 // ── Global Error Handler ──────────────────────────
 app.use((err, _req, res, _next) => {
-  // JSON body 解析失敗（express.json 丟出的 SyntaxError）
   if (err.type === "entity.parse.failed" || err instanceof SyntaxError) {
     return res.status(400).json({ success: false, message: "無效的 JSON 格式" });
   }
@@ -101,7 +112,7 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ success: false, message: "伺服器內部錯誤" });
 });
 
-// ── Start ────────────────────────────────────────
+// ── Start ─────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`[NeoVega API] Running on port ${PORT}`);
   console.log(`[NeoVega API] ROOT_ID configured: ${!!process.env.ROOT_ID}`);
