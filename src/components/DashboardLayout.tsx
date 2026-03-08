@@ -14,11 +14,7 @@ import { Globe } from "lucide-react";
 
 const locales: Locale[] = ["zh-TW", "en", "zh-CN", "ja"];
 
-interface DashboardLayoutProps {
-  children: React.ReactNode;
-}
-
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout() {
   const { locale, setLocale } = useI18n();
 
   return (
