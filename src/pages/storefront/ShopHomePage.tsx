@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { ArrowRight, Zap, Truck, Shield, BookOpen } from "lucide-react";
+import heroImage from "@/assets/neovega-hero.jpg";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
