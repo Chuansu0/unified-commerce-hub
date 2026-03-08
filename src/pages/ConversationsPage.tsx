@@ -183,6 +183,8 @@ const ConversationsPage = () => {
       c.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const activeConv = conversations.find((c) => c.id === activeConvId);
+
   // Derive customer info from active conversation + orders
   const customerInfo: CustomerInfo | null = useMemo(() => {
     if (!activeConv) return null;
