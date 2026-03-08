@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { StorefrontLayout } from "@/components/storefront/StorefrontLayout";
 import { I18nProvider } from "@/i18n/I18nContext";
@@ -20,7 +20,6 @@ import CartPage from "./pages/storefront/CartPage";
 import CheckoutPage from "./pages/storefront/CheckoutPage";
 import LoginPage from "./pages/storefront/LoginPage";
 import RegisterPage from "./pages/storefront/RegisterPage";
-import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -55,7 +54,8 @@ const App = () => (
               <Route path="register" element={<RegisterPage />} />
             </Route>
 
-            <Route path="*" element={<NotFound />} />
+            {/* 任何未知路徑 → 自動導向首頁（由 ProtectedRoute 決定最終目標） */}
+            <Route path="*" element={<Navigate to="/shop" replace />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
