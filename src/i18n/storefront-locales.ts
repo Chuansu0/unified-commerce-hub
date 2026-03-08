@@ -391,7 +391,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     header_logout: "ログアウト",
 
     home_hero_title: "知識の無限の可能性を探る",
-    home_hero_subtitle: "文学からテクノロジーまで、InsForge が最高のコンテンツ商品をお届け",
+    home_hero_subtitle: "文学からテクノロジーまで、NeoVega が最高のコンテンツ商品をお届け",
     home_hero_cta: "今すぐ購入",
     home_featured: "おすすめ",
     home_new_arrivals: "新着商品",
