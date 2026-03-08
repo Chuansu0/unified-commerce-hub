@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useI18n } from "@/i18n/I18nContext";
 import storefrontTranslations from "@/i18n/storefront-locales";
-import { MOCK_PRODUCTS } from "@/store/mockProducts";
+import { useProducts } from "@/store/productStore";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { addToCart } from "@/store/cartStore";
 import { toast } from "sonner";
