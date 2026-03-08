@@ -11,6 +11,7 @@ import ChatInput from "@/components/chat/ChatInput";
 import ConversationList, { type Conversation } from "@/components/chat/ConversationList";
 import { useChat } from "@/hooks/useChat";
 import { config } from "@/services/config";
+import { insforgeConversations } from "@/services/insforge";
 
 const DEMO_USER_ID = "admin-operator";
 
