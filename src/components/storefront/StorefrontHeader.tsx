@@ -25,6 +25,13 @@ export function StorefrontHeader() {
   const navigate = useNavigate();
   const [cartCount, setCartCount] = useState(getCartCount());
   const [searchQuery, setSearchQuery] = useState("");
+  const { isAuthenticated, username, role, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    toast.success(locale === "en" ? "Logged out" : "已登出");
+    navigate("/shop");
+  };
 
   // Poll cart count (simple approach without external state management)
   useEffect(() => {
