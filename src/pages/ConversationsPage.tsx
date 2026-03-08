@@ -11,6 +11,7 @@ import ChatInput from "@/components/chat/ChatInput";
 import ConversationList, { type Conversation } from "@/components/chat/ConversationList";
 import { useChat } from "@/hooks/useChat";
 import { config } from "@/services/config";
+import { insforgeConversations } from "@/services/insforge";
 
 const DEMO_USER_ID = "admin-operator";
 
@@ -20,6 +21,21 @@ const ConversationsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { messages, loading, sendMessage, clearMessages } = useChat(DEMO_USER_ID);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Load mock conversations on mount
+  useEffect(() => {
+    insforgeConversations.list().then((data: any[]) => {
+      const mapped: Conversation[] = data.map((c) => ({
+        id: c.id,
+        userId: c.user_name || c.user_id,
+        lastMessage: c.last_message,
+        timestamp: new Date(c.updated_at),
+        unread: c.unread ?? 0,
+        intent: c.intent,
+      }));
+      setConversations(mapped);
+    });
+  }, []);
 
   const isConnected = Boolean(config.openclaw.agentUrl || config.n8n.chatWebhookUrl);
 
