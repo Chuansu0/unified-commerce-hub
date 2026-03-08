@@ -8,7 +8,10 @@ async function insforgeRequest<T>(
 ): Promise<T> {
   const baseUrl = config.insforge.baseUrl;
   const apiKey = config.insforge.apiKey;
-  if (!baseUrl) throw new Error("INSFORGE_BASE_URL not configured");
+  if (!baseUrl) {
+    console.warn("INSFORGE_BASE_URL not configured – using mock data");
+    return getMockData<T>(path);
+  }
 
   const res = await fetch(`${baseUrl}${path}`, {
     ...options,
