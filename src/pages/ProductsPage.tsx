@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Package } from "lucide-react";
 import { insforgeProducts } from "@/services/insforge";
@@ -40,15 +41,22 @@ const statusLabel = (s: string) => {
 const ProductsPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
 
   useEffect(() => {
     insforgeProducts.list().then((data) => setProducts(data as Product[]));
   }, []);
 
+  const categories = useMemo(
+    () => [...new Set(products.map((p) => p.category))],
+    [products]
+  );
+
   const filtered = products.filter(
     (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.category.toLowerCase().includes(search.toLowerCase())
+      (category === "all" || p.category === category) &&
+      (p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.category.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
@@ -68,14 +76,27 @@ const ProductsPage = () => {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="font-display text-base">商品列表</CardTitle>
-            <div className="relative w-60">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="搜尋商品名稱或分類…"
-                className="h-8 pl-8 text-xs"
-              />
+            <div className="flex items-center gap-2">
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="h-8 w-36 text-xs">
+                  <SelectValue placeholder="所有分類" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">所有分類</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="relative w-60">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="搜尋商品名稱或分類…"
+                  className="h-8 pl-8 text-xs"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
