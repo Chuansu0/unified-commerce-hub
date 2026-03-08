@@ -57,40 +57,46 @@ function signToken(userId, username, role) {
  * 3. 皆不符合 → 拒絕登入
  */
 router.post("/login", async (req, res) => {
-  // ── 輸入驗證 ──────────────────────────────────
-  const { error: validationError, value } = loginSchema.validate(req.body, { abortEarly: true });
-  if (validationError) {
-    return error(res, validationError.details[0].message, 400);
-  }
-
-  const { username, password } = value;
-
-  // ── 超級管理員驗證（環境變數，無需資料庫）────────
-  const ROOT_ID = process.env.ROOT_ID;
-  const ROOT_PASSWORD = process.env.ROOT_PASSWORD;
-
-  if (!ROOT_ID || !ROOT_PASSWORD) {
-    console.error("[Auth] ROOT_ID or ROOT_PASSWORD not configured!");
-    return error(res, "伺服器設定錯誤", 500);
-  }
-
-  const isRootUser = safeEqual(username, ROOT_ID) && safeEqual(password, ROOT_PASSWORD);
-
-  if (isRootUser) {
-    const token = signToken("root", username, "superadmin");
-    return success(res, {
-      token,
-      user: { id: "root", username, role: "superadmin" },
-    }, "歡迎，超級管理員");
-  }
-
-  // ── 一般用戶驗證（資料庫）────────────────────────
-  const dbAvailable = !!process.env.DATABASE_URL;
-  if (!dbAvailable) {
-    return error(res, "帳號或密碼錯誤", 401);
-  }
-
   try {
+    console.log("[Auth] Login attempt, body keys:", Object.keys(req.body || {}));
+
+    // ── 輸入驗證 ──────────────────────────────────
+    const { error: validationError, value } = loginSchema.validate(req.body, { abortEarly: true });
+    if (validationError) {
+      return error(res, validationError.details[0].message, 400);
+    }
+
+    const { username, password } = value;
+    console.log("[Auth] Validated username:", username);
+
+    // ── 超級管理員驗證（環境變數，無需資料庫）────────
+    const ROOT_ID = process.env.ROOT_ID;
+    const ROOT_PASSWORD = process.env.ROOT_PASSWORD;
+
+    console.log("[Auth] ROOT_ID set:", !!ROOT_ID, "ROOT_PASSWORD set:", !!ROOT_PASSWORD);
+
+    if (!ROOT_ID || !ROOT_PASSWORD) {
+      console.error("[Auth] ROOT_ID or ROOT_PASSWORD not configured!");
+      return error(res, "伺服器設定錯誤", 500);
+    }
+
+    const isRootUser = safeEqual(username, ROOT_ID) && safeEqual(password, ROOT_PASSWORD);
+    console.log("[Auth] isRootUser:", isRootUser);
+
+    if (isRootUser) {
+      const token = signToken("root", username, "superadmin");
+      return success(res, {
+        token,
+        user: { id: "root", username, role: "superadmin" },
+      }, "歡迎，超級管理員");
+    }
+
+    // ── 一般用戶驗證（資料庫）────────────────────────
+    const dbAvailable = !!process.env.DATABASE_URL;
+    if (!dbAvailable) {
+      return error(res, "帳號或密碼錯誤", 401);
+    }
+
     const result = await db.query(
       "SELECT id, username, email, password_hash, role FROM users WHERE username = $1 AND is_active = TRUE",
       [username]
@@ -113,7 +119,7 @@ router.post("/login", async (req, res) => {
       user: { id: user.id, username: user.username, email: user.email, role: user.role },
     }, "登入成功");
   } catch (err) {
-    console.error("[Auth] Login DB error:", err.message);
+    console.error("[Auth] Login error:", err.stack || err.message);
     return error(res, "伺服器錯誤，請稍後再試", 500);
   }
 });

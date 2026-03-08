@@ -27,6 +27,7 @@ const globalLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false, // 關閉 x-forwarded-for 額外驗證（已由 trust proxy 處理）
   message: { success: false, message: "請求過於頻繁，請稍後再試" },
 });
 
@@ -36,8 +37,9 @@ const loginLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false, // 關閉 x-forwarded-for 額外驗證
   message: { success: false, message: "嘗試次數過多，請 15 分鐘後再試" },
-  skipSuccessfulRequests: true, // 成功登入不計入次數
+  skipSuccessfulRequests: true,
 });
 
 app.use(globalLimiter);
@@ -64,7 +66,11 @@ app.use((_req, res) => {
 
 // ── Global Error Handler ──────────────────────────
 app.use((err, _req, res, _next) => {
-  console.error("[Server] Unhandled error:", err.message);
+  // JSON body 解析失敗（express.json 丟出的 SyntaxError）
+  if (err.type === "entity.parse.failed" || err instanceof SyntaxError) {
+    return res.status(400).json({ success: false, message: "無效的 JSON 格式" });
+  }
+  console.error("[Server] Unhandled error:", err.stack || err.message);
   res.status(500).json({ success: false, message: "伺服器內部錯誤" });
 });
 
