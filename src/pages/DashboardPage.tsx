@@ -62,8 +62,8 @@ const DashboardPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-display font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">InsForge 平台總覽</p>
+        <h1 className="text-2xl font-display font-bold tracking-tight">{t.page_dashboard_title}</h1>
+        <p className="text-muted-foreground mt-1">{t.page_dashboard_desc}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
