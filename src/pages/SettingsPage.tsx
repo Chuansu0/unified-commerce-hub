@@ -66,8 +66,8 @@ const SettingsPage = () => {
   };
 
   const handleReset = () => {
-    setSettings(defaultSettings);
-    localStorage.removeItem(STORAGE_KEY);
+    setSettings({ ...defaultAISettings });
+    clearAISettings();
     setSaved(false);
     toast.info("已還原為預設設定");
   };
