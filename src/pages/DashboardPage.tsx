@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, MessageSquare, TrendingUp, Package } from "lucide-react";
 import { insforgeOrders, insforgeProducts, insforgeConversations } from "@/services/insforge";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const DashboardPage = () => {
   const [orders, setOrders] = useState<any[]>([]);
