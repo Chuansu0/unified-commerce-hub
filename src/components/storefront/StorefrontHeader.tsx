@@ -96,9 +96,9 @@ export function StorefrontHeader() {
         {/* Logo */}
         <Link to="/shop" className="flex items-center gap-2 shrink-0">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-display font-bold text-sm">IF</span>
+            <span className="text-primary-foreground font-display font-bold text-sm">NV</span>
           </div>
-          <span className="font-display font-bold text-lg text-foreground hidden sm:block">InsForge</span>
+          <span className="font-display font-bold text-lg text-foreground hidden sm:block">NeoVega</span>
         </Link>
 
         {/* Search */}

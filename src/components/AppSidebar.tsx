@@ -128,7 +128,7 @@ export function AppSidebar() {
             </div>
             <div className="text-xs">
               <p className="text-sidebar-accent-foreground font-medium">Admin</p>
-              <p className="text-sidebar-foreground">admin@insforge.app</p>
+              <p className="text-sidebar-foreground">admin@neovega.cc</p>
             </div>
           </div>
         )}

@@ -14,9 +14,9 @@ export function StorefrontFooter() {
           <div className="col-span-2 md:col-span-1">
             <Link to="/shop" className="flex items-center gap-2 mb-3">
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-display font-bold text-sm">IF</span>
+                <span className="text-primary-foreground font-display font-bold text-sm">NV</span>
               </div>
-              <span className="font-display font-bold text-lg text-foreground">InsForge</span>
+              <span className="font-display font-bold text-lg text-foreground">NeoVega</span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
               {st.home_hero_subtitle}

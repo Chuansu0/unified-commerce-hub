@@ -7,7 +7,7 @@ interface I18nContextValue {
   t: Translations;
 }
 
-const STORAGE_KEY = "insforge-locale";
+const STORAGE_KEY = "neovega-locale";
 
 function getInitialLocale(): Locale {
   try {

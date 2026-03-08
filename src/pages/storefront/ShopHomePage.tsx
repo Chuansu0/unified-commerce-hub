@@ -75,7 +75,7 @@ export default function ShopHomePage() {
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="h-6 w-6 text-primary" />
-              <Badge variant="secondary" className="text-xs">InsForge Books</Badge>
+              <Badge variant="secondary" className="text-xs">NeoVega Books</Badge>
             </div>
             <h1 className="font-display text-3xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
               {st.home_hero_title}
