@@ -53,6 +53,7 @@ const formatCurrency = (amount: number, currency = "TWD") =>
   new Intl.NumberFormat("zh-TW", { style: "currency", currency }).format(amount);
 
 const OrdersPage = () => {
+  const { t } = useI18n();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
