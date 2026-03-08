@@ -207,7 +207,7 @@ const storefrontTranslations: Record<Locale, StorefrontTranslations> = {
     header_logout: "Logout",
 
     home_hero_title: "Explore Infinite Knowledge",
-    home_hero_subtitle: "From literature to technology, InsForge curates the finest content products for you",
+    home_hero_subtitle: "From literature to technology, NeoVega curates the finest content products for you",
     home_hero_cta: "Shop Now",
     home_featured: "Featured",
     home_new_arrivals: "New Arrivals",
