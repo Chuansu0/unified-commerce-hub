@@ -7,10 +7,12 @@ import {
   Settings,
   Bot,
   Users,
+  LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useI18n } from "@/i18n/I18nContext";
+import { useAuthStore } from "@/store/authStore";
 import {
   Sidebar,
   SidebarContent,
@@ -29,7 +31,14 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const navigate = useNavigate();
   const { t } = useI18n();
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/shop/login", { replace: true });
+  };
 
   const mainItems = [
     { title: t.sidebar_dashboard, url: "/", icon: LayoutDashboard },
@@ -122,16 +131,39 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-4">
-        {!collapsed && (
+      <SidebarFooter className="border-t border-sidebar-border p-3">
+        {collapsed ? (
+          /* 摺疊狀態：只顯示登出圖示 */
+          <button
+            onClick={handleLogout}
+            title="登出"
+            className="flex w-full items-center justify-center rounded-md p-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-destructive transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        ) : (
+          /* 展開狀態：顯示帳號資訊 + 登出按鈕 */
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-full bg-sidebar-muted flex items-center justify-center">
-              <span className="text-xs text-sidebar-foreground">A</span>
+            <div className="h-7 w-7 flex-shrink-0 rounded-full bg-sidebar-muted flex items-center justify-center">
+              <span className="text-xs font-medium text-sidebar-foreground uppercase">
+                {(user?.username ?? "A").charAt(0)}
+              </span>
             </div>
-            <div className="text-xs">
-              <p className="text-sidebar-accent-foreground font-medium">Admin</p>
-              <p className="text-sidebar-foreground">admin@neovega.cc</p>
+            <div className="flex-1 min-w-0 text-xs">
+              <p className="font-medium text-sidebar-accent-foreground truncate">
+                {user?.username ?? "Admin"}
+              </p>
+              <p className="text-sidebar-foreground truncate">
+                {user?.email ?? ""}
+              </p>
             </div>
+            <button
+              onClick={handleLogout}
+              title="登出"
+              className="flex-shrink-0 rounded-md p-1.5 text-sidebar-foreground hover:bg-sidebar-accent hover:text-destructive transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         )}
       </SidebarFooter>
