@@ -1,5 +1,8 @@
+const express = require("express");
 const jwt = require("jsonwebtoken");
 const Joi = require("joi");
+const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const router = express.Router();
 const db = require("../db");
 const { success, error } = require("../utils/response");
