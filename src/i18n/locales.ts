@@ -24,6 +24,7 @@ export interface Translations {
   sidebar_products: string;
   sidebar_conversations: string;
   sidebar_analytics: string;
+  sidebar_members: string;
   sidebar_agent: string;
   sidebar_settings: string;
   sidebar_admin_dashboard: string;
@@ -39,6 +40,8 @@ export interface Translations {
   page_conversations_desc: string;
   page_analytics_title: string;
   page_analytics_desc: string;
+  page_members_title: string;
+  page_members_desc: string;
   page_agent_title: string;
   page_agent_desc: string;
   page_settings_title: string;
@@ -54,6 +57,7 @@ const translations: Record<Locale, Translations> = {
     sidebar_products: "商品管理",
     sidebar_conversations: "對話管理",
     sidebar_analytics: "數據分析",
+    sidebar_members: "會員管理",
     sidebar_agent: "AI Agent",
     sidebar_settings: "設定",
     sidebar_admin_dashboard: "管理後台",
@@ -68,6 +72,8 @@ const translations: Record<Locale, Translations> = {
     page_conversations_desc: "AI 聊天機器人對話與即時接管",
     page_analytics_title: "數據分析",
     page_analytics_desc: "轉換率、常見問題與互動洞察",
+    page_members_title: "會員管理",
+    page_members_desc: "搜尋會員資料與查閱訂單歷史",
     page_agent_title: "AI Agent",
     page_agent_desc: "OpenClaw 代理設定與測試",
     page_settings_title: "設定",
@@ -81,6 +87,7 @@ const translations: Record<Locale, Translations> = {
     sidebar_products: "Products",
     sidebar_conversations: "Conversations",
     sidebar_analytics: "Analytics",
+    sidebar_members: "Members",
     sidebar_agent: "AI Agent",
     sidebar_settings: "Settings",
     sidebar_admin_dashboard: "Admin Dashboard",
@@ -95,6 +102,8 @@ const translations: Record<Locale, Translations> = {
     page_conversations_desc: "AI chatbot conversations & live takeover",
     page_analytics_title: "Analytics",
     page_analytics_desc: "Conversion, FAQ, and engagement insights",
+    page_members_title: "Members",
+    page_members_desc: "Search member profiles and order history",
     page_agent_title: "AI Agent",
     page_agent_desc: "OpenClaw agent configuration and testing",
     page_settings_title: "Settings",
@@ -108,6 +117,7 @@ const translations: Record<Locale, Translations> = {
     sidebar_products: "商品管理",
     sidebar_conversations: "对话管理",
     sidebar_analytics: "数据分析",
+    sidebar_members: "会员管理",
     sidebar_agent: "AI Agent",
     sidebar_settings: "设置",
     sidebar_admin_dashboard: "管理后台",
@@ -122,6 +132,8 @@ const translations: Record<Locale, Translations> = {
     page_conversations_desc: "AI 聊天机器人对话与即时接管",
     page_analytics_title: "数据分析",
     page_analytics_desc: "转换率、常见问题与互动洞察",
+    page_members_title: "会员管理",
+    page_members_desc: "搜索会员资料与查阅订单历史",
     page_agent_title: "AI Agent",
     page_agent_desc: "OpenClaw 代理设置与测试",
     page_settings_title: "设置",
@@ -135,6 +147,7 @@ const translations: Record<Locale, Translations> = {
     sidebar_products: "商品管理",
     sidebar_conversations: "会話管理",
     sidebar_analytics: "分析",
+    sidebar_members: "会員管理",
     sidebar_agent: "AI Agent",
     sidebar_settings: "設定",
     sidebar_admin_dashboard: "管理ダッシュボード",
@@ -149,6 +162,8 @@ const translations: Record<Locale, Translations> = {
     page_conversations_desc: "AIチャットボットの会話とライブテイクオーバー",
     page_analytics_title: "分析",
     page_analytics_desc: "コンバージョン、FAQ、エンゲージメントの分析",
+    page_members_title: "会員管理",
+    page_members_desc: "会員情報と注文履歴の検索",
     page_agent_title: "AI Agent",
     page_agent_desc: "OpenClawエージェントの設定とテスト",
     page_settings_title: "設定",

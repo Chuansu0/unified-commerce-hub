@@ -6,6 +6,7 @@ import {
   BarChart3,
   Settings,
   Bot,
+  Users,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -34,6 +35,7 @@ export function AppSidebar() {
     { title: t.sidebar_dashboard, url: "/", icon: LayoutDashboard },
     { title: t.sidebar_orders, url: "/orders", icon: ShoppingCart },
     { title: t.sidebar_products, url: "/products", icon: Package },
+    { title: t.sidebar_members, url: "/members", icon: Users },
     { title: t.sidebar_conversations, url: "/conversations", icon: MessageSquare },
     { title: t.sidebar_analytics, url: "/analytics", icon: BarChart3 },
   ];
