@@ -9,6 +9,9 @@ const authRoutes = require("./routes/auth");
 const productRoutes = require("./routes/products");
 const orderRoutes = require("./routes/orders");
 const userRoutes = require("./routes/users");
+const chatRoutes = require("./routes/chat");
+const telegramRoutes = require("./routes/telegram");
+const telegramBindRoutes = require("./routes/telegramBind");
 
 const { runMigration } = require("./db/migrate");
 
@@ -53,6 +56,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/telegram", telegramRoutes);
+app.use("/api/telegram-bind", telegramBindRoutes);
 
 // Health check（Zeabur 用於服務偵測）
 app.get("/api/health", async (_req, res) => {

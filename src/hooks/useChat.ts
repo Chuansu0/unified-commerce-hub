@@ -3,6 +3,8 @@ import { callOpenClaw, callN8nChat, callLLM } from "@/services/api";
 import type { LLMChatMessage } from "@/services/api";
 import { loadAISettings, getActiveAISource } from "@/services/aiSettings";
 import type { Message } from "@/components/chat/ChatMessage";
+import { sendChatMessage } from "@/services/chat";
+import { useAuthStore } from "@/store/authStore";
 
 const generateId = () => crypto.randomUUID();
 
@@ -10,6 +12,7 @@ export function useChat(userId: string) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { token } = useAuthStore();
 
   const sendMessage = useCallback(
     async (text: string, conversationHistory?: Message[]) => {
@@ -24,6 +27,24 @@ export function useChat(userId: string) {
       setLoading(true);
 
       try {
+        // 優先使用 Backend API（如果用戶已登入）
+        if (token) {
+          try {
+            const result = await sendChatMessage(token, text);
+            const assistantMsg: Message = {
+              id: generateId(),
+              role: "assistant",
+              content: result.response,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, assistantMsg]);
+            setLoading(false);
+            return;
+          } catch (err) {
+            console.warn("Backend API 失敗，fallback 到直接調用:", err);
+          }
+        }
+
         const settings = loadAISettings();
         const source = getActiveAISource(settings);
 

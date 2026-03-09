@@ -8,8 +8,10 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Bot, Sparkles, Eye, EyeOff, RotateCcw, CheckCircle2 } from "lucide-react";
+import { Save, Bot, Sparkles, Eye, EyeOff, RotateCcw, CheckCircle2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+import { generateBindCode, checkBindStatus, type BindStatusResponse } from "@/services/telegram";
+import { useAuthStore } from "@/store/authStore";
 import {
   type AISettings,
   type OpenClawConfig,
@@ -23,14 +25,69 @@ import { useI18n } from "@/i18n/I18nContext";
 
 const SettingsPage = () => {
   const { t } = useI18n();
+  const { token } = useAuthStore();
   const [settings, setSettings] = useState<AISettings>(defaultAISettings);
   const [showOpenClawKey, setShowOpenClawKey] = useState(false);
   const [showLLMToken, setShowLLMToken] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  const [bindCode, setBindCode] = useState<string>("");
+  const [bindStatus, setBindStatus] = useState<BindStatusResponse | null>(null);
+  const [loadingBind, setLoadingBind] = useState(false);
+
   useEffect(() => {
     setSettings(loadAISettings());
   }, []);
+
+  useEffect(() => {
+    if (token) {
+      loadBindStatus();
+    }
+  }, [token]);
+
+  const loadBindStatus = async () => {
+    if (!token) return;
+    try {
+      const status = await checkBindStatus(token);
+      setBindStatus(status);
+    } catch (err) {
+      console.error("載入綁定狀態失敗:", err);
+    }
+  };
+
+  const handleGenerateBindCode = async () => {
+    if (!token) return;
+    setLoadingBind(true);
+    try {
+      const result = await generateBindCode(token);
+      setBindCode(result.code);
+      toast.success("綁定碼已生成");
+      startPolling();
+    } catch (err) {
+      toast.error("生成綁定碼失敗");
+    } finally {
+      setLoadingBind(false);
+    }
+  };
+
+  const startPolling = () => {
+    const interval = setInterval(async () => {
+      if (!token) return;
+      try {
+        const status = await checkBindStatus(token);
+        setBindStatus(status);
+        if (status.bound) {
+          clearInterval(interval);
+          setBindCode("");
+          toast.success("Telegram 綁定成功！");
+        }
+      } catch (err) {
+        console.error("檢查綁定狀態失敗:", err);
+      }
+    }, 3000);
+
+    setTimeout(() => clearInterval(interval), 600000);
+  };
 
   const updateOpenClaw = (patch: Partial<OpenClawConfig>) => {
     setSettings((prev) => ({ ...prev, openclaw: { ...prev.openclaw, ...patch } }));
@@ -301,6 +358,60 @@ const SettingsPage = () => {
             </div>
           </CardContent>
         )}
+      </Card>
+
+      {/* Telegram Binding */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="h-4 w-4 text-primary" />
+            <CardTitle className="font-display text-base">Telegram 綁定</CardTitle>
+          </div>
+          <CardDescription className="text-xs">
+            綁定 Telegram 帳號後，可以在 Telegram 中與 AI 對話，所有訊息會與網頁同步
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {bindStatus?.bound ? (
+            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">已綁定</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Telegram 帳號：<span className="font-mono">@{bindStatus.telegramUsername}</span>
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {!bindCode ? (
+                <Button
+                  onClick={handleGenerateBindCode}
+                  disabled={loadingBind}
+                  className="w-full"
+                >
+                  生成綁定碼
+                </Button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-4 rounded-lg bg-secondary">
+                    <p className="text-xs text-muted-foreground mb-2">你的綁定碼：</p>
+                    <code className="text-lg font-mono font-bold">{bindCode}</code>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>請按照以下步驟完成綁定：</p>
+                    <ol className="list-decimal list-inside space-y-1 ml-2">
+                      <li>在 Telegram 中搜尋你的 Bot</li>
+                      <li>發送：<code className="font-mono bg-secondary px-1">/start {bindCode}</code></li>
+                      <li>等待綁定完成（約 3 秒）</li>
+                    </ol>
+                    <p className="text-amber-600 mt-2">⏱️ 綁定碼將在 10 分鐘後過期</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
       </Card>
 
       {/* Integration Status */}
