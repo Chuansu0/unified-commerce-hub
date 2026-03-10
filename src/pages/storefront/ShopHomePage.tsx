@@ -136,7 +136,7 @@ export default function ShopHomePage() {
             src={heroImage}
             alt="NeoVega"
             className="w-full h-full object-cover transition-transform ease-out"
-            style={{ transform: `scale(${1.05 + bannerIdx * 0.02})`, transitionDuration: '8000ms' }}
+            style={{ transform: `scale(${1.05 + bannerIdx * 0.02})`, transitionDuration: '8s' }}
           />
           <div className={`absolute inset-0 bg-gradient-to-r ${banner.gradient}`} />
         </div>
