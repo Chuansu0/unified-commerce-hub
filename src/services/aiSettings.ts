@@ -28,7 +28,7 @@ export interface AISettings {
 
 export const defaultAISettings: AISettings = {
   openclaw: {
-    agentUrl: import.meta.env.VITE_OPENCLAW_AGENT_URL || "https://openclaw.neovega.cc:18789",
+    agentUrl: getOpenClawAgentUrl(),
     apiKey: "",
     enabled: true,
     systemPrompt: "",
@@ -54,6 +54,15 @@ function isValidAbsoluteUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/** 取得有效的 OpenClaw Agent URL */
+function getOpenClawAgentUrl(): string {
+  const envUrl = import.meta.env.VITE_OPENCLAW_AGENT_URL;
+  // 只有當環境變數是有效的絕對 URL 時才使用
+  if (isValidAbsoluteUrl(envUrl)) return envUrl;
+  // 否則使用 hardcoded 預設值
+  return "https://openclaw.neovega.cc:18789";
 }
 
 export function loadAISettings(): AISettings {
