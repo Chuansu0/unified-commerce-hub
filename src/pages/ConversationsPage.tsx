@@ -15,7 +15,6 @@ import { useChat } from "@/hooks/useChat";
 import { fetchOrders } from "@/services/orders";
 import { loadAISettings, getActiveAISource } from "@/services/aiSettings";
 import { useI18n } from "@/i18n/I18nContext";
-import { useAuthStore } from "@/store/authStore";
 import type { Message } from "@/components/chat/ChatMessage";
 
 // Map conversation user names to customer data
@@ -71,7 +70,6 @@ const MOCK_MESSAGES: Record<string, Message[]> = {
 
 const ConversationsPage = () => {
   const { t } = useI18n();
-  const { getAuthHeader } = useAuthStore();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -84,10 +82,10 @@ const ConversationsPage = () => {
 
   // Load orders for customer info panel
   useEffect(() => {
-    fetchOrders({}, getAuthHeader())
+    fetchOrders({})
       .then((res) => setAllOrders(res.data))
       .catch(() => setAllOrders([]));
-  }, [getAuthHeader]);
+  }, []);
 
   // Load conversations (using mock data for now)
   useEffect(() => {

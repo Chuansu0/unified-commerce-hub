@@ -11,7 +11,6 @@ import { Separator } from "@/components/ui/separator";
 import { fetchOrders as fetchOrdersApi, updateOrderStatus, type ApiOrder, type OrderStatus } from "@/services/orders";
 import { ArrowUpDown, Search, RefreshCw, Package } from "lucide-react";
 import { useI18n } from "@/i18n/I18nContext";
-import { useAuthStore } from "@/store/authStore";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-warning/15 text-warning border-warning/30",
@@ -37,7 +36,6 @@ type SortDir = "asc" | "desc";
 
 const OrdersPage = () => {
   const { t } = useI18n();
-  const { getAuthHeader } = useAuthStore();
   const [orders, setOrders] = useState<ApiOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +49,7 @@ const OrdersPage = () => {
 
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     try {
-      await updateOrderStatus(orderId, newStatus, getAuthHeader());
+      await updateOrderStatus(orderId, newStatus);
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
       );
@@ -65,7 +63,7 @@ const OrdersPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchOrdersApi({}, getAuthHeader());
+      const res = await fetchOrdersApi({});
       setOrders(res.data);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to fetch orders");

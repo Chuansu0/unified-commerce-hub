@@ -25,15 +25,34 @@
                     "options": {
                         "maxSelect": 1,
                         "values": [
-                            "admin",
-                            "manager",
-                            "customer"
+                            "superadmin",
+                            "user"
                         ]
                     }
                 },
                 {
                     "name": "phone",
                     "type": "text",
+                    "required": false
+                },
+                {
+                    "name": "is_active",
+                    "type": "bool",
+                    "required": false
+                },
+                {
+                    "name": "telegram_user_id",
+                    "type": "number",
+                    "required": false
+                },
+                {
+                    "name": "telegram_username",
+                    "type": "text",
+                    "required": false
+                },
+                {
+                    "name": "telegram_bound_at",
+                    "type": "date",
                     "required": false
                 }
             ],
@@ -65,6 +84,11 @@
                     "required": false
                 },
                 {
+                    "name": "description_en",
+                    "type": "text",
+                    "required": false
+                },
+                {
                     "name": "price",
                     "type": "number",
                     "required": true
@@ -75,22 +99,9 @@
                     "required": false
                 },
                 {
-                    "name": "image",
-                    "type": "file",
-                    "required": false,
-                    "options": {
-                        "maxSelect": 1,
-                        "maxSize": 10485760
-                    }
-                },
-                {
-                    "name": "images",
-                    "type": "file",
-                    "required": false,
-                    "options": {
-                        "maxSelect": 5,
-                        "maxSize": 10485760
-                    }
+                    "name": "image_url",
+                    "type": "url",
+                    "required": false
                 },
                 {
                     "name": "category",
@@ -110,17 +121,9 @@
                     }
                 },
                 {
-                    "name": "status",
-                    "type": "select",
-                    "required": true,
-                    "options": {
-                        "maxSelect": 1,
-                        "values": [
-                            "active",
-                            "inactive",
-                            "out_of_stock"
-                        ]
-                    }
+                    "name": "is_active",
+                    "type": "bool",
+                    "required": false
                 },
                 {
                     "name": "stock",
@@ -138,7 +141,12 @@
                     "required": false
                 },
                 {
-                    "name": "tags",
+                    "name": "badges",
+                    "type": "json",
+                    "required": false
+                },
+                {
+                    "name": "features",
                     "type": "json",
                     "required": false
                 },
@@ -160,7 +168,7 @@
             ],
             "indexes": [
                 "CREATE INDEX idx_products_category ON products (category)",
-                "CREATE INDEX idx_products_status ON products (status)"
+                "CREATE INDEX idx_products_is_active ON products (is_active)"
             ],
             "options": {}
         },
@@ -249,7 +257,7 @@
                     "required": false
                 },
                 {
-                    "name": "notes",
+                    "name": "note",
                     "type": "text",
                     "required": false
                 },
@@ -381,6 +389,18 @@
                     }
                 },
                 {
+                    "name": "channel",
+                    "type": "select",
+                    "required": false,
+                    "options": {
+                        "maxSelect": 1,
+                        "values": [
+                            "web",
+                            "telegram"
+                        ]
+                    }
+                },
+                {
                     "name": "content",
                     "type": "text",
                     "required": true
@@ -472,6 +492,52 @@
                 }
             ],
             "indexes": [],
+            "options": {}
+        },
+        {
+            "name": "telegram_bind_codes",
+            "type": "base",
+            "schema": [
+                {
+                    "name": "user",
+                    "type": "relation",
+                    "required": true,
+                    "options": {
+                        "collectionId": "users",
+                        "cascadeDelete": true,
+                        "minSelect": null,
+                        "maxSelect": 1
+                    }
+                },
+                {
+                    "name": "bind_code",
+                    "type": "text",
+                    "required": true
+                },
+                {
+                    "name": "expires_at",
+                    "type": "date",
+                    "required": true
+                },
+                {
+                    "name": "used",
+                    "type": "bool",
+                    "required": false
+                },
+                {
+                    "name": "created",
+                    "type": "autodate",
+                    "required": false
+                },
+                {
+                    "name": "updated",
+                    "type": "autodate",
+                    "required": false
+                }
+            ],
+            "indexes": [
+                "CREATE UNIQUE INDEX idx_bind_code ON telegram_bind_codes (bind_code)"
+            ],
             "options": {}
         }
     ]

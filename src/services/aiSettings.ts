@@ -1,7 +1,7 @@
 // Shared AI settings types and helpers — single source of truth
 // Used by both Settings page and useChat hook
 
-const STORAGE_KEY = "insforge-ai-settings";
+const STORAGE_KEY = "neovega-ai-settings";
 
 export interface OpenClawConfig {
   agentUrl: string;

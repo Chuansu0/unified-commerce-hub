@@ -1,4 +1,7 @@
-import { config } from "./config";
+/**
+ * Telegram 綁定服務 - 使用 PocketBase SDK
+ */
+import pb from './pocketbase';
 
 export interface BindCodeResponse {
     code: string;
@@ -11,30 +14,41 @@ export interface BindStatusResponse {
     boundAt?: string;
 }
 
-function getBaseUrl(): string {
-    const url = config.auth?.apiUrl;
-    if (!url) return "";
-    if (!/^https?:\/\//i.test(url)) {
-        return `https://${url}`;
+export async function generateBindCode(_token: string): Promise<BindCodeResponse> {
+    const user = pb.authStore.model;
+    if (!user) throw new Error('請先登入');
+
+    // 產生隨機綁定碼
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'BIND-';
+    for (let i = 0; i < 6; i++) {
+        code += chars[Math.floor(Math.random() * chars.length)];
     }
-    return url;
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    await pb.collection('telegram_bind_codes').create({
+        user: user.id,
+        bind_code: code,
+        expires_at: expiresAt,
+        used: false,
+    });
+
+    return { code, expiresAt };
 }
 
-export async function generateBindCode(token: string): Promise<BindCodeResponse> {
-    const baseUrl = getBaseUrl();
-    const res = await fetch(`${baseUrl}/api/telegram-bind/generate-bind-code`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    return data.data;
-}
+export async function checkBindStatus(_token: string): Promise<BindStatusResponse> {
+    const user = pb.authStore.model;
+    if (!user) return { bound: false };
 
-export async function checkBindStatus(token: string): Promise<BindStatusResponse> {
-    const baseUrl = getBaseUrl();
-    const res = await fetch(`${baseUrl}/api/telegram-bind/bind-status`, {
-        headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    return data.data;
+    try {
+        const record = await pb.collection('users').getOne(user.id);
+        const r = record as Record<string, unknown>;
+        return {
+            bound: !!r.telegram_user_id,
+            telegramUsername: r.telegram_username as string | undefined,
+            boundAt: r.telegram_bound_at as string | undefined,
+        };
+    } catch {
+        return { bound: false };
+    }
 }

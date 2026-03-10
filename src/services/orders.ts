@@ -1,7 +1,7 @@
 /**
  * 訂單服務 - 使用 PocketBase SDK
  */
-import pb, { OrderRecord, OrderItem } from './pocketbase';
+import pb, { OrderRecord, OrderItem, escapeFilterValue } from './pocketbase';
 import { getCurrentUser } from './pocketbase';
 
 // ── 型別定義 ────────────────────────────────────────────────────
@@ -25,6 +25,7 @@ export interface ApiOrder {
     total: number;
     status: OrderStatus;
     payment_method?: string;
+    payment_status?: 'pending' | 'paid' | 'failed' | 'refunded';
     shipping_address?: {
         recipient_name: string;
         phone: string;
@@ -87,6 +88,7 @@ function recordToApiOrder(record: Record<string, unknown>): ApiOrder {
         total: r.total,
         status: r.status as OrderStatus,
         payment_method: r.payment_method,
+        payment_status: r.payment_status,
         shipping_address: r.shipping_address as ApiOrder['shipping_address'],
         note: r.note,
         created: r.created,
@@ -112,26 +114,25 @@ function generateOrderNo(): string {
  * - 一般用戶：只能查自己的訂單
  */
 export async function fetchOrders(
-    params: OrdersQueryParams = {},
-    _authHeader?: Record<string, string>
+    params: OrdersQueryParams = {}
 ): Promise<OrderListResponse> {
     const page = params.page || 1;
     const limit = params.limit || 20;
 
-    // 建立過濾條件
+    // 建立過濾條件（使用 escapeFilterValue 防止 injection）
     const filters: string[] = [];
 
     const currentUser = getCurrentUser();
     if (currentUser && currentUser.role !== 'superadmin') {
         // 一般用戶只能查自己的訂單
-        filters.push(`user = "${currentUser.id}"`);
+        filters.push(`user = "${escapeFilterValue(currentUser.id)}"`);
     } else if (params.user_id) {
         // superadmin 可以篩選特定用戶
-        filters.push(`user = "${params.user_id}"`);
+        filters.push(`user = "${escapeFilterValue(params.user_id)}"`);
     }
 
     if (params.status) {
-        filters.push(`status = "${params.status}"`);
+        filters.push(`status = "${escapeFilterValue(params.status)}"`);
     }
 
     const filter = filters.join(' && ');
@@ -171,8 +172,7 @@ export async function fetchOrders(
  * 取得單一訂單詳情（需登入）
  */
 export async function fetchOrder(
-    id: string,
-    _authHeader?: Record<string, string>
+    id: string
 ): Promise<ApiOrder> {
     try {
         const record = await pb.collection('orders').getOne(id, {
@@ -197,8 +197,7 @@ export async function fetchOrder(
  * 建立新訂單（需登入）
  */
 export async function createOrder(
-    payload: CreateOrderPayload,
-    _authHeader?: Record<string, string>
+    payload: CreateOrderPayload
 ): Promise<ApiOrder> {
     const currentUser = getCurrentUser();
     if (!currentUser) {
@@ -235,8 +234,7 @@ export async function createOrder(
  */
 export async function updateOrderStatus(
     id: string,
-    status: OrderStatus,
-    _authHeader?: Record<string, string>
+    status: OrderStatus
 ): Promise<ApiOrder> {
     try {
         const record = await pb.collection('orders').update(id, { status });

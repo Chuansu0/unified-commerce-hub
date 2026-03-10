@@ -1,7 +1,7 @@
 /**
  * 商品服務 - 使用 PocketBase SDK
  */
-import pb, { ProductRecord } from './pocketbase';
+import pb, { ProductRecord, escapeFilterValue } from './pocketbase';
 
 // ── 型別定義 ────────────────────────────────────────────────────
 export interface ApiProduct {
@@ -15,8 +15,11 @@ export interface ApiProduct {
     category: string;
     image_url?: string;
     stock: number;
+    sku?: string;
+    featured?: boolean;
     badges?: string[];
     features?: string[];
+    attributes?: Record<string, unknown>;
     is_active: boolean;
     created: string;
     updated: string;
@@ -60,8 +63,11 @@ function recordToApiProduct(record: Record<string, unknown>): ApiProduct {
         category: r.category || '',
         image_url: r.image_url,
         stock: r.stock,
+        sku: r.sku,
+        featured: r.featured,
         badges: r.badges,
         features: r.features,
+        attributes: r.attributes,
         is_active: r.is_active,
         created: r.created,
         updated: r.updated,
@@ -79,16 +85,17 @@ export async function fetchProducts(
     const page = params.page || 1;
     const limit = params.limit || 20;
 
-    // 建立過濾條件
+    // 建立過濾條件（使用 escapeFilterValue 防止 injection）
     const filters: string[] = [];
     if (params.active_only !== false) {
         filters.push('is_active = true');
     }
     if (params.category) {
-        filters.push(`category = "${params.category}"`);
+        filters.push(`category = "${escapeFilterValue(params.category)}"`);
     }
     if (params.search) {
-        filters.push(`(name ~ "${params.search}" || name_en ~ "${params.search}")`);
+        const safe = escapeFilterValue(params.search);
+        filters.push(`(name ~ "${safe}" || name_en ~ "${safe}")`);
     }
 
     const filter = filters.join(' && ');
@@ -130,8 +137,7 @@ export async function fetchProduct(id: string): Promise<ApiProduct> {
  * 新增商品（需 superadmin）
  */
 export async function createProduct(
-    payload: CreateProductPayload,
-    _authHeader?: Record<string, string>
+    payload: CreateProductPayload
 ): Promise<ApiProduct> {
     try {
         const record = await pb.collection('products').create({
@@ -149,8 +155,7 @@ export async function createProduct(
  */
 export async function updateProduct(
     id: string,
-    payload: Partial<CreateProductPayload>,
-    _authHeader?: Record<string, string>
+    payload: Partial<CreateProductPayload>
 ): Promise<ApiProduct> {
     try {
         const record = await pb.collection('products').update(id, payload);
@@ -164,8 +169,7 @@ export async function updateProduct(
  * 下架商品（需 superadmin，軟刪除）
  */
 export async function deleteProduct(
-    id: string,
-    _authHeader?: Record<string, string>
+    id: string
 ): Promise<void> {
     try {
         // 軟刪除：設定 is_active = false

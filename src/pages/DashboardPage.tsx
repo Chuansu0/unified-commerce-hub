@@ -7,11 +7,9 @@ import { fetchProducts } from "@/services/products";
 import { useI18n } from "@/i18n/I18nContext";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useAuthStore } from "@/store/authStore";
 
 const DashboardPage = () => {
   const { t } = useI18n();
-  const { getAuthHeader } = useAuthStore();
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [conversations, setConversations] = useState<any[]>([]);
@@ -19,7 +17,7 @@ const DashboardPage = () => {
 
   useEffect(() => {
     // 載入訂單資料
-    fetchOrders({}, getAuthHeader())
+    fetchOrders({})
       .then((res) => setOrders(res.data))
       .catch(() => setOrders([]));
 
@@ -30,7 +28,7 @@ const DashboardPage = () => {
 
     // TODO: 對話功能需要另外實作
     setConversations([]);
-  }, [getAuthHeader]);
+  }, []);
 
   const totalRevenue = orders.reduce((sum, o) => sum + (o.status !== "cancelled" ? o.total : 0), 0);
   const unreadCount = conversations.reduce((sum, c) => sum + (c.unread || 0), 0);

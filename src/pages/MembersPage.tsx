@@ -20,7 +20,6 @@ import {
     SheetDescription,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuthStore } from "@/store/authStore";
 import {
     fetchMembers,
     fetchMemberDetail,
@@ -33,7 +32,7 @@ import type { ApiOrder, OrderStatus } from "@/services/orders";
 // ── 訂單狀態標籤 ─────────────────────────────────────────────────
 const STATUS_LABELS: Record<OrderStatus, string> = {
     pending: "待處理",
-    paid: "已付款",
+    processing: "處理中",
     shipped: "已出貨",
     delivered: "已完成",
     cancelled: "已取消",
@@ -44,14 +43,14 @@ const STATUS_VARIANT: Record<
     "default" | "secondary" | "destructive" | "outline"
 > = {
     pending: "default",
-    paid: "secondary",
+    processing: "secondary",
     shipped: "secondary",
     delivered: "outline",
     cancelled: "destructive",
 };
 
 /** 未結訂單狀態（需 highlight） */
-const OPEN_STATUSES: OrderStatus[] = ["pending", "paid", "shipped"];
+const OPEN_STATUSES: OrderStatus[] = ["pending", "processing", "shipped"];
 
 function OrderStatusBadge({ status }: { status: string }) {
     const s = status as OrderStatus;
@@ -237,7 +236,7 @@ function OrderCard({ order }: { order: ApiOrder }) {
             <div className="flex items-center justify-between mb-2">
                 <div>
                     <p className="text-sm font-mono font-semibold">{order.order_no}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(order.created_at)}</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(order.created)}</p>
                 </div>
                 <div className="text-right">
                     <OrderStatusBadge status={order.status} />
@@ -263,8 +262,6 @@ function OrderCard({ order }: { order: ApiOrder }) {
 
 // ── 主頁面 ───────────────────────────────────────────────────────
 export default function MembersPage() {
-    const { getAuthHeader } = useAuthStore();
-
     // 搜尋
     const [query, setQuery] = useState("");
     const [activeTab, setActiveTab] = useState<"members" | "orders">("members");
@@ -291,7 +288,7 @@ export default function MembersPage() {
             setMembersLoading(true);
             setMembersError(null);
             try {
-                const res = await fetchMembers({ q, page, limit: 20 }, getAuthHeader());
+                const res = await fetchMembers({ q, page, limit: 20 });
                 setMembers(res.data);
                 setPagination({
                     total: res.pagination.total,
@@ -304,7 +301,7 @@ export default function MembersPage() {
                 setMembersLoading(false);
             }
         },
-        [getAuthHeader]
+        []
     );
 
     // ── 搜尋訂單 ─────────────────────────────────────────────────
@@ -313,7 +310,7 @@ export default function MembersPage() {
             setOrdersLoading(true);
             setOrdersError(null);
             try {
-                const rows = await searchOrders(q, getAuthHeader());
+                const rows = await searchOrders(q);
                 setOrderResults(rows);
             } catch (e: unknown) {
                 setOrdersError(e instanceof Error ? e.message : "搜尋失敗");
@@ -321,7 +318,7 @@ export default function MembersPage() {
                 setOrdersLoading(false);
             }
         },
-        [getAuthHeader]
+        []
     );
 
     // ── 初始載入 ─────────────────────────────────────────────────
@@ -354,7 +351,7 @@ export default function MembersPage() {
         setMemberDetail(null);
         setDetailLoading(true);
         try {
-            const detail = await fetchMemberDetail(member.id, getAuthHeader());
+            const detail = await fetchMemberDetail(member.id);
             setMemberDetail(detail);
         } finally {
             setDetailLoading(false);
@@ -578,7 +575,7 @@ export default function MembersPage() {
                                                     {formatCurrency(Number(o.total))}
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground">
-                                                    {formatDate(o.created_at)}
+                                                    {formatDate(o.created)}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
