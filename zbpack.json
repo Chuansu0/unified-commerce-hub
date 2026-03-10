@@ -1,6 +1,10 @@
 {
+    "app_dir": "/",
     "build_command": "bun run build",
     "output_dir": "dist",
+    "install_command": "bun install",
+    "start_command": "bun run start",
+    "framework": "vite",
     "env": {
         "VITE_POCKETBASE_URL": "https://pocketbase.zeabur.internal:8090"
     }
