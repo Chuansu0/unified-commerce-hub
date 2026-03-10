@@ -1,0 +1,7 @@
+{
+    "build_command": "bun run build",
+    "output_dir": "dist",
+    "env": {
+        "VITE_POCKETBASE_URL": "https://pocketbase.zeabur.internal:8090"
+    }
+}

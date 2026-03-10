@@ -135,8 +135,8 @@ export default function ShopHomePage() {
           <img
             src={heroImage}
             alt="NeoVega"
-            className="w-full h-full object-cover transition-transform duration-[8000ms] ease-out"
-            style={{ transform: `scale(${1.05 + bannerIdx * 0.02})` }}
+            className="w-full h-full object-cover transition-transform ease-out"
+            style={{ transform: `scale(${1.05 + bannerIdx * 0.02})`, transitionDuration: '8000ms' }}
           />
           <div className={`absolute inset-0 bg-gradient-to-r ${banner.gradient}`} />
         </div>
@@ -285,9 +285,8 @@ export default function ShopHomePage() {
                   <div className="relative aspect-[3/4] overflow-hidden">
                     <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     {/* Rank badge */}
-                    <div className={`absolute top-0 left-0 w-10 h-10 flex items-center justify-center font-display font-bold text-white text-lg ${
-                      i === 0 ? "bg-amber-500" : i === 1 ? "bg-slate-400" : i === 2 ? "bg-amber-700" : "bg-muted-foreground/60"
-                    }`} style={{ clipPath: "polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)" }}>
+                    <div className={`absolute top-0 left-0 w-10 h-10 flex items-center justify-center font-display font-bold text-white text-lg ${i === 0 ? "bg-amber-500" : i === 1 ? "bg-slate-400" : i === 2 ? "bg-amber-700" : "bg-muted-foreground/60"
+                      }`} style={{ clipPath: "polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)" }}>
                       {i + 1}
                     </div>
                   </div>
