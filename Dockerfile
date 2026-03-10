@@ -21,29 +21,28 @@ FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Create nginx configuration for SPA routing with OpenClaw proxy
-RUN printf '%s\n' \
-    'server {' \
-    '    listen 8080;' \
-    '    server_name localhost;' \
-    '    root /usr/share/nginx/html;' \
-    '    index index.html;' \
-    '' \
-    '    # OpenClaw API proxy - avoids CORS issues' \
-    '    location /api/openclaw/ {' \
-    '        proxy_pass https://openclaw.neovega.cc/;' \
-    '        proxy_ssl_server_name on;' \
-    '        proxy_set_header Host openclaw.neovega.cc;' \
-    '        proxy_set_header X-Real-IP $remote_addr;' \
-    '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' \
-    '        proxy_set_header X-Forwarded-Proto $scheme;' \
-    '        proxy_connect_timeout 30s;' \
-    '        proxy_read_timeout 30s;' \
-    '    }' \
-    '' \
-    '    location / {' \
-    '        try_files $uri $uri/ /index.html;' \
-    '    }' \
-    '}' > /etc/nginx/conf.d/default.conf
+RUN echo 'server {' > /etc/nginx/conf.d/default.conf && \
+    echo '    listen 8080;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    server_name localhost;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    root /usr/share/nginx/html;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    index index.html;' >> /etc/nginx/conf.d/default.conf && \
+    echo '' >> /etc/nginx/conf.d/default.conf && \
+    echo '    # OpenClaw API proxy - avoids CORS issues' >> /etc/nginx/conf.d/default.conf && \
+    echo '    location /api/openclaw/ {' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_pass https://openclaw.neovega.cc/;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_ssl_server_name on;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_set_header Host openclaw.neovega.cc;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_set_header X-Real-IP $remote_addr;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_set_header X-Forwarded-Proto $scheme;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_connect_timeout 30s;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        proxy_read_timeout 30s;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    }' >> /etc/nginx/conf.d/default.conf && \
+    echo '' >> /etc/nginx/conf.d/default.conf && \
+    echo '    location / {' >> /etc/nginx/conf.d/default.conf && \
+    echo '        try_files $uri $uri/ /index.html;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    }' >> /etc/nginx/conf.d/default.conf && \
+    echo '}' >> /etc/nginx/conf.d/default.conf
 
 EXPOSE 8080
 CMD ["nginx", "-g", "daemon off;"]

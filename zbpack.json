@@ -3,8 +3,8 @@
     "build_command": "bun run build",
     "output_dir": "dist",
     "install_command": "bun install",
-    "start_command": "bun run start",
-    "framework": "vite",
+    "start_command": "nginx -g 'daemon off;'",
+    "framework": "docker",
     "env": {
         "VITE_POCKETBASE_URL": "https://pocketbase.zeabur.internal:8090"
     }
