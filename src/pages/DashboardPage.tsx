@@ -2,23 +2,35 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, MessageSquare, TrendingUp, Package } from "lucide-react";
-import { insforgeOrders, insforgeProducts, insforgeConversations } from "@/services/insforge";
+import { fetchOrders } from "@/services/orders";
+import { fetchProducts } from "@/services/products";
 import { useI18n } from "@/i18n/I18nContext";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useAuthStore } from "@/store/authStore";
 
 const DashboardPage = () => {
   const { t } = useI18n();
+  const { getAuthHeader } = useAuthStore();
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [conversations, setConversations] = useState<any[]>([]);
   const [granularity, setGranularity] = useState<"day" | "month">("day");
 
   useEffect(() => {
-    insforgeOrders.list().then(setOrders);
-    insforgeProducts.list().then(setProducts);
-    insforgeConversations.list().then(setConversations);
-  }, []);
+    // 載入訂單資料
+    fetchOrders({}, getAuthHeader())
+      .then((res) => setOrders(res.data))
+      .catch(() => setOrders([]));
+
+    // 載入商品資料
+    fetchProducts({ active_only: false })
+      .then((res) => setProducts(res.data))
+      .catch(() => setProducts([]));
+
+    // TODO: 對話功能需要另外實作
+    setConversations([]);
+  }, [getAuthHeader]);
 
   const totalRevenue = orders.reduce((sum, o) => sum + (o.status !== "cancelled" ? o.total : 0), 0);
   const unreadCount = conversations.reduce((sum, c) => sum + (c.unread || 0), 0);
@@ -27,7 +39,7 @@ const DashboardPage = () => {
     const map: Record<string, number> = {};
     orders.forEach((o) => {
       if (o.status === "cancelled") return;
-      const d = new Date(o.created_at);
+      const d = new Date(o.created);
       const key =
         granularity === "day"
           ? d.toLocaleDateString("zh-TW", { month: "numeric", day: "numeric" })
@@ -45,12 +57,12 @@ const DashboardPage = () => {
 
   const stats = [
     { title: "訂單總數", value: orders.length.toString(), sub: `${orders.filter(o => o.status === "pending").length} 筆待處理`, icon: ShoppingCart, color: "text-primary" },
-    { title: "商品數量", value: products.length.toString(), sub: `${products.filter(p => p.status === "active").length} 件上架中`, icon: Package, color: "text-accent-foreground" },
+    { title: "商品數量", value: products.length.toString(), sub: `${products.filter(p => p.is_active).length} 件上架中`, icon: Package, color: "text-accent-foreground" },
     { title: "對話數量", value: conversations.length.toString(), sub: `${unreadCount} 則未讀`, icon: MessageSquare, color: "text-muted-foreground" },
     { title: "營收總額", value: `NT$${totalRevenue.toLocaleString()}`, sub: "排除已取消訂單", icon: TrendingUp, color: "text-primary" },
   ];
 
-  const recentOrders = [...orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
+  const recentOrders = [...orders].sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()).slice(0, 5);
   const statusColor: Record<string, string> = {
     pending: "bg-warning/15 text-warning border-warning/30",
     processing: "bg-primary/15 text-primary border-primary/30",
@@ -111,7 +123,7 @@ const DashboardPage = () => {
             {recentOrders.map((order) => (
               <div key={order.id} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="font-medium truncate">{order.customer_name}</span>
+                  <span className="font-medium truncate">{order.username || order.user}</span>
                   <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${statusColor[order.status] || ""}`}>
                     {order.status}
                   </Badge>
@@ -140,6 +152,9 @@ const DashboardPage = () => {
                 )}
               </div>
             ))}
+            {conversations.length === 0 && (
+              <p className="text-muted-foreground text-sm">暫無對話資料</p>
+            )}
           </CardContent>
         </Card>
       </div>

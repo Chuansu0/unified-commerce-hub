@@ -12,9 +12,10 @@ import ChatInput from "@/components/chat/ChatInput";
 import ConversationList, { type Conversation } from "@/components/chat/ConversationList";
 import CustomerInfoPanel, { type CustomerInfo } from "@/components/chat/CustomerInfoPanel";
 import { useChat } from "@/hooks/useChat";
-import { insforgeConversations, insforgeOrders } from "@/services/insforge";
+import { fetchOrders } from "@/services/orders";
 import { loadAISettings, getActiveAISource } from "@/services/aiSettings";
 import { useI18n } from "@/i18n/I18nContext";
+import { useAuthStore } from "@/store/authStore";
 import type { Message } from "@/components/chat/ChatMessage";
 
 // Map conversation user names to customer data
@@ -27,6 +28,15 @@ const CUSTOMER_JOIN_DATES: Record<string, string> = {
 };
 
 const DEMO_USER_ID = "admin-operator";
+
+// Mock conversations for demo (PocketBase conversation service not yet implemented)
+const MOCK_CONVERSATIONS: Conversation[] = [
+  { id: "conv-001", userId: "Alice Chen", lastMessage: "請問防風機能外套還有貨嗎？", timestamp: new Date("2026-03-08T09:30:00Z"), unread: 2, intent: "product_inquiry" },
+  { id: "conv-002", userId: "Bob Wang", lastMessage: "我的訂單 ord-e5f6g7h8 什麼時候會到？", timestamp: new Date("2026-03-07T18:20:00Z"), unread: 0, intent: "order_tracking" },
+  { id: "conv-003", userId: "Carol Lin", lastMessage: "你好，我買的牛仔褲尺寸不合，可以退換嗎？", timestamp: new Date("2026-03-08T08:15:00Z"), unread: 1, intent: "return_exchange" },
+  { id: "conv-004", userId: "David Huang", lastMessage: "最近有什麼新品嗎？有推薦搭配嗎？", timestamp: new Date("2026-03-06T14:00:00Z"), unread: 0, intent: "recommendation" },
+  { id: "conv-005", userId: "Eva Wu", lastMessage: "付款的時候一直失敗，顯示交易錯誤", timestamp: new Date("2026-03-08T10:45:00Z"), unread: 3, intent: "payment_issue" },
+];
 
 // Mock message history per conversation
 const MOCK_MESSAGES: Record<string, Message[]> = {
@@ -61,6 +71,7 @@ const MOCK_MESSAGES: Record<string, Message[]> = {
 
 const ConversationsPage = () => {
   const { t } = useI18n();
+  const { getAuthHeader } = useAuthStore();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,21 +84,15 @@ const ConversationsPage = () => {
 
   // Load orders for customer info panel
   useEffect(() => {
-    insforgeOrders.list().then((data: any[]) => setAllOrders(data));
-  }, []);
+    fetchOrders({}, getAuthHeader())
+      .then((res) => setAllOrders(res.data))
+      .catch(() => setAllOrders([]));
+  }, [getAuthHeader]);
 
+  // Load conversations (using mock data for now)
   useEffect(() => {
-    insforgeConversations.list().then((data: any[]) => {
-      const mapped: Conversation[] = data.map((c) => ({
-        id: c.id,
-        userId: c.user_name || c.user_id,
-        lastMessage: c.last_message,
-        timestamp: new Date(c.updated_at),
-        unread: c.unread ?? 0,
-        intent: c.intent,
-      }));
-      setConversations(mapped);
-    });
+    // TODO: Replace with PocketBase conversation service when implemented
+    setConversations(MOCK_CONVERSATIONS);
   }, []);
 
   const aiSettings = loadAISettings();
@@ -191,9 +196,9 @@ const ConversationsPage = () => {
   const customerInfo: CustomerInfo | null = useMemo(() => {
     if (!activeConv) return null;
     const name = activeConv.userId;
-    const customerOrders = allOrders.filter((o: any) => o.customer_name === name);
+    const customerOrders = allOrders.filter((o: any) => o.username === name);
     const totalSpent = customerOrders.reduce((sum: number, o: any) => sum + (o.total ?? 0), 0);
-    const email = customerOrders[0]?.customer_email ?? `${name.toLowerCase().replace(/\s/g, ".")}@example.com`;
+    const email = customerOrders[0]?.email ?? `${name.toLowerCase().replace(/\s/g, ".")}@example.com`;
     return {
       name,
       email,
@@ -205,7 +210,7 @@ const ConversationsPage = () => {
         status: o.status ?? "pending",
         total: o.total ?? 0,
         currency: o.currency ?? "TWD",
-        created_at: o.created_at ?? "",
+        created_at: o.created ?? "",
         items: o.items,
       })),
     };

@@ -1,8 +1,11 @@
-import { config } from "./config";
+/**
+ * 商品服務 - 使用 PocketBase SDK
+ */
+import pb, { ProductRecord } from './pocketbase';
 
 // ── 型別定義 ────────────────────────────────────────────────────
 export interface ApiProduct {
-    id: number;
+    id: string;
     name: string;
     name_en?: string;
     description?: string;
@@ -15,7 +18,8 @@ export interface ApiProduct {
     badges?: string[];
     features?: string[];
     is_active: boolean;
-    created_at: string;
+    created: string;
+    updated: string;
 }
 
 export interface ProductListResponse {
@@ -37,51 +41,89 @@ export interface ProductsQueryParams {
     active_only?: boolean;
 }
 
-export type CreateProductPayload = Omit<ApiProduct, "id" | "created_at" | "is_active"> & {
+export type CreateProductPayload = Omit<ApiProduct, 'id' | 'created' | 'updated' | 'is_active'> & {
     is_active?: boolean;
 };
 
-function getBaseUrl(): string | undefined {
-    return config.auth?.apiUrl;
+// ── 輔助函式 ────────────────────────────────────────────────────
+
+function recordToApiProduct(record: Record<string, unknown>): ApiProduct {
+    const r = record as unknown as ProductRecord;
+    return {
+        id: r.id,
+        name: r.name,
+        name_en: r.name_en,
+        description: r.description,
+        description_en: r.description_en,
+        price: r.price,
+        original_price: r.original_price,
+        category: r.category || '',
+        image_url: r.image_url,
+        stock: r.stock,
+        badges: r.badges,
+        features: r.features,
+        is_active: r.is_active,
+        created: r.created,
+        updated: r.updated,
+    };
 }
+
+// ── API 函式 ────────────────────────────────────────────────────
 
 /**
  * 取得商品列表（公開 API）
  */
 export async function fetchProducts(
-    params: ProductsQueryParams = {},
-    authHeader?: Record<string, string>
+    params: ProductsQueryParams = {}
 ): Promise<ProductListResponse> {
-    const baseUrl = getBaseUrl();
-    if (!baseUrl) throw new Error("VITE_AUTH_API_URL 未設定");
+    const page = params.page || 1;
+    const limit = params.limit || 20;
 
-    const query = new URLSearchParams();
-    if (params.page) query.set("page", String(params.page));
-    if (params.limit) query.set("limit", String(params.limit));
-    if (params.category) query.set("category", params.category);
-    if (params.search) query.set("search", params.search);
-    if (params.active_only === false) query.set("active_only", "false");
+    // 建立過濾條件
+    const filters: string[] = [];
+    if (params.active_only !== false) {
+        filters.push('is_active = true');
+    }
+    if (params.category) {
+        filters.push(`category = "${params.category}"`);
+    }
+    if (params.search) {
+        filters.push(`(name ~ "${params.search}" || name_en ~ "${params.search}")`);
+    }
 
-    const res = await fetch(`${baseUrl}/api/products?${query}`, {
-        headers: { ...authHeader },
-    });
+    const filter = filters.join(' && ');
 
-    const data = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(data?.message || "取得商品失敗");
-    return data;
+    try {
+        const result = await pb.collection('products').getList(page, limit, {
+            filter,
+            sort: '-created',
+        });
+
+        return {
+            success: true,
+            data: result.items.map(recordToApiProduct),
+            pagination: {
+                total: result.totalItems,
+                page: result.page,
+                limit: result.perPage,
+                total_pages: result.totalPages,
+            },
+        };
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : '取得商品失敗');
+    }
 }
 
 /**
  * 取得單一商品詳情（公開 API）
  */
-export async function fetchProduct(id: number | string): Promise<ApiProduct> {
-    const baseUrl = getBaseUrl();
-    if (!baseUrl) throw new Error("VITE_AUTH_API_URL 未設定");
-
-    const res = await fetch(`${baseUrl}/api/products/${id}`);
-    const data = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(data?.message || "商品不存在");
-    return data.data;
+export async function fetchProduct(id: string): Promise<ApiProduct> {
+    try {
+        const record = await pb.collection('products').getOne(id);
+        return recordToApiProduct(record);
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : '商品不存在');
+    }
 }
 
 /**
@@ -89,59 +131,46 @@ export async function fetchProduct(id: number | string): Promise<ApiProduct> {
  */
 export async function createProduct(
     payload: CreateProductPayload,
-    authHeader: Record<string, string>
+    _authHeader?: Record<string, string>
 ): Promise<ApiProduct> {
-    const baseUrl = getBaseUrl();
-    if (!baseUrl) throw new Error("VITE_AUTH_API_URL 未設定");
-
-    const res = await fetch(`${baseUrl}/api/products`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeader },
-        body: JSON.stringify(payload),
-    });
-
-    const data = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(data?.message || "新增商品失敗");
-    return data.data;
+    try {
+        const record = await pb.collection('products').create({
+            ...payload,
+            is_active: payload.is_active ?? true,
+        });
+        return recordToApiProduct(record);
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : '新增商品失敗');
+    }
 }
 
 /**
  * 更新商品（需 superadmin）
  */
 export async function updateProduct(
-    id: number | string,
+    id: string,
     payload: Partial<CreateProductPayload>,
-    authHeader: Record<string, string>
+    _authHeader?: Record<string, string>
 ): Promise<ApiProduct> {
-    const baseUrl = getBaseUrl();
-    if (!baseUrl) throw new Error("VITE_AUTH_API_URL 未設定");
-
-    const res = await fetch(`${baseUrl}/api/products/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", ...authHeader },
-        body: JSON.stringify(payload),
-    });
-
-    const data = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(data?.message || "更新商品失敗");
-    return data.data;
+    try {
+        const record = await pb.collection('products').update(id, payload);
+        return recordToApiProduct(record);
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : '更新商品失敗');
+    }
 }
 
 /**
  * 下架商品（需 superadmin，軟刪除）
  */
 export async function deleteProduct(
-    id: number | string,
-    authHeader: Record<string, string>
+    id: string,
+    _authHeader?: Record<string, string>
 ): Promise<void> {
-    const baseUrl = getBaseUrl();
-    if (!baseUrl) throw new Error("VITE_AUTH_API_URL 未設定");
-
-    const res = await fetch(`${baseUrl}/api/products/${id}`, {
-        method: "DELETE",
-        headers: { ...authHeader },
-    });
-
-    const data = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(data?.message || "刪除商品失敗");
+    try {
+        // 軟刪除：設定 is_active = false
+        await pb.collection('products').update(id, { is_active: false });
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : '刪除商品失敗');
+    }
 }

@@ -8,30 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { insforgeOrders } from "@/services/insforge";
+import { fetchOrders as fetchOrdersApi, updateOrderStatus, type ApiOrder, type OrderStatus } from "@/services/orders";
 import { ArrowUpDown, Search, RefreshCw, Package } from "lucide-react";
 import { useI18n } from "@/i18n/I18nContext";
-
-interface OrderItem {
-  product_name: string;
-  quantity: number;
-  unit_price: number;
-}
-
-interface Order {
-  id: string;
-  customer_name?: string;
-  customer_email?: string;
-  status?: string;
-  total?: number;
-  currency?: string;
-  created_at?: string;
-  items_count?: number;
-  items?: OrderItem[];
-}
-
-type SortKey = "created_at" | "total" | "customer_name" | "status";
-type SortDir = "asc" | "desc";
+import { useAuthStore } from "@/store/authStore";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-warning/15 text-warning border-warning/30",
@@ -49,35 +29,44 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "已取消",
 };
 
-const formatCurrency = (amount: number, currency = "TWD") =>
-  new Intl.NumberFormat("zh-TW", { style: "currency", currency }).format(amount);
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat("zh-TW", { style: "currency", currency: "TWD" }).format(amount);
+
+type SortKey = "created" | "total" | "username" | "status";
+type SortDir = "asc" | "desc";
 
 const OrdersPage = () => {
   const { t } = useI18n();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const { getAuthHeader } = useAuthStore();
+  const [orders, setOrders] = useState<ApiOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortKey, setSortKey] = useState<SortKey>("created");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<ApiOrder | null>(null);
 
-  const ALL_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"];
+  const ALL_STATUSES: OrderStatus[] = ["pending", "processing", "shipped", "delivered", "cancelled"];
 
-  const handleStatusChange = (orderId: string, newStatus: string) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
-    );
-    setSelectedOrder((prev) => (prev?.id === orderId ? { ...prev, status: newStatus } : prev));
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    try {
+      await updateOrderStatus(orderId, newStatus, getAuthHeader());
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+      );
+      setSelectedOrder((prev) => (prev?.id === orderId ? { ...prev, status: newStatus } : prev));
+    } catch (e) {
+      console.error("Failed to update order status:", e);
+    }
   };
 
-  const fetchOrders = async () => {
+  const loadOrders = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = (await insforgeOrders.list()) as Order[];
-      setOrders(data);
+      const res = await fetchOrdersApi({}, getAuthHeader());
+      setOrders(res.data);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to fetch orders");
     } finally {
@@ -86,7 +75,7 @@ const OrdersPage = () => {
   };
 
   useEffect(() => {
-    fetchOrders();
+    loadOrders();
   }, []);
 
   const toggleSort = (key: SortKey) => {
@@ -108,8 +97,8 @@ const OrdersPage = () => {
       result = result.filter(
         (o) =>
           o.id?.toLowerCase().includes(q) ||
-          o.customer_name?.toLowerCase().includes(q) ||
-          o.customer_email?.toLowerCase().includes(q)
+          o.username?.toLowerCase().includes(q) ||
+          o.order_no?.toLowerCase().includes(q)
       );
     }
     result.sort((a, b) => {
@@ -172,7 +161,7 @@ const OrdersPage = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="icon" className="h-9 w-9" onClick={fetchOrders}>
+              <Button variant="outline" size="icon" className="h-9 w-9" onClick={loadOrders}>
                 <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
@@ -194,10 +183,10 @@ const OrdersPage = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Order ID</TableHead>
-                  <TableHead><SortButton col="customer_name" label="Customer" /></TableHead>
+                  <TableHead><SortButton col="username" label="Customer" /></TableHead>
                   <TableHead><SortButton col="status" label="Status" /></TableHead>
                   <TableHead className="text-right"><SortButton col="total" label="Total" /></TableHead>
-                  <TableHead className="text-right"><SortButton col="created_at" label="Date" /></TableHead>
+                  <TableHead className="text-right"><SortButton col="created" label="Date" /></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -207,10 +196,9 @@ const OrdersPage = () => {
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => setSelectedOrder(order)}
                   >
-                    <TableCell className="font-mono text-xs">{order.id?.slice(0, 8)}…</TableCell>
+                    <TableCell className="font-mono text-xs">{order.order_no || order.id?.slice(0, 8)}…</TableCell>
                     <TableCell>
-                      <div className="font-medium">{order.customer_name ?? "—"}</div>
-                      <div className="text-xs text-muted-foreground">{order.customer_email ?? ""}</div>
+                      <div className="font-medium">{order.username ?? "—"}</div>
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -221,11 +209,11 @@ const OrdersPage = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-medium tabular-nums">
-                      {order.total != null ? formatCurrency(order.total, order.currency) : "—"}
+                      {order.total != null ? formatCurrency(order.total) : "—"}
                     </TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">
-                      {order.created_at
-                        ? new Date(order.created_at).toLocaleDateString("zh-TW")
+                      {order.created
+                        ? new Date(order.created).toLocaleDateString("zh-TW")
                         : "—"}
                     </TableCell>
                   </TableRow>
@@ -255,23 +243,23 @@ const OrdersPage = () => {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-muted-foreground">訂單編號</p>
-                    <p className="font-mono text-xs mt-0.5">{selectedOrder.id}</p>
+                    <p className="font-mono text-xs mt-0.5">{selectedOrder.order_no || selectedOrder.id}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">建立日期</p>
                     <p className="mt-0.5">
-                      {selectedOrder.created_at
-                        ? new Date(selectedOrder.created_at).toLocaleString("zh-TW")
+                      {selectedOrder.created
+                        ? new Date(selectedOrder.created).toLocaleString("zh-TW")
                         : "—"}
                     </p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">客戶姓名</p>
-                    <p className="font-medium mt-0.5">{selectedOrder.customer_name ?? "—"}</p>
+                    <p className="text-muted-foreground">客戶</p>
+                    <p className="font-medium mt-0.5">{selectedOrder.username ?? "—"}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">電子郵件</p>
-                    <p className="mt-0.5 truncate">{selectedOrder.customer_email ?? "—"}</p>
+                    <p className="text-muted-foreground">付款方式</p>
+                    <p className="mt-0.5">{selectedOrder.payment_method ?? "—"}</p>
                   </div>
                 </div>
 
@@ -288,10 +276,10 @@ const OrdersPage = () => {
                       {selectedOrder.items.map((item, idx) => (
                         <div key={idx} className="flex items-center justify-between text-sm rounded-md bg-muted/50 px-3 py-2">
                           <div>
-                            <span className="font-medium">{item.product_name}</span>
+                            <span className="font-medium">{item.name}</span>
                             <span className="text-muted-foreground ml-2">× {item.quantity}</span>
                           </div>
-                          <span className="tabular-nums">{formatCurrency(item.unit_price * item.quantity)}</span>
+                          <span className="tabular-nums">{formatCurrency(item.price * item.quantity)}</span>
                         </div>
                       ))}
                     </div>
@@ -306,7 +294,7 @@ const OrdersPage = () => {
                 <div className="flex items-center justify-between font-medium">
                   <span>訂單總額</span>
                   <span className="text-lg tabular-nums">
-                    {selectedOrder.total != null ? formatCurrency(selectedOrder.total, selectedOrder.currency) : "—"}
+                    {selectedOrder.total != null ? formatCurrency(selectedOrder.total) : "—"}
                   </span>
                 </div>
                 <Separator />

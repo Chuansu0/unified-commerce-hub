@@ -1,0 +1,290 @@
+# InsForge → PocketBase 遷移計畫
+
+將 unified-commerce-hub 從現行 Express.js + PostgreSQL（原 InsForge）後端，遷移至 **PocketBase** 作為統一的資料庫 + 認證 + API 後端。
+
+## 現狀分析
+
+| 層級 | 目前技術 | 遷移後 |
+|------|---------|--------|
+| 資料庫 | PostgreSQL（raw SQL via `pg` pool） | PocketBase 內建 SQLite |
+| 認證 | Express JWT（[backend/routes/auth.js](file:///d:/WSL/unified-commerce-hub/backend/routes/auth.js), [middleware/auth.js](file:///d:/WSL/unified-commerce-hub/backend/middleware/auth.js)） | PocketBase Auth Collection |
+| API 路由 | Express.js 6 條路由 + 4 個 service | PocketBase REST API + JS SDK |
+| 前端資料層 | [src/services/insforge.ts](file:///d:/WSL/unified-commerce-hub/src/services/insforge.ts)（HTTP client + mock fallback） | PocketBase JS SDK |
+| 前端認證 | [src/services/auth.ts](file:///d:/WSL/unified-commerce-hub/src/services/auth.ts) → Express `/api/auth/*` | PocketBase `authWithPassword` |
+| 狀態管理 | Zustand `authStore`（JWT localStorage） | PocketBase `authStore` → Zustand |
+| 部署 | [project.yaml](file:///d:/WSL/unified-commerce-hub/project.yaml): Express + PostgreSQL services | PocketBase service（已存在 port 8090） |
+
+### 可移除的 Zeabur 服務
+
+遷移完成後，**PostgreSQL** 服務可移除（PocketBase 內建 SQLite）。Redis / N8N / OpenClaw / Worker / Runners 維持不變。
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **PostgreSQL 移除**：遷移至 PocketBase 後，PostgreSQL 將不再被 unified-commerce-hub 使用。但 N8N 仍依賴 PostgreSQL，因此 **PostgreSQL 服務本身不能刪除**，只是 unified-commerce-hub 不再直接連線。
+
+> [!WARNING]
+> **資料遷移**：現有 PostgreSQL 內的 users / products / orders / conversations / messages 資料需要手動匯入 PocketBase。此計畫包含撰寫遷移腳本。
+
+> [!NOTE]
+> **PocketBase 版本**：[project.yaml](file:///d:/WSL/unified-commerce-hub/project.yaml) 中原為 `pocketbase:0.18`，將升級至 **0.25+** 以獲得 `Back-Relations` 等新功能。
+
+---
+
+## Proposed Changes
+
+整體分為 **5 個階段**，可逐步執行不互相阻擋。
+
+---
+
+### 階段 1：PocketBase Collections Schema 設計
+
+在 PocketBase Admin UI (`/_`) 中建立以下 Collections：
+
+#### 1.1 `users` (Auth Collection)
+PocketBase 內建的 Auth Collection，擴充以下欄位：
+
+| 欄位 | 型別 | 說明 |
+|------|------|------|
+| `role` | Select (`superadmin`, `user`) | 角色 |
+| `is_active` | Bool | 目前的 `is_active` |
+| `telegram_user_id` | Number (unique) | Telegram UID |
+| `telegram_username` | Text | Telegram 用戶名 |
+| `telegram_bound_at` | DateTime | 綁定時間 |
+
+#### 1.2 `products` (Base Collection)
+
+| 欄位 | 型別 | 對應 |
+|------|------|------|
+| `name` | Text | `products.name` |
+| `name_en` | Text | `products.name_en` |
+| `description` | Editor | `products.description` |
+| `description_en` | Editor | `products.description_en` |
+| `price` | Number | `products.price` |
+| `original_price` | Number | `products.original_price` |
+| `category` | Select | `products.category` |
+| `image_url` | URL or File | `products.image_url` |
+| `stock` | Number | `products.stock` |
+| `badges` | JSON | `products.badges` |
+| `features` | JSON | `products.features` |
+| `is_active` | Bool | `products.is_active` |
+
+#### 1.3 `orders` (Base Collection)
+
+| 欄位 | 型別 | 對應 |
+|------|------|------|
+| `order_no` | Text (unique) | `orders.order_no` |
+| `user` | Relation → `users` | `orders.user_id` |
+| `items` | JSON | `orders.items` |
+| `total` | Number | `orders.total` |
+| `status` | Select | `orders.status` |
+| `payment_method` | Text | `orders.payment_method` |
+| `shipping_address` | JSON | `orders.shipping_address` |
+| `note` | Text | `orders.note` |
+
+#### 1.4 `conversations` (Base Collection)
+
+| 欄位 | 型別 |
+|------|------|
+| `user` | Relation → `users` |
+| `last_message_at` | DateTime |
+
+#### 1.5 `messages` (Base Collection)
+
+| 欄位 | 型別 |
+|------|------|
+| `conversation` | Relation → `conversations` |
+| `channel` | Select (`web`, `telegram`) |
+| `role` | Select (`user`, `assistant`) |
+| `content` | Text |
+
+#### 1.6 `telegram_bind_codes` (Base Collection)
+
+| 欄位 | 型別 |
+|------|------|
+| `user` | Relation → `users` |
+| `bind_code` | Text (unique) |
+| `expires_at` | DateTime |
+| `used` | Bool |
+
+---
+
+### 階段 2：前端改用 PocketBase JS SDK
+
+#### [NEW] [pocketbase.ts](file:///d:/WSL/unified-commerce-hub/src/services/pocketbase.ts)
+
+新建 PocketBase SDK 初始化模組：
+```ts
+import PocketBase from 'pocketbase';
+const pb = new PocketBase(import.meta.env.VITE_POCKETBASE_URL || '/pb');
+export default pb;
+```
+
+#### [MODIFY] [config.ts](file:///d:/WSL/unified-commerce-hub/src/services/config.ts)
+
+- 移除 `insforge` config block
+- 新增 `pocketbase.url` 讀取 `VITE_POCKETBASE_URL`
+
+#### [DELETE] [insforge.ts](file:///d:/WSL/unified-commerce-hub/src/services/insforge.ts)
+
+整個檔案由 `pocketbase.ts` + 各資源 service 取代。
+
+#### [MODIFY] [auth.ts](file:///d:/WSL/unified-commerce-hub/src/services/auth.ts)
+
+- [loginApi()](file:///d:/WSL/unified-commerce-hub/src/services/auth.ts#39-69) → 先檢查 `ROOT_ID` / `ROOT_PASSWORD`（環境變數），若匹配則走 superadmin 快速通道；否則 `pb.collection('users').authWithPassword(username, password)`
+- [registerApi()](file:///d:/WSL/unified-commerce-hub/src/services/auth.ts#70-98) → `pb.collection('users').create(data)` + `authWithPassword`
+- [getMeApi()](file:///d:/WSL/unified-commerce-hub/src/services/auth.ts#99-115) → `pb.authStore.model`
+- 移除 mock login 邏輯
+
+> [!IMPORTANT]
+> **superadmin 機制保留**：`ROOT_ID` 和 `ROOT_PASSWORD` 仍透過 Zeabur 環境變數設定（專案 → unified-commerce-hub → Variables）。登入時先比對 env vars，匹配後直接以 superadmin 角色回傳 token，不走 PocketBase auth。
+
+#### [MODIFY] [authStore.ts](file:///d:/WSL/unified-commerce-hub/src/store/authStore.ts)
+
+- [login()](file:///d:/WSL/unified-commerce-hub/src/store/authStore.ts#45-56) → 儲存 PocketBase auth record（`pb.authStore.token` / `pb.authStore.model`）
+- [logout()](file:///d:/WSL/unified-commerce-hub/src/store/authStore.ts#57-68) → `pb.authStore.clear()`
+- [getAuthHeader()](file:///d:/WSL/unified-commerce-hub/src/store/authStore.ts#69-74) → PocketBase SDK 自動處理，此方法標記 deprecated
+
+#### [NEW] [products.ts](file:///d:/WSL/unified-commerce-hub/src/services/products.ts) (重構)
+
+使用 PocketBase SDK：
+```ts
+pb.collection('products').getList(page, limit, { filter, sort: '-created' })
+```
+
+#### [NEW] [orders.ts](file:///d:/WSL/unified-commerce-hub/src/services/orders.ts) (重構)
+
+改用 PocketBase SDK 替代現有的 Express API 呼叫。
+
+#### [MODIFY] [DashboardPage.tsx](file:///d:/WSL/unified-commerce-hub/src/pages/DashboardPage.tsx)
+
+- 將 `insforgeOrders` / `insforgeProducts` / `insforgeConversations` import 改為新的 PocketBase service
+
+#### [MODIFY] [OrdersPage.tsx](file:///d:/WSL/unified-commerce-hub/src/pages/OrdersPage.tsx)
+
+- `insforgeOrders` → PocketBase orders service
+
+#### [MODIFY] [ConversationsPage.tsx](file:///d:/WSL/unified-commerce-hub/src/pages/ConversationsPage.tsx)
+
+- `insforgeConversations` / `insforgeOrders` → PocketBase services
+
+#### [MODIFY] [SettingsPage.tsx](file:///d:/WSL/unified-commerce-hub/src/pages/SettingsPage.tsx)
+
+- 移除 `INSFORGE_BASE_URL` service connection 設定
+- 新增 PocketBase URL 設定項
+
+#### [MODIFY] [aiSettings.ts](file:///d:/WSL/unified-commerce-hub/src/services/aiSettings.ts)
+
+- 將 localStorage key 從 `insforge-ai-settings` 改為 `neovega-ai-settings`
+
+---
+
+### 階段 3：後端簡化（移除 Express 資料層）
+
+#### [DELETE or SIMPLIFY] 以下 backend 模組：
+
+| 檔案 | 動作 |
+|------|------|
+| [backend/db/index.js](file:///d:/WSL/unified-commerce-hub/backend/db/index.js) | 刪除（不再需要 `pg` pool） |
+| [backend/db/migrate.js](file:///d:/WSL/unified-commerce-hub/backend/db/migrate.js) | 刪除（PocketBase 自動 schema） |
+| [backend/db/migrate-telegram.js](file:///d:/WSL/unified-commerce-hub/backend/db/migrate-telegram.js) | 刪除 |
+| [backend/routes/auth.js](file:///d:/WSL/unified-commerce-hub/backend/routes/auth.js) | 刪除（PocketBase 處理認證） |
+| [backend/routes/products.js](file:///d:/WSL/unified-commerce-hub/backend/routes/products.js) | 刪除（前端直接呼叫 PocketBase） |
+| [backend/routes/orders.js](file:///d:/WSL/unified-commerce-hub/backend/routes/orders.js) | 刪除（前端直接呼叫 PocketBase） |
+| [backend/routes/users.js](file:///d:/WSL/unified-commerce-hub/backend/routes/users.js) | 刪除（PocketBase Admin API） |
+| [backend/middleware/auth.js](file:///d:/WSL/unified-commerce-hub/backend/middleware/auth.js) | 刪除 |
+
+#### [MODIFY] [server.js](file:///d:/WSL/unified-commerce-hub/backend/server.js)
+
+簡化為：
+- 靜態檔案 server（serve Vite build）
+- `/api/chat` 路由（OpenClaw proxy，保留）
+- `/api/telegram` 路由（webhook handler，保留但改用 PocketBase SDK 查詢資料）
+- `/api/health` 端點
+- 移除所有 PostgreSQL 相關路由和 [runMigration](file:///d:/WSL/unified-commerce-hub/backend/db/migrate.js#98-116)
+
+#### [MODIFY] [chat.js](file:///d:/WSL/unified-commerce-hub/backend/routes/chat.js)
+
+保留，但內部如有 DB 查詢改用 PocketBase SDK。
+
+#### [MODIFY] [telegram.js](file:///d:/WSL/unified-commerce-hub/backend/routes/telegram.js)
+
+保留 webhook handler，但將用戶查詢改為透過 PocketBase SDK。
+
+#### [MODIFY] [telegramBind.js](file:///d:/WSL/unified-commerce-hub/backend/routes/telegramBind.js)
+
+改用 PocketBase SDK 操作 `telegram_bind_codes` collection。
+
+#### [MODIFY] Backend [package.json](file:///d:/WSL/unified-commerce-hub/package.json)
+
+- 移除 `pg`, `bcryptjs`, `jsonwebtoken`, `joi` 依賴
+- 新增 `pocketbase` SDK
+
+---
+
+### 階段 4：資料遷移腳本
+
+#### [NEW] [migrate-to-pocketbase.js](file:///d:/WSL/unified-commerce-hub/scripts/migrate-to-pocketbase.js)
+
+一次性腳本，從 PostgreSQL 讀取現有資料並寫入 PocketBase：
+
+1. 讀取 PostgreSQL `users` → 在 PocketBase `users` collection 建立帳號
+2. 讀取 `products` → 批次建立
+3. 讀取 `orders` → 建立（mapping 新的 user ID）
+4. 讀取 `conversations` + `messages` → 同步
+5. 讀取 `telegram_bind_codes` → 同步
+
+---
+
+### 階段 5：Zeabur 部署設定更新
+
+#### [MODIFY] [project.yaml](file:///d:/WSL/unified-commerce-hub/project.yaml)
+
+- 升級 PocketBase image 至 `0.25+`
+- 為 unified-commerce-hub service 新增 `VITE_POCKETBASE_URL` 環境變數（指向 PocketBase 內部地址，如 `http://PocketBase.zeabur.internal:8090`）
+- 移除 `VITE_AUTH_API_URL`, `DATABASE_URL` 等不再需要的環境變數
+- **保留** `ROOT_ID` / `ROOT_PASSWORD` / `JWT_SECRET` （superadmin 仍經由 Zeabur 環境變數設定）
+
+> [!TIP]
+> **Zeabur 設定位置**：專案 Dashboard → 選擇 `unified-commerce-hub` 服務 → **Variables** 分頁 → 設定 `ROOT_ID`、`ROOT_PASSWORD`、`JWT_SECRET`。
+
+#### [MODIFY] [.env.example](file:///d:/WSL/unified-commerce-hub/backend/.env.example)
+
+更新環境變數說明，移除 PostgreSQL / JWT 相關設定。
+
+---
+
+## 遷移執行順序
+
+```mermaid
+graph TD
+  A[階段 1: PocketBase Schema] --> B[階段 4: 資料遷移腳本]
+  A --> C[階段 2: 前端改 PocketBase SDK]
+  A --> D[階段 3: 後端簡化]
+  C --> E[階段 5: 部署設定更新]
+  D --> E
+  B --> E
+```
+
+建議順序：**1 → 4 → 2+3 (可並行) → 5**
+
+---
+
+## Verification Plan
+
+### 自動測試
+- 執行現有 Vitest 測試確認無 regression：
+  ```bash
+  cd d:\WSL\unified-commerce-hub && npx vitest run
+  ```
+- 遷移後修改 [src/test/vite-react-common-bugs.test.ts](file:///d:/WSL/unified-commerce-hub/src/test/vite-react-common-bugs.test.ts) 中的 `neovega_token` / `neovega_user` 相關測試使其適配新的 PocketBase auth flow
+
+### 手動驗證
+1. **PocketBase Admin UI**：瀏覽器打開 PocketBase `/_` admin panel，確認所有 collections 正確建立
+2. **登入流程**：在前端頁面測試帳號密碼登入、取得 user profile
+3. **商品 CRUD**：在 Dashboard 和 ProductsPage 驗證商品列表、新增、修改、下架功能
+4. **訂單流程**：在 OrdersPage 驗證訂單列表和狀態更新
+5. **Telegram Bot**：發送訊息到 Bot 確認 webhook 正常、綁定功能正常
+6. **資料遷移**：執行 `migrate-to-pocketbase.js` 後驗證 PocketBase 內資料筆數與 PostgreSQL 一致

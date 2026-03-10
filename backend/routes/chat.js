@@ -3,7 +3,7 @@
  */
 const express = require("express");
 const router = express.Router();
-const { authenticateToken } = require("../middleware/auth");
+const { authenticate } = require("../middleware/auth");
 const conversationService = require("../services/conversationService");
 const openclawService = require("../services/openclawService");
 const { success, error } = require("../utils/response");
