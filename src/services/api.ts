@@ -49,6 +49,11 @@ export async function callOpenClaw(req: OpenClawRequest, settings?: AISettings):
     });
     if (!res.ok) throw new Error(`OpenClaw error: ${res.status}`);
     return res.json();
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error(`OpenClaw 連線逾時（${timeout}秒），請檢查 ${url} 是否可訪問`);
+    }
+    throw err;
   } finally {
     clearTimeout(timer);
   }
