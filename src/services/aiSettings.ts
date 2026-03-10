@@ -45,12 +45,13 @@ export const defaultAISettings: AISettings = {
   priority: "openclaw",
 };
 
-/** 檢查 URL 是否為有效的絕對 URL（有 protocol） */
-function isValidAbsoluteUrl(url: string): boolean {
+/** 檢查 URL 是否為有效的 HTTPS URL（在 HTTPS 頁面上只允許 HTTPS） */
+function isValidHttpsUrl(url: string): boolean {
   if (!url) return false;
   try {
     const parsed = new URL(url);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
+    // 在 HTTPS 頁面上，只允許 HTTPS URL（避免 Mixed Content）
+    return parsed.protocol === "https:";
   } catch {
     return false;
   }
@@ -59,8 +60,8 @@ function isValidAbsoluteUrl(url: string): boolean {
 /** 取得有效的 OpenClaw Agent URL */
 function getOpenClawAgentUrl(): string {
   const envUrl = import.meta.env.VITE_OPENCLAW_AGENT_URL;
-  // 只有當環境變數是有效的絕對 URL 時才使用
-  if (isValidAbsoluteUrl(envUrl)) return envUrl;
+  // 只有當環境變數是有效的 HTTPS URL 時才使用
+  if (isValidHttpsUrl(envUrl)) return envUrl;
   // 否則使用 hardcoded 預設值
   return "https://openclaw.neovega.cc:18789";
 }
@@ -71,9 +72,9 @@ export function loadAISettings(): AISettings {
     if (stored) {
       const parsed = JSON.parse(stored);
       const storedUrl = parsed.openclaw?.agentUrl?.trim() || "";
-      // 智慧合併：只有當 localStorage 的 agentUrl 是有效的絕對 URL 時才使用
+      // 智慧合併：只有當 localStorage 的 agentUrl 是有效的 HTTPS URL 時才使用
       // 否則使用預設值（環境變數或 hardcoded）
-      const finalUrl = isValidAbsoluteUrl(storedUrl) ? storedUrl : defaultAISettings.openclaw.agentUrl;
+      const finalUrl = isValidHttpsUrl(storedUrl) ? storedUrl : defaultAISettings.openclaw.agentUrl;
       return {
         ...defaultAISettings,
         ...parsed,
