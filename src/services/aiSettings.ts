@@ -45,20 +45,33 @@ export const defaultAISettings: AISettings = {
   priority: "openclaw",
 };
 
+/** 檢查 URL 是否為有效的絕對 URL（有 protocol） */
+function isValidAbsoluteUrl(url: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function loadAISettings(): AISettings {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      // 智慧合併：如果 localStorage 的 agentUrl 為空，使用環境變數
+      const storedUrl = parsed.openclaw?.agentUrl?.trim() || "";
+      // 智慧合併：只有當 localStorage 的 agentUrl 是有效的絕對 URL 時才使用
+      // 否則使用預設值（環境變數或 hardcoded）
+      const finalUrl = isValidAbsoluteUrl(storedUrl) ? storedUrl : defaultAISettings.openclaw.agentUrl;
       return {
         ...defaultAISettings,
         ...parsed,
         openclaw: {
           ...defaultAISettings.openclaw,
           ...parsed.openclaw,
-          // 如果 localStorage 沒有 agentUrl 或為空，使用環境變數
-          agentUrl: parsed.openclaw?.agentUrl?.trim() || defaultAISettings.openclaw.agentUrl,
+          agentUrl: finalUrl,
         },
       };
     }
