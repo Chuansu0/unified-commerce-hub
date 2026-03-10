@@ -19,8 +19,13 @@ export interface OpenClawResponse {
 }
 
 export async function callOpenClaw(req: OpenClawRequest, settings?: AISettings): Promise<OpenClawResponse> {
-  const url = settings?.openclaw?.agentUrl || config.openclaw.agentUrl;
+  let url = settings?.openclaw?.agentUrl || config.openclaw.agentUrl;
   if (!url) throw new Error("OpenClaw Agent URL 未設定，請至 Settings 頁面設定");
+
+  // 如果是外部 OpenClaw URL，使用 nginx 代理避免 CORS
+  if (url.includes("openclaw.neovega.cc") || url.includes("openclaw.zeabur.internal")) {
+    url = "/api/openclaw/hooks/agent";
+  }
 
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   const apiKey = settings?.openclaw?.apiKey;
