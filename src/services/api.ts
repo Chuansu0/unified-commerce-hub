@@ -24,18 +24,18 @@ export async function callOpenClaw(req: OpenClawRequest, settings?: AISettings):
 
   // 如果 URL 是外部 OpenClaw URL，使用本地代理避免 CORS
   if (url.includes("openclaw.neovega.cc") || url.includes("openclaw.zeabur.internal")) {
-    url = "/api/openclaw/";
+    url = "/api/openclaw/hooks/agent";
   }
 
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   const apiKey = settings?.openclaw?.apiKey;
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
 
+  // OpenClaw webhook API 格式
   const body: Record<string, unknown> = {
-    userId: req.userId,
     message: req.message,
-    context: req.context,
-    historySummary: req.historySummary,
+    sessionKey: req.userId || "web-session", // 使用 userId 作為 sessionKey
+    deliver: true, // 讓 Agent 處理並回覆
   };
   if (settings?.openclaw?.systemPrompt) {
     body.systemPrompt = settings.openclaw.systemPrompt;
