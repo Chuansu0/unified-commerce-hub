@@ -1,57 +1,53 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send } from "lucide-react";
+import { MessageCircle, X, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/i18n/I18nContext";
 import storefrontTranslations from "@/i18n/storefront-locales";
+import { useChat } from "@/hooks/useChat";
+import pb from "@/services/pocketbase";
 
 interface ChatMsg {
   id: string;
   role: "user" | "assistant";
   content: string;
+  timestamp?: Date;
 }
 
 export function ChatWidget() {
   const { locale } = useI18n();
   const st = storefrontTranslations[locale];
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMsg[]>([
-    { id: "greeting", role: "assistant", content: st.chat_greeting },
-  ]);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // 取得用戶 ID（已登入用戶或訪客）
+  const userId = pb.authStore.model?.id || `guest-${Date.now()}`;
+  const { messages, loading, sendMessage } = useChat(userId);
+
+  // 轉換 useChat 訊息格式為本地格式
+  const chatMessages: ChatMsg[] = messages.map((m) => ({
+    id: m.id,
+    role: m.role as "user" | "assistant",
+    content: m.content,
+    timestamp: m.timestamp,
+  }));
+
+  // 如果沒有訊息，顯示歡迎訊息
+  const displayMessages: ChatMsg[] =
+    chatMessages.length === 0
+      ? [{ id: "greeting", role: "assistant" as const, content: st.chat_greeting }]
+      : chatMessages;
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [displayMessages]);
 
-  // Update greeting when locale changes
-  useEffect(() => {
-    setMessages((prev) => {
-      if (prev.length === 1 && prev[0].id === "greeting") {
-        return [{ id: "greeting", role: "assistant", content: st.chat_greeting }];
-      }
-      return prev;
-    });
-  }, [st.chat_greeting]);
-
-  const handleSend = () => {
-    if (!input.trim()) return;
-    const userMsg: ChatMsg = { id: crypto.randomUUID(), role: "user", content: input };
-    setMessages((prev) => [...prev, userMsg]);
+  const handleSend = async () => {
+    if (!input.trim() || loading) return;
+    const message = input;
     setInput("");
-
-    // Mock response (will be replaced with real API)
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: st.chat_greeting,
-        },
-      ]);
-    }, 1000);
+    await sendMessage(message);
   };
 
   return (
@@ -82,22 +78,29 @@ export function ChatWidget() {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {messages.map((msg) => (
+            {displayMessages.map((msg) => (
               <div
                 key={msg.id}
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                    msg.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground"
-                  }`}
+                  className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${msg.role === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground"
+                    }`}
                 >
                   {msg.content}
                 </div>
               </div>
             ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-secondary text-secondary-foreground rounded-lg px-3 py-2 text-sm flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>正在思考中...</span>
+                </div>
+              </div>
+            )}
             <div ref={bottomRef} />
           </div>
 
@@ -114,9 +117,19 @@ export function ChatWidget() {
               onChange={(e) => setInput(e.target.value)}
               placeholder={st.chat_placeholder}
               className="flex-1 text-sm"
+              disabled={loading}
             />
-            <Button type="submit" size="icon" className="shrink-0 bg-primary text-primary-foreground">
-              <Send className="h-4 w-4" />
+            <Button
+              type="submit"
+              size="icon"
+              className="shrink-0 bg-primary text-primary-foreground"
+              disabled={loading || !input.trim()}
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </form>
         </div>

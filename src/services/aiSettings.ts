@@ -28,7 +28,7 @@ export interface AISettings {
 
 export const defaultAISettings: AISettings = {
   openclaw: {
-    agentUrl: "",
+    agentUrl: import.meta.env.VITE_OPENCLAW_AGENT_URL || "",
     apiKey: "",
     enabled: true,
     systemPrompt: "",
@@ -48,7 +48,20 @@ export const defaultAISettings: AISettings = {
 export function loadAISettings(): AISettings {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // 智慧合併：如果 localStorage 的 agentUrl 為空，使用環境變數
+      return {
+        ...defaultAISettings,
+        ...parsed,
+        openclaw: {
+          ...defaultAISettings.openclaw,
+          ...parsed.openclaw,
+          // 如果 localStorage 沒有 agentUrl 或為空，使用環境變數
+          agentUrl: parsed.openclaw?.agentUrl?.trim() || defaultAISettings.openclaw.agentUrl,
+        },
+      };
+    }
   } catch { /* ignore */ }
   return { ...defaultAISettings };
 }
