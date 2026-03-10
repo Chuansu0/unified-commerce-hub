@@ -28,7 +28,7 @@ export interface AISettings {
 
 export const defaultAISettings: AISettings = {
   openclaw: {
-    agentUrl: import.meta.env.VITE_OPENCLAW_AGENT_URL || "",
+    agentUrl: import.meta.env.VITE_OPENCLAW_AGENT_URL || "https://openclaw.neovega.cc:18789",
     apiKey: "",
     enabled: true,
     systemPrompt: "",
