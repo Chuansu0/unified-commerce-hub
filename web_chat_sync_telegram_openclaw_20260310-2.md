@@ -125,8 +125,39 @@ URL: https://www.neovega.cc/shop
 
 ---
 
-**文件版本**：v1.0  
-**最後更新**：2026-03-10 21:14
+## 7. OpenClaw API 認證
+
+### 7.1 Gateway Token
+
+根據 Zeabur OpenClaw 環境變數配置，webhook 請求需要使用 **`OPENCLAW_GATEWAY_TOKEN`** 進行認證。
+
+**環境變數**：`OPENCLAW_GATEWAY_TOKEN`
+**值**：`FCo0g2jyi864v9VxEqOw753GSbkdWn1X`
+
+### 7.2 測試 Webhook 請求
+
+```bash
+curl -X POST https://www.neovega.cc/api/openclaw/hooks/agent \
+  -H "Authorization: Bearer FCo0g2jyi864v9VxEqOw753GSbkdWn1X" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "請回覆這條訊息",
+    "sessionKey": "webhook-session",
+    "deliver": true
+  }'
+```
+
+### 7.3 前端配置
+
+需要在 AI Settings 中配置 API Key：
+
+**位置**：Settings頁面 → OpenClaw 設定 → API Key  
+**值**：`FCo0g2jyi864v9VxEqOw753GSbkdWn1X`
+
+---
+
+**文件版本**：v1.1  
+**最後更新**：2026-03-10 21:39
 ## 1. 問題診斷
 
 ### 1.1 錯誤訊息
