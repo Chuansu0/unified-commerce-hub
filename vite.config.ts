@@ -11,6 +11,14 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      '/api/openclaw': {
+        target: 'https://openclaw.neovega.cc:18789',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/openclaw/, ''),
+        secure: false,
+      },
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
