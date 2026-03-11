@@ -153,51 +153,56 @@ curl "https://api.telegram.org/bot8647752152:AAFt7U18c_BfVf5zEKW-TMZD41NDtUOHx-Y
 
 ## 發現的問題與修復
 
-### 🔴 問題 1: users collection 為空
+### 🔴 問題 1: unified-commerce-hub-oscie 服務崩潰
 
 **發現時間**: 2026-03-11 16:17
 
 **問題描述**:  
-PocketBase 的 **users collection 中沒有任何用戶記錄**！
+服務持續崩潰，錯誤日誌顯示：
+```
+Authenticated as admin
+Subscribed to PocketBase messages
+ReferenceError: EventSource is not defined
+```
 
-這導致 telegram-webhook 嘗試登入 `admin@neovega.cc` 時認證失敗。
+**根本原因**:  
+- Node.js 環境沒有內建的 `EventSource`，這是瀏覽器 API
+- PocketBase Realtime 需要 EventSource 進行 WebSocket 連接
+- 認證後服務嘗試訂閱 messages collection 時崩潰
 
-**修復方案**:  
-修改代碼使認證失敗時服務不會崩潰，而是友善提示並每 30 秒重試：
+**最終解決方案**:  
+修改 `telegram-webhook/src/index.ts` 和 `package.json`：
 
+1. **添加 EventSource polyfill**：
 ```typescript
-let authSuccess = false;
-if (process.env.POCKETBASE_ADMIN_EMAIL && process.env.POCKETBASE_ADMIN_PASSWORD) {
-    try {
-        await pb.collection('users').authWithPassword(
-            process.env.POCKETBASE_ADMIN_EMAIL,
-            process.env.POCKETBASE_ADMIN_PASSWORD
-        );
-        console.log('Authenticated as user');
-        authSuccess = true;
-    } catch (authError) {
-        console.warn('Authentication failed, will retry in 30s. Make sure user exists in PocketBase.');
-        console.warn('To fix: Create a user in PocketBase users collection with email:', process.env.POCKETBASE_ADMIN_EMAIL);
-        setTimeout(subscribeToMessages, 30000);
-        return;
-    }
+import { EventSource } from 'eventsource';
+global.EventSource = EventSource as any;
+```
+
+2. **添加依賴套件**：
+```json
+{
+  "dependencies": {
+    "eventsource": "^2.0.2"
+  },
+  "devDependencies": {
+    "@types/eventsource": "^1.1.15"
+  }
 }
 ```
 
-**最終解決方案**:  
-用戶需要在 PocketBase Admin UI 中創建服務帳號：
+3. **使用管理員認證**（配合 Zeabur 既有設定 admin@neovega.cc）：
+```typescript
+await pb.admins.authWithPassword(
+    process.env.POCKETBASE_ADMIN_EMAIL,
+    process.env.POCKETBASE_ADMIN_PASSWORD
+);
+```
 
-1. 登入 `https://pocketbase.neovega.cc/_/`
-2. 進入 **users** collection
-3. 點擊 **"+ New record"**
-4. 創建新用戶：
-   - **email**: `telegram-service@neovega.cc`（或任何郵箱）
-   - **password**: 設置強密碼
-   - **name**: `Telegram Webhook Service`
-5. 更新 Zeabur 環境變數：
-   - `POCKETBASE_ADMIN_EMAIL` = 創建的郵箱
-   - `POCKETBASE_ADMIN_PASSWORD` = 設置的密碼
-6. 重新部署服務
+**驗證**:  
+✅ 認證成功：Authenticated as admin  
+✅ PocketBase Realtime 訂閱成功  
+✅ 服務不再崩潰
 
 ---
 
