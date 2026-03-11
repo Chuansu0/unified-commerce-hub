@@ -10,6 +10,7 @@ dotenv.config();
 const PORT = process.env.PORT || 3000;
 const POCKETBASE_URL = process.env.POCKETBASE_URL || 'http://localhost:8090';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const OPENCLAW_CHAT_ID = process.env.OPENCLAW_CHAT_ID || '-1003806455231';
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
 // PocketBase 客戶端
@@ -110,7 +111,16 @@ app.post('/webhook/telegram', async (req: Request, res: Response) => {
         console.log('Received Telegram update:', JSON.stringify(update, null, 2));
 
         if (update.message) {
-            await handleIncomingMessage(update.message);
+            const chatId = update.message.chat.id;
+
+            // 檢查是否來自 OpenClaw Chat（Bot 回覆）
+            if (chatId.toString() === OPENCLAW_CHAT_ID && update.message.from?.is_bot) {
+                console.log('[Routing] OpenClaw reply detected');
+                await handleOpenClawReply(update.message);
+            } else {
+                console.log('[Routing] Regular user message');
+                await handleIncomingMessage(update.message);
+            }
         }
 
         res.sendStatus(200);
@@ -217,7 +227,7 @@ async function sendTelegramMessage(chatId: number | string, text: string): Promi
             })
         });
 
-        const result = await response.json();
+        const result = await response.json() as { ok: boolean; description?: string };
 
         if (!result.ok) {
             console.error('Failed to send Telegram message:', result);
@@ -271,7 +281,7 @@ async function subscribeToMessages(): Promise<void> {
         // 訂閱 messages collection
         pb.collection('messages').subscribe('*', (e) => {
             if (e.action === 'create') {
-                const message = e.record as PocketBaseMessage;
+                const message = e.record as unknown as PocketBaseMessage;
 
                 // 只處理來自 Web 的訊息
                 if (message.channel === 'web' && message.sender === 'user') {
@@ -370,6 +380,163 @@ app.get('/api/telegram-status/:userId', async (req: Request, res: Response) => {
         });
     }
 });
+
+// ============================================
+// Web Chat -> OpenClaw 通訊 API
+// ============================================
+
+// Web Chat 發送訊息到 OpenClaw（通過 Telegram）
+app.post('/api/send-to-openclaw', async (req: Request, res: Response) => {
+    try {
+        const { message, userId, sessionId } = req.body;
+
+        if (!message) {
+            res.status(400).json({ error: 'Missing message' });
+            return;
+        }
+
+        console.log(`[WebChat->OpenClaw] User ${userId || sessionId}: ${message}`);
+
+        // 發送訊息到 OpenClaw 監聽的 Telegram Chat
+        const formattedMessage = userId
+            ? `[WebChat:${userId}] ${message}`
+            : `[WebChat:guest:${sessionId}] ${message}`;
+
+        await sendTelegramMessage(OPENCLAW_CHAT_ID, formattedMessage);
+
+        // 儲存發送的訊息到 PocketBase（可選）
+        if (userId) {
+            try {
+                // 查找或建立對話
+                let conversation: PocketBaseConversation | null = null;
+                try {
+                    conversation = await pb.collection('conversations').getFirstListItem<PocketBaseConversation>(
+                        `user = "${userId}" && platform = "webchat"`
+                    );
+                } catch {
+                    conversation = await pb.collection('conversations').create<PocketBaseConversation>({
+                        user: userId,
+                        platform: 'webchat',
+                        status: 'active',
+                        last_message: message,
+                        last_message_at: new Date().toISOString()
+                    });
+                }
+
+                // 儲存訊息
+                await pb.collection('messages').create({
+                    conversation: conversation.id,
+                    sender: 'user',
+                    channel: 'web',
+                    content: message
+                });
+
+                // 更新對話
+                await pb.collection('conversations').update(conversation.id, {
+                    last_message: message,
+                    last_message_at: new Date().toISOString()
+                });
+            } catch (pbError) {
+                console.error('Error saving to PocketBase:', pbError);
+                // 不影響主流程
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'Message sent to OpenClaw via Telegram'
+        });
+
+    } catch (error) {
+        console.error('Error sending to OpenClaw:', error);
+        res.status(500).json({
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
+
+// 處理來自 OpenClaw 的回覆（通過 Telegram Webhook）
+// 當 OpenClaw 在 Telegram 中回覆時，這個函數會被呼叫
+async function handleOpenClawReply(message: TelegramMessage): Promise<void> {
+    const chatId = message.chat.id;
+    const text = message.text || '';
+
+    // 檢查是否來自 OpenClaw 監聽的 Chat
+    if (chatId.toString() !== OPENCLAW_CHAT_ID) {
+        return;
+    }
+
+    // 檢查是否為 Bot 訊息（OpenClaw 的回覆）
+    if (!message.from?.is_bot) {
+        return;
+    }
+
+    console.log(`[OpenClaw Reply] ${text}`);
+
+    // 解析訊息格式：支援多種格式
+    // 格式1: [WebChat:userId] 回覆內容
+    // 格式2: [WebChat:guest:sessionId] 回覆內容
+    const webChatMatch = text.match(/\[WebChat:([^\]]+)\]\s*([\s\S]*)/);
+    if (!webChatMatch) {
+        console.log('No WebChat user ID found in message');
+        return;
+    }
+
+    const userIdOrSession = webChatMatch[1];
+    let replyText = webChatMatch[2].trim();
+
+    // 移除可能的引用標記
+    replyText = replyText.replace(/^>\s*.*\n/gm, '').trim();
+
+    if (!replyText) {
+        console.log('Empty reply text after parsing');
+        return;
+    }
+
+    console.log(`Parsed userId: ${userIdOrSession}, reply: ${replyText.substring(0, 50)}...`);
+
+    // 儲存回覆到 PocketBase
+    try {
+        // 如果是登入用戶
+        if (!userIdOrSession.startsWith('guest:')) {
+            let conversation: PocketBaseConversation | null = null;
+
+            try {
+                conversation = await pb.collection('conversations').getFirstListItem<PocketBaseConversation>(
+                    `user = "${userIdOrSession}" && platform = "webchat"`
+                );
+            } catch (error) {
+                console.log(`Conversation not found for user ${userIdOrSession}, creating new one`);
+                conversation = await pb.collection('conversations').create<PocketBaseConversation>({
+                    user: userIdOrSession,
+                    platform: 'webchat',
+                    status: 'active',
+                    last_message: replyText,
+                    last_message_at: new Date().toISOString()
+                });
+            }
+
+            await pb.collection('messages').create({
+                conversation: conversation.id,
+                sender: 'assistant',
+                channel: 'telegram',
+                content: replyText
+            });
+
+            await pb.collection('conversations').update(conversation.id, {
+                last_message: replyText,
+                last_message_at: new Date().toISOString()
+            });
+
+            console.log(`Saved OpenClaw reply to conversation ${conversation.id}`);
+        } else {
+            console.log(`Guest session ${userIdOrSession}, reply not saved to PocketBase`);
+        }
+
+    } catch (error) {
+        console.error('Error handling OpenClaw reply:', error);
+    }
+}
 
 // 錯誤處理中介軟體
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
