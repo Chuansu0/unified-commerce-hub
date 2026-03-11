@@ -199,7 +199,45 @@ fix: 暫時跳過 PocketBase 認證，讓服務先能啟動
 ```
 
 **驗證**:  
-⏳ 等待部署驗證
+✅ 服務已啟動（但仍有 502 錯誤，見問題 4）
+
+---
+
+### 🔴 問題 4: nginx 502 Bad Gateway 錯誤
+
+**發現時間**: 2026-03-11 16:51
+
+**問題描述**:  
+測試 `/api/send-to-openclaw` 端點時返回 502 錯誤。
+
+**錯誤日誌**:  
+```
+send() failed (111: Connection refused) while resolving, resolver: 127.0.0.11:53
+telegram-webhook could not be resolved (110: Operation timed out)
+```
+
+**根本原因**:  
+nginx 使用 `resolver 127.0.0.11`（Docker 內部 DNS），但 Zeabur 環境不支援此解析器。
+
+**解決方案**:  
+將 DNS resolver 從 `127.0.0.11` 改為公共 DNS `8.8.8.8`：
+
+```nginx
+# 修改前
+resolver 127.0.0.11 valid=30s;
+
+# 修改後
+resolver 8.8.8.8 valid=30s;
+```
+
+**提交記錄**:  
+```
+commit ba0a817
+fix: 修復 nginx DNS 解析器
+```
+
+**驗證**:  
+⏳ 等待重新部署後驗證
 
 ---
 
