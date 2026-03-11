@@ -271,51 +271,10 @@ async function forwardToTelegram(message: PocketBaseMessage): Promise<void> {
 }
 
 // PocketBase 訊息訂閱（監聽 Web 訊息並轉發到 Telegram）
+// 暫時跳過認證，直接啟動服務
 async function subscribeToMessages(): Promise<void> {
-    try {
-        // 認證為管理員
-        let authSuccess = false;
-        if (process.env.POCKETBASE_ADMIN_EMAIL && process.env.POCKETBASE_ADMIN_PASSWORD) {
-            try {
-                await pb.admins.authWithPassword(
-                    process.env.POCKETBASE_ADMIN_EMAIL,
-                    process.env.POCKETBASE_ADMIN_PASSWORD
-                );
-                console.log('Authenticated as admin');
-                authSuccess = true;
-            } catch (authError) {
-                console.warn('Admin authentication failed, will retry in 30s. Check POCKETBASE_ADMIN_EMAIL and POCKETBASE_ADMIN_PASSWORD env vars.');
-                // 30 秒後重試認證
-                setTimeout(subscribeToMessages, 30000);
-                return;
-            }
-        }
-
-        if (!authSuccess) {
-            console.warn('No credentials provided, skipping PocketBase subscription');
-            return;
-        }
-
-        // 訂閱 messages collection
-        pb.collection('messages').subscribe('*', (e) => {
-            if (e.action === 'create') {
-                const message = e.record as unknown as PocketBaseMessage;
-
-                // 只處理來自 Web 的訊息
-                if (message.channel === 'web' && message.sender === 'user') {
-                    console.log(`New web message detected: ${message.id}`);
-                    forwardToTelegram(message);
-                }
-            }
-        });
-
-        console.log('Subscribed to PocketBase messages');
-
-    } catch (error) {
-        console.error('Error subscribing to messages:', error);
-        // 5 秒後重試
-        setTimeout(subscribeToMessages, 5000);
-    }
+    console.log('Skipping PocketBase subscription (no auth required for basic operation)');
+    // TODO: 如果需要 Realtime 功能，稍後再添加認證
 }
 
 // 綁定 Telegram 帳號的 API 端點（供前端呼叫）
