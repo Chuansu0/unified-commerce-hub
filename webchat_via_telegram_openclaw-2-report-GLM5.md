@@ -544,6 +544,55 @@ await pb.admins.authWithPassword(
 但認證仍然失敗，這表示：
 1. ✅ 環境變數已正確傳遞到容器
 2. ✅ 網路連線正常（能連到 pocketbase-convo:8090）
+3. ❌ **admin@neovega.cc 是普通用戶，不是管理員**！
+
+### 🔴 關鍵發現
+
+`admin@neovega.cc` 是 **PocketBase 的普通用戶**，不是管理員！
+
+- ❌ 錯誤：`pb.admins.authWithPassword()` - 這是用於管理員登入的
+- ✅ 正確：`pb.collection('users').authWithPassword()` - 這是用於普通用戶登入的
+
+### 🛠️ 修復
+
+已修改 `telegram-webhook/src/index.ts`：
+```typescript
+// 原代碼
+await pb.admins.authWithPassword(
+    process.env.POCKETBASE_ADMIN_EMAIL,
+    process.env.POCKETBASE_ADMIN_PASSWORD
+);
+
+// 修復後
+await pb.collection('users').authWithPassword(
+    process.env.POCKETBASE_ADMIN_EMAIL,
+    process.env.POCKETBASE_ADMIN_PASSWORD
+);
+```
+
+### ✅ 下一步
+
+1. 提交並推送修復
+2. 重新部署 unified-commerce-hub-oscie 服務
+3. 驗證認證成功
+
+---
+
+## 🚨 緊急診斷：重新部署後仍然認證失敗（舊版）
+
+### 問題分析
+
+代碼中正確使用了環境變數：
+```typescript
+await pb.admins.authWithPassword(
+    process.env.POCKETBASE_ADMIN_EMAIL,
+    process.env.POCKETBASE_ADMIN_PASSWORD
+);
+```
+
+但認證仍然失敗，這表示：
+1. ✅ 環境變數已正確傳遞到容器
+2. ✅ 網路連線正常（能連到 pocketbase-convo:8090）
 3. ❌ **認證資訊不正確**（email 或 password 有問題）
 
 ### 🔍 可能的原因
