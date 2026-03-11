@@ -482,7 +482,168 @@ data: { code: 400, message: 'Failed to authenticate.', data: {} }
 **注意**: 
 - ✅ curl 測試成功證明了連線和認證資訊正確
 - ⚠️ 環境變數修改後必須重新部署才能生效
-- 🎯 重新部署後應該可以正常運作
+- 🚨 重新部署後仍然失敗 - 需要進一步診斷
+- 🚨 **更嚴重：unified-commerce-hub 服務正在崩潰重啟！**
+
+---
+
+## 🚨 緊急發現：服務崩潰原因
+
+### 問題分析
+
+查看 Zeabur 控制台，發現 **unified-commerce-hub 服務正在「崩潰重試中」**！
+
+### 🔍 根因定位
+
+檢查 `nginx.conf` 發現了**致命問題**：
+
+```nginx
+location /webhook/telegram {
+    proxy_pass http://telegram-webhook:3000/webhook/telegram;
+    ...
+}
+```
+
+**問題**：`telegram-webhook` 服務**尚未部署**，nginx 在啟動時會嘗試解析這個 hostname，失敗後導致容器崩潰重啟！
+
+### 🛠️ 解決方案
+
+修改 `nginx.conf`，使用**變數延遲解析**，避免啟動時解析失敗：
+
+```nginx
+location /webhook/telegram {
+    resolver 127.0.0.11 valid=30s;  # Docker DNS
+    set $telegram_webhook http://telegram-webhook:3000;  # 使用變數
+    proxy_pass $telegram_webhook/webhook/telegram;  # 延遲解析
+    ...
+}
+```
+
+**已修復**：所有 `/api/*` 和 `/webhook/*` 路由都已改為使用變數方式。
+
+### ✅ 下一步
+
+1. 提交並推送修復後的 `nginx.conf`
+2. 重新部署 unified-commerce-hub 服務
+3. 服務應該能正常啟動
+
+---
+
+## 🚨 緊急診斷：重新部署後仍然認證失敗
+
+### 問題分析
+
+代碼中正確使用了環境變數：
+```typescript
+await pb.admins.authWithPassword(
+    process.env.POCKETBASE_ADMIN_EMAIL,
+    process.env.POCKETBASE_ADMIN_PASSWORD
+);
+```
+
+但認證仍然失敗，這表示：
+1. ✅ 環境變數已正確傳遞到容器
+2. ✅ 網路連線正常（能連到 pocketbase-convo:8090）
+3. ❌ **認證資訊不正確**（email 或 password 有問題）
+
+### 🔍 可能的原因
+
+#### 原因 1：環境變數包含隱藏字符
+環境變數可能在複製貼上時帶入了：
+- 空格（開頭或結尾）
+- 換行符（\n 或 \r\n）
+- 不可見字符
+
+**檢查方式**（在 Zeabur Console）：
+```bash
+# 檢查環境變數長度
+echo "${POCKETBASE_ADMIN_EMAIL}" | wc -c
+echo "${POCKETBASE_ADMIN_PASSWORD}" | wc -c
+
+# 檢查是否有特殊字符（十六進位顯示）
+echo "${POCKETBASE_ADMIN_EMAIL}" | xxd
+echo "${POCKETBASE_ADMIN_PASSWORD}" | xxd
+```
+
+#### 原因 2：PocketBase 管理員帳號不存在
+可能 `admin@neovega.cc` 不是 PocketBase 的管理員帳號，而是普通用戶帳號。
+
+**驗證方式**：
+```bash
+# 嘗試用 superusers 端點登入（如果是 superuser）
+curl -X POST http://pocketbase-convo:8090/api/collections/_superusers/auth-with-password \
+  -H "Content-Type: application/json" \
+  -d '{"identity":"admin@neovega.cc","password":"SIfVmF6BQ3rC0xUT5R7Aots9MHyG284Y"}'
+```
+
+#### 原因 3：需要使用 collections/users 端點
+如果 `admin@neovega.cc` 是普通用戶（而非管理員），需要使用不同的 API：
+
+```bash
+# 用戶登入（而非管理員登入）
+curl -X POST http://pocketbase-convo:8090/api/collections/users/auth-with-password \
+  -H "Content-Type: application/json" \
+  -d '{"identity":"admin@neovega.cc","password":"SIfVmF6BQ3rC0xUT5R7Aots9MHyG284Y"}'
+```
+
+### 🛠️ 建議的修復步驟
+
+#### 步驟 1：重新設定環境變數（去除隱藏字符）
+
+在 Zeabur 環境變數設定中：
+1. 刪除現有的 `POCKETBASE_ADMIN_EMAIL` 和 `POCKETBASE_ADMIN_PASSWORD`
+2. 手動重新輸入（不要複製貼上）
+3. 確保沒有前後空格
+
+#### 步驟 2：確認 PocketBase 管理員帳號
+
+在 PocketBase Admin UI 中確認：
+1. 訪問 `https://pocketbase.neovega.cc/_/`
+2. 確認管理員帳號是 `admin@neovega.cc`
+3. 測試用該帳號密碼登入
+
+#### 步驟 3：修改代碼支援用戶認證（如果是普通用戶）
+
+如果 `admin@neovega.cc` 是普通用戶而非管理員，需要修改代碼：
+
+```typescript
+// 修改 telegram-webhook/src/index.ts 中的 subscribeToMessages 函數
+
+// 原代碼（管理員認證）
+await pb.admins.authWithPassword(
+    process.env.POCKETBASE_ADMIN_EMAIL,
+    process.env.POCKETBASE_ADMIN_PASSWORD
+);
+
+// 改為用戶認證
+await pb.collection('users').authWithPassword(
+    process.env.POCKETBASE_ADMIN_EMAIL,
+    process.env.POCKETBASE_ADMIN_PASSWORD
+);
+```
+
+### ✅ 立即驗證
+
+請在 Zeabur Console 中執行以下命令，告訴我結果：
+
+```bash
+# 測試 1：直接 curl 測試管理員認證（和代碼使用相同端點）
+curl -X POST http://pocketbase-convo:8090/api/admins/auth-with-password \
+  -H "Content-Type: application/json" \
+  -d '{"identity":"admin@neovega.cc","password":"SIfVmF6BQ3rC0xUT5R7Aots9MHyG284Y"}'
+
+# 測試 2：測試用戶認證（如果是普通用戶）
+curl -X POST http://pocketbase-convo:8090/api/collections/users/auth-with-password \
+  -H "Content-Type: application/json" \
+  -d '{"identity":"admin@neovega.cc","password":"SIfVmF6BQ3rC0xUT5R7Aots9MHyG284Y"}'
+
+# 測試 3：測試 superuser 認證
+curl -X POST http://pocketbase-convo:8090/api/collections/_superusers/auth-with-password \
+  -H "Content-Type: application/json" \
+  -d '{"identity":"admin@neovega.cc","password":"SIfVmF6BQ3rC0xUT5R7Aots9MHyG284Y"}'
+```
+
+根據測試結果，我們可以確定問題所在並提供正確的修復方案。
 
 ---
 
