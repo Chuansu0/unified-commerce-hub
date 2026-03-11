@@ -273,19 +273,18 @@ async function forwardToTelegram(message: PocketBaseMessage): Promise<void> {
 // PocketBase 訊息訂閱（監聽 Web 訊息並轉發到 Telegram）
 async function subscribeToMessages(): Promise<void> {
     try {
-        // 認證為用戶（使用 users collection）
+        // 認證為管理員
         let authSuccess = false;
         if (process.env.POCKETBASE_ADMIN_EMAIL && process.env.POCKETBASE_ADMIN_PASSWORD) {
             try {
-                await pb.collection('users').authWithPassword(
+                await pb.admins.authWithPassword(
                     process.env.POCKETBASE_ADMIN_EMAIL,
                     process.env.POCKETBASE_ADMIN_PASSWORD
                 );
-                console.log('Authenticated as user');
+                console.log('Authenticated as admin');
                 authSuccess = true;
             } catch (authError) {
-                console.warn('Authentication failed, will retry in 30s. Make sure user exists in PocketBase.');
-                console.warn('To fix: Create a user in PocketBase users collection with email:', process.env.POCKETBASE_ADMIN_EMAIL);
+                console.warn('Admin authentication failed, will retry in 30s. Check POCKETBASE_ADMIN_EMAIL and POCKETBASE_ADMIN_PASSWORD env vars.');
                 // 30 秒後重試認證
                 setTimeout(subscribeToMessages, 30000);
                 return;
