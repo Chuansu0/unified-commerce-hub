@@ -1,11 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { EventSource } from 'eventsource';
 import PocketBase from 'pocketbase';
-
-// Polyfill EventSource for Node.js (required for PocketBase Realtime)
-global.EventSource = EventSource as any;
 
 // 載入環境變數
 dotenv.config();
