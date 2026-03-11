@@ -277,18 +277,96 @@ if (!message.from?.is_bot) {
 1. 啟用匿名訪問或配置 device identity
 2. 確認 OpenClaw Chat 的 Agent 回覆機制
 
-### 需要調整程式碼
-1. `handleOpenClawReply` - 處理所有 OpenClaw Chat 訊息（不限 Bot）
-2. 新增訊息追蹤機制 - 追蹤哪個 Web Chat 訊息對應哪個回覆
+### 已調整程式碼 ✅ (Commit: 8b3ab6c)
+1. ✅ `handleOpenClawReply` - 現在處理所有 OpenClaw Chat 訊息（不限 Bot）
+2. ✅ Webhook 路由 - 處理所有來自 OpenClaw Chat 的訊息
+3. ✅ 排除邏輯 - 只排除 umio bot 自己的訊息，避免循環
+
+---
+
+## 雙向通訊架構（已實現）
+
+```
+┌─────────────────┐                    ┌─────────────────┐
+│  www.neovega.cc │◄──────────────────►│   umio bot      │
+│   (Web Chat)    │                    │ (Telegram Bot)  │
+│                 │                    │ Token: 8751...  │
+└─────────────────┘                    └────────┬────────┘
+        ▲                                       │
+        │                                       ▼
+        │                              ┌─────────────────┐
+        │                              │  OpenClaw Chat  │
+        │                              │  (Group Chat)   │
+        │                              │  ID: -100380... │
+        │                              │                 │
+        └──────────────────────────────│  - 真人 Agent   │
+                                       │  - AI Bot       │
+                                       └─────────────────┘
+```
+
+### 訊息流向
+
+| 方向 | 狀態 | 說明 |
+|------|------|------|
+| Web → umio → OpenClaw | ✅ 已實現 | `/api/send-to-openclaw` 發送訊息 |
+| OpenClaw → umio → Web | ✅ 已實現 | 處理所有 OpenClaw Chat 訊息 |
+
+### 訊息格式
+
+**發送到 OpenClaw**:
+```
+[WebChat:userId] 訊息內容        # 登入用戶
+[WebChat:guest:sessionId] 訊息   # 訪客用戶
+```
+
+**從 OpenClaw 回覆**:
+- OpenClaw 需要回覆包含 `[WebChat:xxx]` 的訊息
+- 系統會解析回覆並路由到正確的 Web Chat 用戶
+
+---
+
+## OpenClaw 設定說明
+
+### Device Identity 問題
+
+OpenClaw 錯誤 `code=1008 reason=device identity required` 是 WebSocket 連接問題。
+
+**解決方案**: 這是 OpenClaw 服務端的設定，需要在 OpenClaw 配置中啟用：
+
+```json
+// OpenClaw 配置 (OpenClaw 控制台)
+{
+  "gateway": {
+    "controlUi": {
+      "dangerouslyAllowHostHeaderOriginFallback": true
+    }
+  },
+  "agents": {
+    "defaults": {
+      "heartbeat": true
+    }
+  }
+}
+```
+
+### 確保 umio bot 在 OpenClaw Chat 中
+
+1. 將 @neovegaumio_bot 加入 OpenClaw Chat
+2. 給予發言權限
+3. 確保 Bot 能接收群組訊息
 
 ---
 
 ## 結論
 
-所有程式碼層面的任務 (1-7) 已完成。Web Chat → Telegram → OpenClaw 的通路已建立。
+所有程式碼層面的任務 (1-7) 已完成。雙向通訊架構已實現。
 
-**關鍵修復**: 移除了強制登入限制，現在訪客也能使用聊天功能發送訊息到 OpenClaw。
+**已完成**:
+- ✅ Web Chat → Telegram → OpenClaw 發送
+- ✅ OpenClaw → Telegram → Web Chat 回覆
+- ✅ 支援訪客模式
+- ✅ 支援所有 Agent 類型（真人 + AI Bot）
 
 **下一步**: 
-1. 在 OpenClaw 設定中啟用匿名訪問
-2. 調整 `handleOpenClawReply` 以處理所有 Agent 回覆
+1. 在 OpenClaw 設定中啟用匿名訪問（解決 device identity 問題）
+2. 測試端對端通訊
