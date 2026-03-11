@@ -241,6 +241,68 @@ fix: 修復 nginx DNS 解析器
 
 ---
 
+### 🔴 問題 5: telegram-webhook TypeScript 構建錯誤
+
+**發現時間**: 2026-03-11 17:00
+
+**問題描述**:  
+telegram-webhook 服務構建失敗。
+
+**錯誤日誌**:  
+```
+src/index.ts(4,10): error TS2616: 'EventSource' can only be imported by using 'import EventSource = require("eventsource")' or a default import.
+```
+
+**根本原因**:  
+EventSource 導入方式不正確，但由於已經暫時跳過 PocketBase Realtime 功能，直接移除導入即可。
+
+**解決方案**:  
+移除 EventSource 相關導入和 polyfill：
+
+```diff
+- import { EventSource } from 'eventsource';
+- global.EventSource = EventSource as any;
+```
+
+**提交記錄**:  
+```
+commit 6979222
+fix: 移除 EventSource 導入以修復構建錯誤
+```
+
+**驗證**:  
+✅ 構建成功
+
+---
+
+### 🔴 問題 6: curl 請求無回應 & OpenClaw getUpdates 衝突
+
+**發現時間**: 2026-03-11 17:12
+
+**問題描述**:  
+1. `curl -X POST https://www.neovega.cc/api/send-to-openclaw` 沒有回應
+2. OpenClaw 持續報錯：`getUpdates conflict: can't use getUpdates method while webhook is active`
+
+**OpenClaw 錯誤日誌**:  
+```
+[telegram] getUpdates conflict: Call to 'getUpdates' failed! (409: Conflict: can't use getUpdates method while webhook is active; use deleteWebhook to delete the webhook first); retrying in 30s.
+```
+
+**根本原因**:  
+1. **curl 無回應**: nginx 代理可能無法連接到 telegram-webhook 服務（DNS 解析或網路問題）
+2. **getUpdates 衝突**: Telegram Bot API 不允許同時使用 webhook 和 getUpdates 輪詢模式。OpenClaw 內建的 Telegram 模組仍在使用 getUpdates。
+
+**解決方案**:  
+1. **curl 問題**: 需要檢查 Zeabur 服務日誌確認 telegram-webhook 是否正常運行
+2. **OpenClaw 衝突**: 這是預期的行為衝突，需要選擇一種模式：
+   - **方案 A**: 刪除 webhook，讓 OpenClaw 繼續使用 getUpdates（不建議，無法接收 web chat 訊息）
+   - **方案 B**: 關閉 OpenClaw 的 Telegram getUpdates 功能，使用 webhook 模式
+
+**狀態**:  
+⏳ 需要進一步調查
+
+---
+
 ### ✅ 問題 2: 服務名稱錯誤（已修復）
 
 **問題**: `POCKETBASE_URL` 使用錯誤的服務名稱 `pocketbase`  
