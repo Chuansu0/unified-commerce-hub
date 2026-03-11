@@ -9,7 +9,7 @@ dotenv.config();
 // 環境變數
 const PORT = process.env.PORT || 3000;
 const POCKETBASE_URL = process.env.POCKETBASE_URL || 'http://localhost:8090';
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8751641141:AAGeQKXV4WvOguP4H5UpUWegVcq2obdzIVw';
 const OPENCLAW_CHAT_ID = process.env.OPENCLAW_CHAT_ID || '-1003806455231';
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 

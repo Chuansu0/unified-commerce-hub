@@ -18,7 +18,8 @@
 在 telegram-webhook 服務的「Variables」頁面新增：
 
 ```
-TELEGRAM_BOT_TOKEN=8647752152:AAFt7U18c_BfVf5zEKW-TMZD41NDtUOHx-Y
+# neovegaumio_bot Token
+TELEGRAM_BOT_TOKEN=8751641141:AAGeQKXV4WvOguP4H5UpUWegVcq2obdzIVw
 OPENCLAW_CHAT_ID=-1003806455231
 POCKETBASE_URL=http://pocketbase:8090
 POCKETBASE_ADMIN_EMAIL=admin@neovega.cc
@@ -39,7 +40,7 @@ PORT=3000
 部署成功後，執行以下命令設定 Webhook：
 
 ```bash
-curl -X POST "https://api.telegram.org/bot8647752152:AAFt7U18c_BfVf5zEKW-TMZD41NDtUOHx-Y/setWebhook" \
+curl -X POST "https://api.telegram.org/bot8751641141:AAGeQKXV4WvOguP4H5UpUWegVcq2obdzIVw/setWebhook" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://www.neovega.cc/webhook/telegram",
@@ -50,7 +51,7 @@ curl -X POST "https://api.telegram.org/bot8647752152:AAFt7U18c_BfVf5zEKW-TMZD41N
 ### 6. 驗證
 
 ```bash
-curl "https://api.telegram.org/bot8647752152:AAFt7U18c_BfVf5zEKW-TMZD41NDtUOHx-Y/getWebhookInfo"
+curl "https://api.telegram.org/bot8751641141:AAGeQKXV4WvOguP4H5UpUWegVcq2obdzIVw/getWebhookInfo"
 ```
 
 ---
