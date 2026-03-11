@@ -113,9 +113,10 @@ app.post('/webhook/telegram', async (req: Request, res: Response) => {
         if (update.message) {
             const chatId = update.message.chat.id;
 
-            // 檢查是否來自 OpenClaw Chat（Bot 回覆）
-            if (chatId.toString() === OPENCLAW_CHAT_ID && update.message.from?.is_bot) {
-                console.log('[Routing] OpenClaw reply detected');
+            // 檢查是否來自 OpenClaw Chat
+            // 處理所有 OpenClaw Chat 的訊息（包括真人 Agent 和其他 Bot 的回覆）
+            if (chatId.toString() === OPENCLAW_CHAT_ID) {
+                console.log('[Routing] OpenClaw Chat message detected');
                 await handleOpenClawReply(update.message);
             } else {
                 console.log('[Routing] Regular user message');
@@ -430,6 +431,7 @@ app.post('/api/send-to-openclaw', async (req: Request, res: Response) => {
 
 // 處理來自 OpenClaw 的回覆（通過 Telegram Webhook）
 // 當 OpenClaw 在 Telegram 中回覆時，這個函數會被呼叫
+// 注意：處理所有來自 OpenClaw Chat 的訊息（包括 Bot 和真人 Agent）
 async function handleOpenClawReply(message: TelegramMessage): Promise<void> {
     const chatId = message.chat.id;
     const text = message.text || '';
@@ -439,12 +441,19 @@ async function handleOpenClawReply(message: TelegramMessage): Promise<void> {
         return;
     }
 
-    // 檢查是否為 Bot 訊息（OpenClaw 的回覆）
-    if (!message.from?.is_bot) {
+    // 排除 umio bot 自己發送的訊息（避免循環）
+    // umio bot 的 username 是 neovegaumio_bot
+    const senderUsername = message.from?.username?.toLowerCase() || '';
+
+    // 只排除 umio bot 自己發送的訊息
+    // 注意：不排除其他 bot，因為 OpenClaw 內的 AI Bot 回覆需要被處理
+    if (senderUsername === 'neovegaumio_bot') {
+        console.log(`[OpenClaw] Ignoring own message from umio bot`);
         return;
     }
 
-    console.log(`[OpenClaw Reply] ${text}`);
+    const senderName = message.from?.first_name || 'Agent';
+    console.log(`[OpenClaw Reply] From ${senderName} (${senderUsername}): ${text}`);
 
     // 解析訊息格式：支援多種格式
     // 格式1: [WebChat:userId] 回覆內容

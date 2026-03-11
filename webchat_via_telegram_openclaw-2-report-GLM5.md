@@ -116,7 +116,34 @@
 
 ---
 
+## OpenClaw 日誌分析 (2026-03-11 22:52)
+
+### 成功訊息
+```
+[telegram] sendMessage ok chat=8240891231 message=60
+```
+這表示 **Telegram 訊息發送成功**！
+
+### 需要處理的問題
+```
+[ws] closed before connect ... code=1008 reason=device identity required
+```
+OpenClaw 需要 **device identity** 驗證才能建立 WebSocket 連接。
+
+### 解決方案
+OpenClaw 需要裝置識別驗證。可能需要：
+1. 在 OpenClaw 設定中啟用匿名訪問
+2. 或者在發送訊息時附帶裝置識別資訊
+
+---
+
 ## 已知問題與注意事項
+
+### 0. OpenClaw Device Identity
+- **狀態**: 需要設定
+- **錯誤**: `code=1008 reason=device identity required`
+- **說明**: OpenClaw WebSocket 需要裝置識別
+- **解決**: 需要在 OpenClaw 設定中啟用匿名訪問或配置 device identity
 
 ### 1. 訪客模式限制
 - 訪客的回覆**不會**儲存到 PocketBase
@@ -164,8 +191,104 @@
 
 ---
 
+## OpenClaw 設定指南
+
+### 1. Device Identity 問題說明
+
+OpenClaw 錯誤 `code=1008 reason=device identity required` 表示 WebSocket 連接需要裝置識別。
+
+**解決方案**: 這是 OpenClaw 服務端的設定，需要在 OpenClaw 的配置中啟用：
+
+```json
+// OpenClaw 配置 (zeabur_openclaw_config_20260310.json 或 OpenClaw 控制台)
+{
+  "gateway": {
+    "controlUi": {
+      "dangerouslyAllowHostHeaderOriginFallback": true
+    }
+  },
+  "agents": {
+    "defaults": {
+      "heartbeat": true
+    }
+  }
+}
+```
+
+### 2. 雙向通訊架構
+
+**目標流程**:
+```
+┌─────────────────┐                    ┌─────────────────┐
+│  www.neovega.cc │◄──────────────────►│   umio bot      │
+│   (Web Chat)    │                    │ (Telegram Bot)  │
+└─────────────────┘                    └────────┬────────┘
+                                                │
+                                                ▼
+                                       ┌─────────────────┐
+                                       │  OpenClaw Chat  │
+                                       │  (Group Chat)   │
+                                       │  - Agent 1      │
+                                       │  - Agent 2      │
+                                       │  - ...          │
+                                       └─────────────────┘
+```
+
+**目前實現狀態**:
+
+| 方向 | 狀態 | 說明 |
+|------|------|------|
+| Web → umio → OpenClaw | ✅ 已實現 | `/api/send-to-openclaw` 發送訊息 |
+| OpenClaw → umio → Web | ⚠️ 需調整 | 目前只處理 Bot 訊息 |
+
+### 3. 回覆路由機制
+
+**目前程式碼** (`handleOpenClawReply`):
+```typescript
+// 只處理 Bot 訊息
+if (!message.from?.is_bot) {
+    return;
+}
+```
+
+**問題**: 如果 OpenClaw Chat 中的其他 Agent 是真人用戶（非 Bot），他們的回覆不會被處理。
+
+**建議修改**: 改為處理所有來自 OpenClaw Chat 的訊息（除了 umio 自己發送的）
+
+### 4. OpenClaw Chat 設定建議
+
+1. **確保 umio bot 在群組中**:
+   - 將 @neovegaumio_bot 加入 OpenClaw Chat
+   - 給予發言權限
+
+2. **訊息格式約定**:
+   - Web Chat 發送: `[WebChat:userId] 訊息內容`
+   - OpenClaw 回覆: 應該引用或回覆包含 `[WebChat:userId]` 的訊息
+
+3. **Agent 回覆識別**:
+   - 如果 Agent 是 Bot: `from.is_bot === true`
+   - 如果 Agent 是真人: 需要其他識別方式（例如群組成員名單）
+
+---
+
+## 待處理事項
+
+### 需要在 OpenClaw 端設定
+1. 啟用匿名訪問或配置 device identity
+2. 確認 OpenClaw Chat 的 Agent 回覆機制
+
+### 需要調整程式碼
+1. `handleOpenClawReply` - 處理所有 OpenClaw Chat 訊息（不限 Bot）
+2. 新增訊息追蹤機制 - 追蹤哪個 Web Chat 訊息對應哪個回覆
+
+---
+
 ## 結論
 
-所有程式碼層面的任務 (1-7) 已完成。Web Chat → Telegram → OpenClaw 的通路已建立。等待 Zeabur 部署完成後，即可進行端對端測試。
+所有程式碼層面的任務 (1-7) 已完成。Web Chat → Telegram → OpenClaw 的通路已建立。
 
 **關鍵修復**: 移除了強制登入限制，現在訪客也能使用聊天功能發送訊息到 OpenClaw。
+
+**下一步**: 
+1. 在 OpenClaw 設定中啟用匿名訪問
+2. 調整 `handleOpenClawReply` 以處理所有 Agent 回覆
