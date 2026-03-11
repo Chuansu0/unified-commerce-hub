@@ -269,13 +269,13 @@ async function forwardToTelegram(message: PocketBaseMessage): Promise<void> {
 // PocketBase 訊息訂閱（監聽 Web 訊息並轉發到 Telegram）
 async function subscribeToMessages(): Promise<void> {
     try {
-        // 認證為管理員（需要設定環境變數）
+        // 認證為用戶（使用 users collection）
         if (process.env.POCKETBASE_ADMIN_EMAIL && process.env.POCKETBASE_ADMIN_PASSWORD) {
-            await pb.admins.authWithPassword(
+            await pb.collection('users').authWithPassword(
                 process.env.POCKETBASE_ADMIN_EMAIL,
                 process.env.POCKETBASE_ADMIN_PASSWORD
             );
-            console.log('Authenticated as admin');
+            console.log('Authenticated as user');
         }
 
         // 訂閱 messages collection
