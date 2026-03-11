@@ -270,12 +270,27 @@ async function forwardToTelegram(message: PocketBaseMessage): Promise<void> {
 async function subscribeToMessages(): Promise<void> {
     try {
         // 認證為用戶（使用 users collection）
+        let authSuccess = false;
         if (process.env.POCKETBASE_ADMIN_EMAIL && process.env.POCKETBASE_ADMIN_PASSWORD) {
-            await pb.collection('users').authWithPassword(
-                process.env.POCKETBASE_ADMIN_EMAIL,
-                process.env.POCKETBASE_ADMIN_PASSWORD
-            );
-            console.log('Authenticated as user');
+            try {
+                await pb.collection('users').authWithPassword(
+                    process.env.POCKETBASE_ADMIN_EMAIL,
+                    process.env.POCKETBASE_ADMIN_PASSWORD
+                );
+                console.log('Authenticated as user');
+                authSuccess = true;
+            } catch (authError) {
+                console.warn('Authentication failed, will retry in 30s. Make sure user exists in PocketBase.');
+                console.warn('To fix: Create a user in PocketBase users collection with email:', process.env.POCKETBASE_ADMIN_EMAIL);
+                // 30 秒後重試認證
+                setTimeout(subscribeToMessages, 30000);
+                return;
+            }
+        }
+
+        if (!authSuccess) {
+            console.warn('No credentials provided, skipping PocketBase subscription');
+            return;
         }
 
         // 訂閱 messages collection
