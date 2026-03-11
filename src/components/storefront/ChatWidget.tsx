@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/i18n/I18nContext";
 import storefrontTranslations from "@/i18n/storefront-locales";
-import { useChat } from "@/hooks/useChat";
-import pb from "@/services/pocketbase";
+import { useTelegramChat } from "@/hooks/useTelegramChat";
 
 interface ChatMsg {
   id: string;
@@ -21,14 +20,12 @@ export function ChatWidget() {
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // 取得用戶 ID（已登入用戶或訪客）
-  const userId = pb.authStore.model?.id || `guest-${Date.now()}`;
-  const { messages, loading, sendMessage } = useChat(userId);
+  const { messages, isLoading: loading, sendMessage } = useTelegramChat();
 
-  // 轉換 useChat 訊息格式為本地格式
+  // 轉換訊息格式
   const chatMessages: ChatMsg[] = messages.map((m) => ({
     id: m.id,
-    role: m.role as "user" | "assistant",
+    role: m.sender === 'user' ? 'user' : 'assistant',
     content: m.content,
     timestamp: m.timestamp,
   }));

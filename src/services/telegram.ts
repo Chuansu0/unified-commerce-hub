@@ -52,3 +52,36 @@ export async function checkBindStatus(_token: string): Promise<BindStatusRespons
         return { bound: false };
     }
 }
+
+export async function sendToOpenClaw(params: {
+    message: string;
+    userId?: string;
+    sessionId?: string;
+}): Promise<void> {
+    const response = await fetch('/api/send-to-openclaw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+        throw new Error('發送訊息到 OpenClaw 失敗');
+    }
+}
+
+export async function subscribeToReplies(userId: string, onReply: (message: string) => void): Promise<() => void> {
+    const unsubscribe = await pb.collection('messages').subscribe('*', (e) => {
+        if (e.action === 'create' && e.record.sender === 'assistant') {
+            pb.collection('conversations')
+                .getOne(e.record.conversation, { expand: 'user' })
+                .then((conversation) => {
+                    if (conversation.user === userId && conversation.platform === 'webchat') {
+                        onReply(e.record.content);
+                    }
+                })
+                .catch(console.error);
+        }
+    });
+
+    return unsubscribe;
+}

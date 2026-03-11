@@ -1,0 +1,6 @@
+{
+    "app_framework": "node",
+    "build_command": "npm run build",
+    "start_command": "node dist/index.js",
+    "install_command": "npm install"
+}
