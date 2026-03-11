@@ -279,3 +279,61 @@ const message = e.record as unknown as PocketBaseMessage;
 ### 下一步
 
 重新部署 telegram-webhook 服務，驗證編譯成功。
+
+---
+
+## 附錄 C：PocketBase 連線錯誤排查（2026-03-11 13:54）
+
+### 問題描述
+
+telegram-webhook 服務啟動後，無法連接到 PocketBase：
+
+```
+Error: connect ECONNREFUSED 43.167.184.207:8080
+```
+
+### 錯誤分析
+
+1. **Telegram Webhook 設定成功** ✅
+   - URL: `https://www.neovega.cc/webhook/telegram`
+   - `allowed_updates`: `["message"]`
+
+2. **PocketBase 連線失敗** ❌
+   - 錯誤 IP: `43.167.184.207:8080`
+   - 這不是正確的 PocketBase 位址
+
+### 解決方案
+
+#### 檢查環境變數設定
+
+在 Zeabur Dashboard → telegram-webhook 服務 → 環境變數，確認：
+
+```
+POCKETBASE_URL=http://pocketbase:8090
+```
+
+**重要**：
+- 如果 PocketBase 服務名稱不是 `pocketbase`，請使用正確的服務名稱
+- 在 Zeabur 內部網路，使用服務名稱而非外部 URL
+- 端口應該是 `8090`（PocketBase 預設端口），不是 `8080`
+
+#### 如何找到正確的 POCKETBASE_URL
+
+1. 在 Zeabur Dashboard 找到 PocketBase 服務
+2. 查看服務的「內部網路」或「Private URL」
+3. 通常格式為：`http://<服務名稱>:8090`
+
+#### 如果使用外部 URL
+
+如果必須使用外部 URL（不推薦）：
+```
+POCKETBASE_URL=https://<您的pocketbase網址>
+```
+
+但這需要額外處理 HTTPS 憑證問題。
+
+### 重新部署
+
+修正環境變數後，重新部署 telegram-webhook 服務：
+1. Zeabur Dashboard → telegram-webhook
+2. 點擊「Redeploy」
