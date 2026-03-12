@@ -211,7 +211,7 @@
             ],
             "parameters": {
                 "chatId": "-1003806455231",
-                "text": "🌐 WebChat: {{ $node['Format Message Data'].json.message }}\n💬 回覆此訊息以回覆客戶",
+                "text": "🌐 WebChat: {{ $node['Format Message Data'].json.message }}\n💬 回覆此訊息以回覆客戶\n@neovegaandrea_bot 新訊息",
                 "additionalFields": {
                     "parse_mode": "HTML"
                 }
