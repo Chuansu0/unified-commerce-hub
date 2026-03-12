@@ -1,0 +1,108 @@
+{
+    "name": "Telegram Reply Handler",
+    "nodes": [
+        {
+            "id": "webhook-reply",
+            "name": "Telegram Reply Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "position": [
+                250,
+                300
+            ],
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "telegram-reply"
+            }
+        },
+        {
+            "id": "check-session",
+            "name": "Is WebChat Session?",
+            "type": "n8n-nodes-base.if",
+            "position": [
+                450,
+                300
+            ],
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $json.body.sessionId }}",
+                            "operation": "isNotEmpty"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "store-reply",
+            "name": "Store Reply to PB",
+            "type": "n8n-nodes-base.httpRequest",
+            "position": [
+                700,
+                200
+            ],
+            "parameters": {
+                "method": "POST",
+                "url": "http://pocketbase-convo.zeabur.internal:8090/api/collections/messages/records",
+                "body": {
+                    "session_id": "={{ $json.body.sessionId }}",
+                    "content": "={{ $json.body.replyText }}",
+                    "role": "assistant",
+                    "agent": "={{ $json.body.agentName }}",
+                    "platform": "telegram",
+                    "created": "={{ $json.body.timestamp }}"
+                }
+            }
+        },
+        {
+            "id": "success-respond",
+            "name": "Success Response",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "position": [
+                900,
+                200
+            ],
+            "parameters": {
+                "statusCode": 200,
+                "body": {
+                    "stored": true
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Telegram Reply Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Is WebChat Session?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Is WebChat Session?": {
+            "main": [
+                [
+                    {
+                        "node": "Store Reply to PB",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Store Reply to PB": {
+            "main": [
+                [
+                    {
+                        "node": "Success Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

@@ -1,0 +1,178 @@
+{
+    "name": "WebChat Inbound Handler",
+    "nodes": [
+        {
+            "id": "webhook-node",
+            "name": "WebChat Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "chat-inbound",
+            "parameters": {
+                "httpMethod": "POST",
+                "responseMode": "responseNode",
+                "path": "chat-inbound"
+            }
+        },
+        {
+            "id": "set-format",
+            "name": "Format Message Data",
+            "type": "n8n-nodes-base.set",
+            "position": [
+                450,
+                300
+            ],
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "sessionId",
+                            "value": "={{ $json.body.sessionId }}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "={{ $json.body.message }}"
+                        },
+                        {
+                            "name": "platform",
+                            "value": "={{ $json.body.platform || 'webchat' }}"
+                        },
+                        {
+                            "name": "timestamp",
+                            "value": "={{ new Date().toISOString() }}"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "pocketbase-store",
+            "name": "Store to PocketBase",
+            "type": "n8n-nodes-base.httpRequest",
+            "position": [
+                650,
+                200
+            ],
+            "parameters": {
+                "method": "POST",
+                "url": "http://pocketbase-convo.zeabur.internal:8090/api/collections/messages/records",
+                "body": {
+                    "session_id": "={{ $node['Format Message Data'].json.sessionId }}",
+                    "content": "={{ $node['Format Message Data'].json.message }}",
+                    "role": "user",
+                    "platform": "={{ $node['Format Message Data'].json.platform }}",
+                    "created": "={{ $node['Format Message Data'].json.timestamp }}"
+                }
+            }
+        },
+        {
+            "id": "telegram-send",
+            "name": "Send to Telegram Group",
+            "type": "n8n-nodes-base.telegram",
+            "position": [
+                650,
+                400
+            ],
+            "parameters": {
+                "chatId": "-1003806455231",
+                "text": "🌐 WebChat: {{ $node['Format Message Data'].json.message }}",
+                "additionalFields": {
+                    "parse_mode": "HTML"
+                }
+            },
+            "credentials": {
+                "telegramApi": {
+                    "id": "telegram-bot-credential"
+                }
+            }
+        },
+        {
+            "id": "telegram-mention",
+            "name": "Mention @andrea",
+            "type": "n8n-nodes-base.telegram",
+            "position": [
+                850,
+                400
+            ],
+            "parameters": {
+                "chatId": "-1003806455231",
+                "text": "@neovegaandrea_bot 新訊息",
+                "additionalFields": {}
+            },
+            "credentials": {
+                "telegramApi": {
+                    "id": "telegram-bot-credential"
+                }
+            }
+        },
+        {
+            "id": "respond",
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "position": [
+                1050,
+                300
+            ],
+            "parameters": {
+                "statusCode": 200,
+                "body": {
+                    "success": true,
+                    "message": "Message forwarded to Telegram"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "WebChat Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Format Message Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format Message Data": {
+            "main": [
+                [
+                    {
+                        "node": "Store to PocketBase",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Send to Telegram Group",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send to Telegram Group": {
+            "main": [
+                [
+                    {
+                        "node": "Mention @andrea",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Mention @andrea": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}
