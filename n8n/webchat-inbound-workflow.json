@@ -89,7 +89,7 @@
             ],
             "parameters": {
                 "chatId": "-1003806455231",
-                "text": "@neovegaandrea_bot 新訊息",
+                "text": "@neovegaandrea&#95;bot 新訊息",
                 "additionalFields": {}
             },
             "credentials": {
