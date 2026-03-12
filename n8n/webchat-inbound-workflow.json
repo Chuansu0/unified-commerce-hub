@@ -44,7 +44,7 @@
                         {
                             "name": "platform",
                             "type": "string",
-                            "value": "={{ $json.body.platform || 'webchat' }}"
+                            "value": "={{ $json.body.platform || 'web' }}"
                         },
                         {
                             "name": "timestamp",
@@ -56,12 +56,134 @@
             }
         },
         {
-            "id": "pocketbase-store",
-            "name": "Store to PocketBase",
+            "id": "find-conversation",
+            "name": "Find Conversation",
             "type": "n8n-nodes-base.httpRequest",
             "typeVersion": 4.2,
             "position": [
                 650,
+                200
+            ],
+            "parameters": {
+                "method": "GET",
+                "url": "http://pocketbase.zeabur.internal:8090/api/collections/conversations/records",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "filter",
+                            "value": "=(telegram_chat_id='{{ $json.sessionId }}')"
+                        }
+                    ]
+                },
+                "options": {}
+            }
+        },
+        {
+            "id": "check-conversation-exists",
+            "name": "Conversation Exists?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                850,
+                200
+            ],
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "c7d800ee-07a9-4f44-96e7-297c0b925d96",
+                            "leftValue": "={{ $json.totalItems }}",
+                            "rightValue": 0,
+                            "operator": {
+                                "type": "number",
+                                "operation": "gt"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "create-conversation",
+            "name": "Create Conversation",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1050,
+                100
+            ],
+            "parameters": {
+                "method": "POST",
+                "url": "http://pocketbase.zeabur.internal:8090/api/collections/conversations/records",
+                "sendBody": true,
+                "contentType": "json",
+                "body": {
+                    "telegram_chat_id": "={{ $node['Format Message Data'].json.sessionId }}",
+                    "platform": "web",
+                    "status": "active",
+                    "last_message": "={{ $node['Format Message Data'].json.message }}",
+                    "last_message_at": "={{ $node['Format Message Data'].json.timestamp }}"
+                },
+                "options": {}
+            }
+        },
+        {
+            "id": "extract-existing-conversation",
+            "name": "Extract Conversation ID",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                1050,
+                300
+            ],
+            "parameters": {
+                "mode": "manual",
+                "fields": {
+                    "values": [
+                        {
+                            "name": "conversationId",
+                            "type": "string",
+                            "value": "={{ $json.items[0].id }}"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "extract-new-conversation",
+            "name": "Extract New Conversation ID",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                1250,
+                100
+            ],
+            "parameters": {
+                "mode": "manual",
+                "fields": {
+                    "values": [
+                        {
+                            "name": "conversationId",
+                            "type": "string",
+                            "value": "={{ $json.id }}"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "store-message",
+            "name": "Store Message",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1450,
                 200
             ],
             "parameters": {
@@ -70,12 +192,12 @@
                 "sendBody": true,
                 "contentType": "json",
                 "body": {
-                    "session_id": "={{ $json.sessionId }}",
-                    "content": "={{ $json.message }}",
-                    "role": "user",
-                    "platform": "={{ $json.platform }}",
-                    "created": "={{ $json.timestamp }}"
-                }
+                    "conversation": "={{ $json.conversationId }}",
+                    "sender": "user",
+                    "channel": "={{ $node['Format Message Data'].json.platform }}",
+                    "content": "={{ $node['Format Message Data'].json.message }}"
+                },
+                "options": {}
             }
         },
         {
@@ -84,36 +206,15 @@
             "type": "n8n-nodes-base.telegram",
             "typeVersion": 1.2,
             "position": [
-                650,
+                1450,
                 400
             ],
             "parameters": {
                 "chatId": "-1003806455231",
-                "text": "🌐 WebChat: {{ $json.message }}",
+                "text": "🌐 WebChat: {{ $node['Format Message Data'].json.message }}\n💬 回覆此訊息以回覆客戶",
                 "additionalFields": {
                     "parse_mode": "HTML"
                 }
-            },
-            "credentials": {
-                "telegramApi": {
-                    "name": "telegram-bot-credential",
-                    "id": ""
-                }
-            }
-        },
-        {
-            "id": "telegram-mention",
-            "name": "Mention @andrea",
-            "type": "n8n-nodes-base.telegram",
-            "typeVersion": 1.2,
-            "position": [
-                850,
-                400
-            ],
-            "parameters": {
-                "chatId": "-1003806455231",
-                "text": "@neovegaandrea_bot 新訊息",
-                "additionalFields": {}
             },
             "credentials": {
                 "telegramApi": {
@@ -128,12 +229,12 @@
             "type": "n8n-nodes-base.respondToWebhook",
             "typeVersion": 1.1,
             "position": [
-                1050,
+                1650,
                 300
             ],
             "parameters": {
                 "respondWith": "json",
-                "responseBody": "={{ { success: true, message: \"Message forwarded to Telegram\" } }}",
+                "responseBody": "={{ { success: true, message: 'Message forwarded to Telegram' } }}",
                 "options": {}
             }
         }
@@ -154,7 +255,7 @@
             "main": [
                 [
                     {
-                        "node": "Store to PocketBase",
+                        "node": "Find Conversation",
                         "type": "main",
                         "index": 0
                     },
@@ -166,18 +267,69 @@
                 ]
             ]
         },
-        "Send to Telegram Group": {
+        "Find Conversation": {
             "main": [
                 [
                     {
-                        "node": "Mention @andrea",
+                        "node": "Conversation Exists?",
                         "type": "main",
                         "index": 0
                     }
                 ]
             ]
         },
-        "Mention @andrea": {
+        "Conversation Exists?": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Conversation ID",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Create Conversation",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Conversation ID": {
+            "main": [
+                [
+                    {
+                        "node": "Store Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Create Conversation": {
+            "main": [
+                [
+                    {
+                        "node": "Extract New Conversation ID",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract New Conversation ID": {
+            "main": [
+                [
+                    {
+                        "node": "Store Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Store Message": {
             "main": [
                 [
                     {
