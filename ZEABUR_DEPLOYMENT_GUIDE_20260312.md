@@ -11,12 +11,24 @@
 
 1. **nginx.conf** ✅
    - PocketBase URL: `http://pocketbase-convo.zeabur.internal:8090`
+   - telegram-webhook URL: `http://telegram-webhook.zeabur.internal:3000`
+   - 所有代理配置已更新為使用 Zeabur 內部域名
 
 2. **telegram-webhook/src/index.ts** ✅
    - PocketBase URL: `http://pocketbase-convo.zeabur.internal:8090`
 
 3. **src/services/pocketbase.ts** ✅
    - 前端使用相對路徑: `/pb`
+
+### 1.2 關鍵修復
+
+**問題**: DNS 解析失敗
+- ❌ 舊配置: `http://pocketbase-convo:8090`
+- ✅ 新配置: `http://pocketbase-convo.zeabur.internal:8090`
+
+**問題**: 502 Bad Gateway
+- ❌ 舊配置: `http://telegram-webhook:3000`
+- ✅ 新配置: `http://telegram-webhook.zeabur.internal:3000`
 
 ---
 
