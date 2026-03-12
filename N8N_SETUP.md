@@ -31,24 +31,37 @@ Webhook URL 將為：`https://www.neovega.cc/api/webhook/chat-inbound`
 2. 匯入檔案：`n8n/telegram-reply-workflow.json`
 3. 啟動 workflow
 
-## Phase 2: 設定前端環境變數
+## Phase 2: 部署到 Zeabur
 
-### 2.1 建立 .env.local
+### 2.1 設定環境變數
+
+在 Zeabur Dashboard 中設定以下環境變數：
+
+**OpenClaw 服務：**
+- `N8N_API_KEY` = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+- `N8N_API_URL` = `http://n8n.zeabur.internal:5678`
+
+**主應用 (unified-commerce-hub)：**
+- `VITE_USE_N8N` = `true`
+
+### 2.2 部署更新
 
 ```bash
-cp .env.example .env.local
+git push origin main
 ```
 
-編輯 `.env.local`：
+或前往 Zeabur Dashboard → 重新部署服務
+
+## 設定 n8n API Key
+
+您提供的 API Key:
 ```
-VITE_USE_N8N=true
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiMTU0ZWY0Yy1jNmYzLTQ4ZmYtYWJjYS02OWRhMDJkZGE5NzgiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzczMzA1NzE1fQ.LnCHZTLooG5CK6ov8nZcJXpFG0Isobj6L472P3da8sA
 ```
 
-### 2.2 重新建置部署
-
-```bash
-zbpack deploy
-```
+此 Key 用於：
+1. OpenClaw Skill 呼叫 n8n API
+2. telegram-webhook 轉發訊息到 n8n
 
 ## Phase 3: 測試驗證
 
