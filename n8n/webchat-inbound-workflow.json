@@ -19,54 +19,17 @@
             "webhookId": "chat-inbound"
         },
         {
-            "id": "set-format",
-            "name": "Format Message Data",
-            "type": "n8n-nodes-base.set",
-            "typeVersion": 3.4,
-            "position": [
-                450,
-                300
-            ],
-            "parameters": {
-                "mode": "manual",
-                "fields": {
-                    "values": [
-                        {
-                            "name": "sessionId",
-                            "type": "string",
-                            "value": "={{ $json.body.sessionId }}"
-                        },
-                        {
-                            "name": "message",
-                            "type": "string",
-                            "value": "={{ $json.body.message }}"
-                        },
-                        {
-                            "name": "platform",
-                            "type": "string",
-                            "value": "={{ $json.body.platform || 'web' }}"
-                        },
-                        {
-                            "name": "timestamp",
-                            "type": "string",
-                            "value": "={{ $now }}"
-                        }
-                    ]
-                }
-            }
-        },
-        {
             "id": "telegram-send",
             "name": "Send to Telegram Group",
             "type": "n8n-nodes-base.telegram",
             "typeVersion": 1.2,
             "position": [
-                650,
-                400
+                450,
+                300
             ],
             "parameters": {
                 "chatId": "-1003806455231",
-                "text": "={{ '🌐 <b>WebChat 新訊息</b> @neovegaandrea&#95;bot\\n\\n📝 內容: ' + $('Format Message Data').first().json.message + '\\n\\n📋 詳細資訊:\\n• Session ID: ' + $('Format Message Data').first().json.sessionId + '\\n• 平台: ' + $('Format Message Data').first().json.platform + '\\n• 時間: ' + $('Format Message Data').first().json.timestamp + '\\n\\n💬 回覆此訊息以回覆客戶' }}",
+                "text": "={{ '🌐 <b>WebChat 新訊息</b> @neovegaandrea&#95;bot\\n\\n📝 內容: ' + $json.body.message + '\\n\\n📋 詳細資訊:\\n• Session ID: ' + $json.body.sessionId + '\\n• 平台: ' + ($json.body.platform || 'web') + '\\n• 時間: ' + new Date().toISOString() + '\\n\\n💬 回覆此訊息以回覆客戶' }}",
                 "additionalFields": {
                     "parse_mode": "HTML"
                 }
@@ -84,8 +47,8 @@
             "type": "n8n-nodes-base.respondToWebhook",
             "typeVersion": 1.1,
             "position": [
-                850,
-                350
+                650,
+                300
             ],
             "parameters": {
                 "respondWith": "json",
@@ -96,17 +59,6 @@
     ],
     "connections": {
         "WebChat Webhook": {
-            "main": [
-                [
-                    {
-                        "node": "Format Message Data",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Format Message Data": {
             "main": [
                 [
                     {
