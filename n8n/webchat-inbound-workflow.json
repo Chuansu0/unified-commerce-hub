@@ -29,7 +29,7 @@
             ],
             "parameters": {
                 "chatId": "-1003806455231",
-                "text": "={{ '🌐 <b>WebChat 新訊息</b> @neovegaandrea&#95;bot\\n\\n📝 內容: ' + $json.message + '\\n\\n📋 詳細資訊:\\n• Session ID: ' + $json.sessionId + '\\n• 平台: ' + ($json.platform || 'webchat') + '\\n• 時間: ' + new Date().toISOString() + '\\n\\n💬 回覆此訊息以回覆客戶' }}",
+                "text": "={{ '🌐 <b>WebChat 新訊息</b> @neovegaandrea&#95;bot\\n\\n📝 內容: ' + $json.body.message + '\\n\\n📋 詳細資訊:\\n• Session ID: ' + $json.body.sessionId + '\\n• 平台: ' + ($json.body.platform || 'webchat') + '\\n• 時間: ' + new Date().toISOString() + '\\n\\n💬 回覆此訊息以回覆客戶' }}",
                 "additionalFields": {
                     "parse_mode": "HTML"
                 }
