@@ -1,0 +1,83 @@
+{
+    "name": "Debug WebChat Webhook",
+    "nodes": [
+        {
+            "id": "webhook-debug",
+            "name": "Debug Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "parameters": {
+                "httpMethod": "POST",
+                "responseMode": "responseNode",
+                "path": "debug-inbound",
+                "options": {}
+            },
+            "webhookId": "debug-inbound"
+        },
+        {
+            "id": "debug-print",
+            "name": "Print Received Data",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                450,
+                300
+            ],
+            "parameters": {
+                "chatId": "-1003806455231",
+                "text": "={{ '<b>DEBUG: Received Data</b>\\n\\n<b>Raw JSON:</b>\\n<code>' + JSON.stringify($json, null, 2).replace(/</g, '<').replace(/>/g, '>') + '</code>\\n\\n<b>Keys:</b> ' + Object.keys($json).join(', ') }}"
+            },
+            "credentials": {
+                "telegramApi": {
+                    "name": "telegram-bot-credential",
+                    "id": ""
+                }
+            }
+        },
+        {
+            "id": "respond-debug",
+            "name": "Respond Debug",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                650,
+                300
+            ],
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { received: $json, keys: Object.keys($json) } }}"
+            }
+        }
+    ],
+    "connections": {
+        "Debug Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Print Received Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Print Received Data": {
+            "main": [
+                [
+                    {
+                        "node": "Respond Debug",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}
