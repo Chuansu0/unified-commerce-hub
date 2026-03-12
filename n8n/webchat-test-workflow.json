@@ -1,0 +1,67 @@
+{
+    "name": "WebChat Test Handler",
+    "nodes": [
+        {
+            "id": "webhook-node",
+            "name": "Test Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "parameters": {
+                "httpMethod": "POST",
+                "responseMode": "lastNode",
+                "path": "test-inbound",
+                "options": {}
+            },
+            "webhookId": "test-inbound"
+        },
+        {
+            "id": "set-response",
+            "name": "Set Response",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                450,
+                300
+            ],
+            "parameters": {
+                "mode": "manual",
+                "fields": {
+                    "values": [
+                        {
+                            "name": "received",
+                            "type": "string",
+                            "value": "={{ $json.body.message }}"
+                        },
+                        {
+                            "name": "success",
+                            "type": "boolean",
+                            "value": true
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Test Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Set Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": []
+}

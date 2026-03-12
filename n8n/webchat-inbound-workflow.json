@@ -5,43 +5,51 @@
             "id": "webhook-node",
             "name": "WebChat Webhook",
             "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
             "position": [
                 250,
                 300
             ],
-            "webhookId": "chat-inbound",
             "parameters": {
                 "httpMethod": "POST",
                 "responseMode": "responseNode",
-                "path": "chat-inbound"
-            }
+                "path": "chat-inbound",
+                "options": {}
+            },
+            "webhookId": "chat-inbound"
         },
         {
             "id": "set-format",
             "name": "Format Message Data",
             "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
             "position": [
                 450,
                 300
             ],
             "parameters": {
-                "values": {
-                    "string": [
+                "mode": "manual",
+                "fields": {
+                    "values": [
                         {
                             "name": "sessionId",
+                            "type": "string",
                             "value": "={{ $json.body.sessionId }}"
                         },
                         {
                             "name": "message",
+                            "type": "string",
                             "value": "={{ $json.body.message }}"
                         },
                         {
                             "name": "platform",
+                            "type": "string",
                             "value": "={{ $json.body.platform || 'webchat' }}"
                         },
                         {
                             "name": "timestamp",
-                            "value": "={{ new Date().toISOString() }}"
+                            "type": "string",
+                            "value": "={{ $now }}"
                         }
                     ]
                 }
@@ -51,19 +59,22 @@
             "id": "pocketbase-store",
             "name": "Store to PocketBase",
             "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
             "position": [
                 650,
                 200
             ],
             "parameters": {
                 "method": "POST",
-                "url": "http://pocketbase-convo.zeabur.internal:8090/api/collections/messages/records",
+                "url": "http://pocketbase.zeabur.internal:8090/api/collections/messages/records",
+                "sendBody": true,
+                "contentType": "json",
                 "body": {
-                    "session_id": "={{ $node['Format Message Data'].json.sessionId }}",
-                    "content": "={{ $node['Format Message Data'].json.message }}",
+                    "session_id": "={{ $json.sessionId }}",
+                    "content": "={{ $json.message }}",
                     "role": "user",
-                    "platform": "={{ $node['Format Message Data'].json.platform }}",
-                    "created": "={{ $node['Format Message Data'].json.timestamp }}"
+                    "platform": "={{ $json.platform }}",
+                    "created": "={{ $json.timestamp }}"
                 }
             }
         },
@@ -71,20 +82,22 @@
             "id": "telegram-send",
             "name": "Send to Telegram Group",
             "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
             "position": [
                 650,
                 400
             ],
             "parameters": {
                 "chatId": "-1003806455231",
-                "text": "🌐 WebChat: {{ $node['Format Message Data'].json.message }}",
+                "text": "🌐 WebChat: {{ $json.message }}",
                 "additionalFields": {
                     "parse_mode": "HTML"
                 }
             },
             "credentials": {
                 "telegramApi": {
-                    "id": "telegram-bot-credential"
+                    "name": "telegram-bot-credential",
+                    "id": ""
                 }
             }
         },
@@ -92,6 +105,7 @@
             "id": "telegram-mention",
             "name": "Mention @andrea",
             "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
             "position": [
                 850,
                 400
@@ -103,7 +117,8 @@
             },
             "credentials": {
                 "telegramApi": {
-                    "id": "telegram-bot-credential"
+                    "name": "telegram-bot-credential",
+                    "id": ""
                 }
             }
         },
@@ -111,16 +126,15 @@
             "id": "respond",
             "name": "Respond to Webhook",
             "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
             "position": [
                 1050,
                 300
             ],
             "parameters": {
-                "statusCode": 200,
-                "body": {
-                    "success": true,
-                    "message": "Message forwarded to Telegram"
-                }
+                "respondWith": "json",
+                "responseBody": "={{ { success: true, message: \"Message forwarded to Telegram\" } }}",
+                "options": {}
             }
         }
     ],
@@ -174,5 +188,10 @@
                 ]
             ]
         }
-    }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": []
 }
