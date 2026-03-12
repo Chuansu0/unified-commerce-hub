@@ -39,9 +39,11 @@
 ```bash
 # 在本地專案目錄執行
 git add nginx.conf telegram-webhook/src/index.ts
-git commit -m "fix: 更新 PocketBase 內部 URL 為 zeabur.internal"
+git commit -m "fix: 使用 resolver + 變數解決 nginx DNS 解析問題"
 git push origin main
 ```
+
+**重要**: nginx.conf 已更新為使用 resolver + 變數的方式，避免啟動時 DNS 解析失敗。詳見 `NGINX_RESOLVER_CONFIG.md`。
 
 ### 步驟 2: 在 Zeabur 重新部署
 
