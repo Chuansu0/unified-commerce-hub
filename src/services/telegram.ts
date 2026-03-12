@@ -69,14 +69,34 @@ export async function sendToOpenClaw(params: {
     }
 }
 
-export async function subscribeToReplies(userId: string, onReply: (message: string) => void): Promise<() => void> {
+/**
+ * 訂閱 OpenClaw 回覆
+ * @param sessionId - 用戶 ID 或訪客 session ID
+ * @param onReply - 收到回覆時的回調函數
+ * @returns 取消訂閱函數
+ */
+export async function subscribeToReplies(sessionId: string, onReply: (message: string) => void): Promise<() => void> {
+    console.log(`[subscribeToReplies] Subscribing for session: ${sessionId}`);
+
     const unsubscribe = await pb.collection('messages').subscribe('*', (e) => {
         if (e.action === 'create' && e.record.sender === 'assistant') {
             pb.collection('conversations')
-                .getOne(e.record.conversation, { expand: 'user' })
-                .then((conversation) => {
-                    if (conversation.user === userId && conversation.platform === 'webchat') {
-                        onReply(e.record.content);
+                .getOne(e.record.conversation)
+                .then((conversation: Record<string, unknown>) => {
+                    // 【修改】支援訪客：通過 user ID 或 guest_session_id 匹配
+                    const conversationUser = conversation.user as string;
+                    const conversationGuestSession = conversation.guest_session_id as string;
+                    const conversationPlatform = conversation.platform as string;
+
+                    // 檢查是否匹配：用戶 ID 或訪客 session ID
+                    const isUserMatch = conversationUser === sessionId;
+                    const isGuestMatch = conversationGuestSession === sessionId ||
+                        conversationGuestSession === sessionId.replace('guest:', '');
+                    const isPlatformMatch = conversationPlatform === 'webchat';
+
+                    if ((isUserMatch || isGuestMatch) && isPlatformMatch) {
+                        console.log(`[subscribeToReplies] Received reply for session ${sessionId}`);
+                        onReply(e.record.content as string);
                     }
                 })
                 .catch(console.error);
