@@ -1,9 +1,10 @@
 /**
- * Chat 服務 - 使用 PocketBase SDK + OpenClaw Agent
+ * Chat 服務 - 使用 PocketBase SDK + OpenClaw Agent + n8n
  */
 import pb from './pocketbase';
 import { callOpenClaw } from './api';
 import { loadAISettings, getActiveAISource } from './aiSettings';
+import { sendMessageToN8n } from './n8nChat';
 
 export interface ChatMessage {
     role: 'user' | 'assistant';
@@ -48,6 +49,18 @@ export async function sendChatMessage(_token: string, message: string): Promise<
         sender: 'user',
         content: message,
     });
+
+    // 發送到 n8n Telegram 轉發
+    try {
+        await sendMessageToN8n({
+            sessionId: user.id,
+            message: message,
+            platform: 'webchat',
+        });
+    } catch (n8nError) {
+        console.error('n8n 轉發失敗:', n8nError);
+        // 不影響主流程，繼續處理
+    }
 
     // 更新 conversation
     await pb.collection('conversations').update(conversationId, {
