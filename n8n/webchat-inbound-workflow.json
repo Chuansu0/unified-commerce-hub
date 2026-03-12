@@ -66,7 +66,7 @@
             ],
             "parameters": {
                 "chatId": "-1003806455231",
-                "text": "🌐 <b>WebChat 新訊息</b> @neovegaandrea&#95;bot\n\n📝 內容: {{ $node['Format Message Data'].json.message }}\n\n📋 詳細資訊:\n• Session ID: {{ $node['Format Message Data'].json.sessionId }}\n• 平台: {{ $node['Format Message Data'].json.platform }}\n• 時間: {{ $node['Format Message Data'].json.timestamp }}\n\n💬 回覆此訊息以回覆客戶",
+                "text": "={{ '🌐 <b>WebChat 新訊息</b> @neovegaandrea&#95;bot\\n\\n📝 內容: ' + $json.message + '\\n\\n📋 詳細資訊:\\n• Session ID: ' + $json.sessionId + '\\n• 平台: ' + $json.platform + '\\n• 時間: ' + $json.timestamp + '\\n\\n💬 回覆此訊息以回覆客戶' }}",
                 "additionalFields": {
                     "parse_mode": "HTML"
                 }
