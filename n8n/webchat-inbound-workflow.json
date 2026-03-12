@@ -90,7 +90,9 @@
             "parameters": {
                 "chatId": "-1003806455231",
                 "text": "@neovegaandrea&#95;bot 新訊息",
-                "additionalFields": {}
+                "additionalFields": {
+                    "parse_mode": "HTML"
+                }
             },
             "credentials": {
                 "telegramApi": {
