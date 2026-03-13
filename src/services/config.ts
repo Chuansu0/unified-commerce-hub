@@ -4,17 +4,27 @@
  */
 export const config = {
   n8n: {
-    chatWebhookUrl: import.meta.env.VITE_N8N_CHAT_WEBHOOK_URL as string | undefined,
-    orderWebhookUrl: import.meta.env.VITE_N8N_ORDER_WEBHOOK_URL as string | undefined,
+    chatWebhookUrl: import.meta.env.VITE_N8N_CHAT_WEBHOOK_URL as
+      | string
+      | undefined,
+    orderWebhookUrl: import.meta.env.VITE_N8N_ORDER_WEBHOOK_URL as
+      | string
+      | undefined,
   },
   openclaw: {
     agentUrl: import.meta.env.VITE_OPENCLAW_AGENT_URL as string | undefined,
   },
   pocketbase: {
-    url: import.meta.env.VITE_POCKETBASE_URL || '/pb',
+    url: import.meta.env.VITE_POCKETBASE_URL || "/pb",
   },
   app: {
     baseUrl: import.meta.env.VITE_PUBLIC_APP_BASE_URL as string | undefined,
+  },
+  // Umio HTTP Bridge 配置
+  umio: {
+    httpBridgeUrl: import.meta.env.VITE_UMIO_HTTP_BRIDGE_URL as
+      | string
+      | undefined,
   },
   // Superadmin 認證（保留向後相容）
   auth: {
