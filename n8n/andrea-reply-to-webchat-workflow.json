@@ -1,0 +1,138 @@
+{
+    "name": "Andrea Reply to WebChat",
+    "nodes": [
+        {
+            "id": "telegram-trigger",
+            "name": "Listen for Andrea Replies",
+            "type": "n8n-nodes-base.telegramTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                250,
+                300
+            ],
+            "parameters": {
+                "updates": [
+                    "message"
+                ]
+            },
+            "credentials": {
+                "telegramApi": {
+                    "id": "telegram-umio-credential",
+                    "name": "Telegram Umio Bot"
+                }
+            }
+        },
+        {
+            "id": "filter",
+            "name": "Filter Andrea Messages",
+            "type": "n8n-nodes-base.filter",
+            "typeVersion": 2,
+            "position": [
+                450,
+                300
+            ],
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": false,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "from-andrea",
+                            "leftValue": "={{ $json.message.from.username }}",
+                            "rightValue": "neovegaandrea_bot",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                }
+            }
+        },
+        {
+            "id": "extract-session",
+            "name": "Extract Session ID",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                650,
+                300
+            ],
+            "parameters": {
+                "language": "javaScript",
+                "jsCode": "const text = $input.item.json.message.text;\nconst sessionMatch = text.match(/Session:\\s*([\\w-]+)/);\nconst sessionId = sessionMatch ? sessionMatch[1] : 'unknown';\n\n// Remove session info from response\nconst cleanText = text.replace(/📱 WebChat 訊息[\\s\\S]*?訊息:\\s*/g, '').trim();\n\nreturn {\n  sessionId,\n  message: cleanText,\n  originalText: text\n};"
+            }
+        },
+        {
+            "id": "http-request",
+            "name": "Send to WebChat",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                850,
+                300
+            ],
+            "parameters": {
+                "url": "https://www.neovega.cc/api/chat/reply",
+                "method": "POST",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "sessionId",
+                            "value": "={{ $json.sessionId }}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "={{ $json.message }}"
+                        },
+                        {
+                            "name": "source",
+                            "value": "andrea"
+                        }
+                    ]
+                }
+            ],
+            "connections": {
+                "Listen for Andrea Replies": {
+                    "main": [
+                        [
+                            {
+                                "node": "Filter Andrea Messages",
+                                "type": "main",
+                                "index": 0
+                            }
+                        ]
+                    ]
+                },
+                "Filter Andrea Messages": {
+                    "main": [
+                        [
+                            {
+                                "node": "Extract Session ID",
+                                "type": "main",
+                                "index": 0
+                            }
+                        ]
+                    ]
+                },
+                "Extract Session ID": {
+                    "main": [
+                        [
+                            {
+                                "node": "Send to WebChat",
+                                "type": "main",
+                                "index": 0
+                            }
+                        ]
+                    ]
+                }
+            },
+            "settings": {
+                "executionOrder": "v1"
+            }
+        }

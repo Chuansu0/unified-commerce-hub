@@ -1,0 +1,107 @@
+{
+    "name": "WebChat to Andrea DM",
+    "nodes": [
+        {
+            "id": "webhook",
+            "name": "WebChat Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "webchat-to-andrea",
+                "responseMode": "lastNode"
+            }
+        },
+        {
+            "id": "telegram-send",
+            "name": "Send to Andrea DM",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                450,
+                300
+            ],
+            "parameters": {
+                "resource": "message",
+                "operation": "sendMessage",
+                "chatId": "@neovegaandrea_bot",
+                "text": "={{ '📱 WebChat 訊息\\n\\nSession: ' + $json.body.sessionId + '\\n訊息: ' + $json.body.message }}",
+                "additionalFields": {}
+            },
+            "credentials": {
+                "telegramApi": {
+                    "id": "telegram-umio-credential",
+                    "name": "Telegram Umio Bot"
+                }
+            }
+        },
+        {
+            "id": "set-data",
+            "name": "Store Session Info",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.3,
+            "position": [
+                650,
+                300
+            ],
+            "parameters": {
+                "mode": "manual",
+                "duplicateItem": false,
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "session",
+                            "name": "sessionId",
+                            "value": "={{ $('WebChat Webhook').item.json.body.sessionId }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "message-id",
+                            "name": "telegramMessageId",
+                            "value": "={{ $json.message_id }}",
+                            "type": "number"
+                        },
+                        {
+                            "id": "timestamp",
+                            "name": "timestamp",
+                            "value": "={{ $now }}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": {}
+            }
+        }
+    ],
+    "connections": {
+        "WebChat Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Send to Andrea DM",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send to Andrea DM": {
+            "main": [
+                [
+                    {
+                        "node": "Store Session Info",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}
