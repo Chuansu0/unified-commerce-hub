@@ -7,10 +7,14 @@
 import { config } from "./config";
 import pb from "./pocketbase";
 
+// 使用 nginx 代理或直接使用 http-bridge
+// 開發環境可以直接訪問 http-bridge，生產環境使用 nginx 代理
 const OPENCLAW_BRIDGE_URL =
     import.meta.env.VITE_OPENCLAW_BRIDGE_URL ||
     config.umio?.httpBridgeUrl ||
-    "https://openclaw-http-bridge.zeabur.app";
+    (window.location.hostname === "localhost"
+        ? "https://openclaw-http-bridge.zeabur.app"
+        : "/api");
 
 export interface UmioChatRequest {
     message: string;
@@ -401,4 +405,49 @@ export async function chatWithUmio(
 ): Promise<string> {
     const result = await sendToUmio(message, sessionId, userName, metadata);
     return result.success ? result.message : result.message;
+}
+
+/**
+ * 創建會話並取得 sessionId
+ * 用於初始化新的對話
+ */
+export async function createUmioSession(): Promise<string> {
+    return `umio-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
+/**
+ * 儲存用戶訊息到 PocketBase（啟用版本）
+ * 在 PocketBase 權限設定後可以使用
+ */
+export async function saveUserMessageEnabled(
+    sessionId: string,
+    content: string,
+    userName?: string,
+    metadata?: Record<string, unknown>
+): Promise<void> {
+    try {
+        const conversation = await getOrCreateConversation(sessionId);
+
+        await pb.collection("messages").create({
+            conversation: conversation.id,
+            sender: "user",
+            channel: "webchat",
+            content: content,
+            metadata: {
+                userName,
+                platform: "webchat",
+                ...metadata
+            }
+        });
+
+        await pb.collection("conversations").update(conversation.id, {
+            last_message: content,
+            last_message_at: new Date().toISOString()
+        });
+
+        console.log(`[UmioChat] Saved user message to conversation ${conversation.id}`);
+    } catch (error) {
+        console.error("[UmioChat] Error saving user message:", error);
+        // 不影響主流程
+    }
 }
