@@ -7,14 +7,13 @@
 import { config } from "./config";
 import pb from "./pocketbase";
 
-// 使用 nginx 代理或直接使用 http-bridge
-// 開發環境可以直接訪問 http-bridge，生產環境使用 nginx 代理
-const OPENCLAW_BRIDGE_URL =
-    import.meta.env.VITE_OPENCLAW_BRIDGE_URL ||
-    config.umio?.httpBridgeUrl ||
+// n8n Webhook 配置
+// 使用 nginx 代理的 /api/umio/chat 端點
+const UMIO_API_URL =
+    import.meta.env.VITE_UMIO_API_URL ||
     (window.location.hostname === "localhost"
-        ? "https://openclaw-http-bridge.zeabur.app"
-        : ""); // 生產環境使用相對路徑，由 nginx 代理 /api/umio/
+        ? "http://localhost:3000/api/umio/chat"
+        : "/api/umio/chat"); // 生產環境使用相對路徑，由 nginx 代理到 n8n webhook
 
 export interface UmioChatRequest {
     message: string;
@@ -62,8 +61,8 @@ export async function sendToUmio(
         // 儲存用戶訊息到 PocketBase
         await saveUserMessage(sessionId, message, userName, metadata);
 
-        // 呼叫 OpenClaw HTTP Bridge
-        const response = await fetch(`${OPENCLAW_BRIDGE_URL}/api/umio/chat`, {
+        // 呼叫 n8n Webhook
+        const response = await fetch(UMIO_API_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -367,23 +366,24 @@ export async function getUmioConversation(
 }
 
 /**
- * 檢查 OpenClaw Bridge 健康狀態
+ * 檢查 Umio 服務健康狀態
+ * 透過測試 API 連線來確認服務是否可用
  */
 export async function checkUmioHealth(): Promise<{
     ok: boolean;
     error?: string;
 }> {
     try {
-        const response = await fetch(`${OPENCLAW_BRIDGE_URL}/health`);
+        // 使用 OPTIONS 請求測試服務是否可用
+        const response = await fetch(UMIO_API_URL, {
+            method: "OPTIONS"
+        });
 
-        if (!response.ok) {
+        if (!response.ok && response.status !== 204) {
             return { ok: false, error: `HTTP ${response.status}` };
         }
 
-        const data = await response.json();
-        return {
-            ok: data.status === "ok"
-        };
+        return { ok: true };
     } catch (error) {
         console.error("[UmioChat] Health check failed:", error);
         return {
