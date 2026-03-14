@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 3000;
 const POCKETBASE_URL = process.env.POCKETBASE_URL || 'http://pocketbase-convo.zeabur.internal:8090';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8751641141:AAGeQKXV4WvOguP4H5UpUWegVcq2obdzIVw';
 const OPENCLAW_CHAT_ID = process.env.OPENCLAW_CHAT_ID || '-1003806455231';
+const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'https://www.neovega.cc/api/webhook';
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
 // PocketBase 客戶端
@@ -529,10 +530,43 @@ async function handleOpenClawReply(message: TelegramMessage): Promise<void> {
 
     console.log(`[OpenClaw] Parsed userId/session: ${userIdOrSession}, reply: ${replyText.substring(0, 50)}...`);
 
-    // 儲存回覆到 PocketBase
+    // 【修改】支援訪客：檢查是否為 guest session
+    const isGuest = userIdOrSession.startsWith('guest:');
+
+    // 【新增】轉發到 n8n 處理（根據 all-in-one-integration-plan）
+    // n8n 會負責儲存到 PocketBase
     try {
-        // 【修改】支援訪客：檢查是否為 guest session
-        const isGuest = userIdOrSession.startsWith('guest:');
+        const n8nPayload = {
+            sessionId: isGuest ? userIdOrSession.replace('guest:', '') : userIdOrSession,
+            replyText: replyText,
+            agentName: senderUsername.includes('umio') ? 'umio' : (senderUsername.includes('andrea') ? 'andrea' : 'openclaw'),
+            timestamp: new Date().toISOString(),
+            isGuest: isGuest,
+            originalMessageId: message.message_id,
+            senderName: senderName
+        };
+
+        console.log('[N8N] Forwarding reply to n8n webhook:', n8nPayload);
+
+        const n8nResponse = await fetch(`${N8N_WEBHOOK_URL}/umio-reply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(n8nPayload)
+        });
+
+        if (!n8nResponse.ok) {
+            console.error(`[N8N] Failed to forward to n8n: ${n8nResponse.status}`);
+        } else {
+            const n8nResult = await n8nResponse.json();
+            console.log('[N8N] Successfully forwarded to n8n:', n8nResult);
+        }
+    } catch (n8nError) {
+        console.error('[N8N] Error forwarding to n8n:', n8nError);
+        // 繼續執行本地儲存作為 fallback
+    }
+
+    // 【Fallback】本地儲存回覆到 PocketBase
+    try {
         let conversation: PocketBaseConversation | null = null;
 
         if (isGuest) {
