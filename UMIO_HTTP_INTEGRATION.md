@@ -1,169 +1,260 @@
-# Umio HTTP 端點整合指南
+# Umio HTTP Integration 完整指南
 
-## 概述
+## 架構概述
 
-此整合方案使用 `openclaw-http-bridge` 提供的 HTTP API `/api/umio/chat` 直接與 OpenClaw AI Bot (Umio) 通訊。相較於之前的 Telegram 轉發方案，此方案更直接、更快速。
-
-## 架構流程
+本文件說明 Umio HTTP 整合的完整流程：
 
 ```
-ChatWidget (Web) → useUmioChat Hook → umioChat Service → OpenClaw HTTP Bridge → OpenClaw (Umio Bot)
-                                          ↓
-                                   PocketBase (儲存對話)
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   Web Chat      │────▶│  openclaw-http   │────▶│  OpenClaw       │
+│   (Frontend)    │     │  -bridge         │     │  WebSocket      │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+                                                              │
+                                                              ▼
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   Web Chat      │◀────│  telegram-       │◀────│  Telegram       │
+│   (Frontend)    │     │  webhook         │     │  (OpenClaw)     │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+                                │
+                                ▼
+                       ┌──────────────────┐
+                       │  n8n (PocketBase)│
+                       │  儲存回覆        │
+                       └──────────────────┘
 ```
 
-## API 端點
+## 1. 發送訊息流程 (Web Chat → OpenClaw)
 
-### POST `/api/umio/chat`
+### 1.1 前端發送
 
-**URL**: `https://openclaw-http-bridge.zeabur.app/api/umio/chat`
-
-**Request Body**:
-```json
-{
-  "message": "你好 Umio",
-  "sessionId": "user-123",
-  "context": {
-    "userName": "訪客",
-    "platform": "webchat"
-  }
-}
-```
-
-**Response Body**:
-```json
-{
-  "success": true,
-  "response": "你好！我是 Umio，很高興為你服務。",
-  "sessionId": "user-123",
-  "agent": "umio",
-  "timestamp": "2026-03-14T16:00:00.000Z"
-}
-```
-
-### GET `/health`
-
-**URL**: `https://openclaw-http-bridge.zeabur.app/health`
-
-檢查 OpenClaw Bridge 健康狀態。
-
-## 檔案結構
-
-### 核心檔案
-
-1. **`src/services/umioChat.ts`** - Umio 服務
-   - `sendToUmio()` - 發送訊息並等待回覆
-   - `chatWithUmio()` - 簡易同步聊天函數
-   - `subscribeToUmioReplies()` - 訂閱回覆（備用方案）
-   - `getUmioConversation()` - 取得對話歷史
-   - `checkUmioHealth()` - 檢查服務健康狀態
-
-2. **`src/hooks/useUmioChat.ts`** - React Hook
-   - `messages` - 訊息列表
-   - `isLoading` - 載入狀態
-   - `sendMessage()` - 發送訊息（同步）
-   - `sendMessageAsync()` - 發送訊息（非同步）
-   - `clearMessages()` - 清除訊息
-   - `restartChat()` - 重新開始對話
-
-3. **`src/components/storefront/ChatWidget.tsx`** - 聊天組件
-   - 使用 `useUmioChat` Hook
-   - 提供 WebChat UI
-
-## 環境變數
-
-複製 `.env.umio.example` 為 `.env`:
-
-```bash
-# OpenClaw HTTP Bridge URL
-VITE_OPENCLAW_BRIDGE_URL=https://openclaw-http-bridge.zeabur.app
-
-# PocketBase URL
-VITE_POCKETBASE_URL=/pb
-```
-
-## 使用方式
-
-### 在組件中使用
-
-```tsx
-import { useUmioChat } from "@/hooks/useUmioChat";
-
-function MyChat() {
-  const { messages, isLoading, sendMessage } = useUmioChat();
-
-  const handleSend = async (text: string) => {
-    await sendMessage(text);
-  };
-
-  return (
-    <div>
-      {messages.map(m => (
-        <div key={m.id} className={m.sender}>
-          {m.content}
-        </div>
-      ))}
-      {isLoading && <div>思考中...</div>}
-      <button onClick={() => handleSend("你好")}>發送</button>
-    </div>
-  );
-}
-```
-
-### 直接使用服務
+前端使用 `useUmioChat` hook 發送訊息：
 
 ```typescript
-import { chatWithUmio, checkUmioHealth } from "@/services/umioChat";
-
-// 發送訊息
-const response = await chatWithUmio("你好", "session-123");
-console.log(response); // "你好！我是 Umio..."
-
-// 檢查健康狀態
-const health = await checkUmioHealth();
-console.log(health.ok); // true/false
+// src/hooks/useUmioChat.ts
+const sendMessage = async (message: string) => {
+  const response = await fetch(
+    'https://openclaw-http-bridge.zeabur.app/api/umio/chat',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        sessionId: getOrCreateGuestSession(),
+      }),
+    }
+  );
+};
 ```
 
-## 與舊方案比較
+### 1.2 openclaw-http-bridge 轉發
 
-| 功能 | 舊方案 (Telegram) | 新方案 (HTTP) |
-|------|------------------|---------------|
-| 通訊方式 | Web → Telegram → OpenClaw | Web → HTTP Bridge → OpenClaw |
-| 回覆方式 | 非同步（訂閱） | 同步（直接回覆） |
-| 延遲 | 較高（多層轉發） | 較低（直接連接） |
-| 可靠性 | 依賴 Telegram | 不依賴第三方 |
-| 複雜度 | 高 | 低 |
+`openclaw-http-bridge` 接收 HTTP 請求，轉發到 OpenClaw WebSocket：
 
-## 疑難排解
+```javascript
+// POST /api/umio/chat
+// 1. 建立 WebSocket 連線到 OpenClaw
+// 2. 發送訊息
+// 3. 等待回應（30秒超時）
+// 4. 返回 Umio 的回覆
+```
 
-### 無法連接到 Umio
+**注意**: openclaw-http-bridge 只處理同步回覆（Umio 的直接回覆）。Andrea 的延遲回覆通過不同的路徑。
 
-1. 檢查 `VITE_OPENCLAW_BRIDGE_URL` 是否正確
-2. 測試健康檢查端點：
-   ```bash
-   curl https://openclaw-http-bridge.zeabur.app/health
-   ```
+### 1.3 OpenClaw 處理
 
-### 沒有收到回覆
+OpenClaw 收到訊息後：
+1. Umio 可能立即回覆（通過 WebSocket 返回）
+2. Andrea 可能稍後在 Telegram 中回覆
 
-1. 檢查瀏覽器控制台是否有錯誤
-2. 確認 OpenClaw Bridge 正常運行
-3. 檢查 Network Tab 中的 API 請求
+## 2. 接收回覆流程 (Andrea → Web Chat)
 
-### 訊息沒有儲存
+### 2.1 Andrea 在 Telegram 回覆
 
-1. 確認 PocketBase 連線正常
-2. 檢查 conversations 和 messages collections 存在
-3. 查看瀏覽器控制台錯誤
+Andrea 在 OpenClaw Telegram Chat 中看到 `[WebChat:sessionId]` 格式的訊息，並回覆。
 
-## 相關文件
+### 2.2 telegram-webhook 轉發
 
-- `openclaw-http-bridge/index.js` - HTTP Bridge 原始碼
-- `openclaw-http-bridge/DEPLOY.md` - 部署指南
-- `.env.umio.example` - 環境變數範例
+`telegram-webhook` 服務通過 Telegram Webhook 接收 Andrea 的回覆：
 
-## 下一步
+```typescript
+// telegram-webhook/src/index.ts
+// 1. 檢查是否來自 OpenClaw Chat
+// 2. 解析訊息中的 [WebChat:sessionId]
+// 3. 轉發到 n8n webhook
 
-1. 測試 HTTP Bridge 是否正常運作
-2. 部署更新後的前端程式
-3. 驗證 Umio 回覆功能
+const n8nPayload = {
+  sessionId: userIdOrSession.replace('guest:', ''),
+  replyText: replyText,
+  agentName: 'andrea', // 或 'umio'
+  timestamp: new Date().toISOString(),
+  isGuest: userIdOrSession.startsWith('guest:'),
+  originalMessageId: message.message_id,
+  senderName: senderName
+};
+
+// 轉發到 n8n
+fetch(`${N8N_WEBHOOK_URL}/umio-reply`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(n8nPayload)
+});
+```
+
+### 2.3 n8n 處理並儲存到 PocketBase
+
+n8n workflow `umio-reply-handler` 接收 webhook，儲存到 PocketBase：
+
+```javascript
+// n8n 節點配置
+{
+  "sessionId": "來自 webhook",
+  "replyText": "來自 webhook",
+  "agentName": "andrea",
+  "timestamp": "ISO 時間戳",
+  "isGuest": true/false
+}
+
+// 儲存到 messages collection
+{
+  conversation: <查找或建立>,
+  sender: 'assistant',
+  channel: 'telegram',
+  content: replyText,
+  metadata: { agentName, timestamp }
+}
+```
+
+### 2.4 前端接收回覆
+
+前端通過 PocketBase Realtime 或輪詢接收回覆：
+
+```typescript
+// src/hooks/useUmioChat.ts
+// 訂閱 PocketBase messages collection 變更
+pb.collection('messages').subscribe('*', (e) => {
+  if (e.record.conversation === currentConversationId) {
+    addMessage(e.record);
+  }
+});
+```
+
+## 3. 環境變數配置
+
+### 3.1 openclaw-http-bridge
+
+```bash
+OPENCLAW_WS_URL=ws://openclaw-neovega.zeabur.app:8001/ws
+PORT=3000
+```
+
+### 3.2 telegram-webhook
+
+```bash
+TELEGRAM_BOT_TOKEN=your_bot_token
+POCKETBASE_URL=http://pocketbase-convo.zeabur.internal:8090
+OPENCLAW_CHAT_ID=-1003806455231
+N8N_WEBHOOK_URL=https://www.neovega.cc/api/webhook
+```
+
+### 3.3 前端
+
+```bash
+VITE_USE_N8N=false
+VITE_UMIO_HTTP_BRIDGE_URL=https://openclaw-http-bridge.zeabur.app/api/umio/chat
+```
+
+## 4. 部署步驟
+
+### 4.1 部署 openclaw-http-bridge
+
+```bash
+cd openclaw-http-bridge
+# 推送到 GitHub
+git add .
+git commit -m "Fix syntax errors and add debug logging"
+git push
+
+# Zeabur 會自動重新部署
+```
+
+### 4.2 部署 telegram-webhook
+
+```bash
+# 確保環境變數已設定
+# Zeabur 會自動重新部署
+```
+
+### 4.3 部署 n8n Workflow
+
+1. 在 n8n 中建立新的 Workflow: `umio-reply-handler`
+2. Webhook 節點路徑設定為 `umio-reply`
+3. 添加 PocketBase 節點儲存訊息
+4. 啟用 Workflow
+
+## 5. 測試流程
+
+### 5.1 測試發送
+
+```bash
+curl -X POST https://openclaw-http-bridge.zeabur.app/api/umio/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "你好，我想詢問產品資訊",
+    "sessionId": "test-session-123"
+  }'
+```
+
+### 5.2 測試接收
+
+1. 在 Web Chat 發送訊息
+2. 在 OpenClaw Telegram Chat 中查看 `[WebChat:test-session-123]` 訊息
+3. Andrea 回覆該訊息
+4. 檢查 n8n Webhook 是否收到請求
+5. 檢查 PocketBase 是否有新訊息
+6. 前端是否顯示回覆
+
+## 6. 故障排除
+
+### 6.1 openclaw-http-bridge 問題
+
+**問題**: 無法連線到 OpenClaw
+- 檢查 `OPENCLAW_WS_URL` 是否正確
+- 檢查 Zeabur 日誌中的除錯訊息
+
+**問題**: 返回 500 錯誤
+- 檢查 WebSocket 連線狀態
+- 檢查請求格式是否正確
+
+### 6.2 telegram-webhook 問題
+
+**問題**: 無法接收 Telegram 訊息
+- 檢查 Webhook URL 是否正確設定
+- 檢查 `TELEGRAM_BOT_TOKEN`
+
+**問題**: 無法轉發到 n8n
+- 檢查 `N8N_WEBHOOK_URL` 環境變數
+- 檢查 n8n Webhook 是否啟用
+
+### 6.3 n8n 問題
+
+**問題**: Webhook 沒有觸發
+- 檢查 Webhook 路徑是否正確
+- 檢查 Workflow 是否啟用
+
+**問題**: 無法儲存到 PocketBase
+- 檢查 PocketBase 連線設定
+- 檢查 collection 權限
+
+## 7. 相關檔案
+
+- `src/hooks/useUmioChat.ts` - 前端 hook
+- `openclaw-http-bridge/index.js` - HTTP bridge 服務
+- `telegram-webhook/src/index.ts` - Telegram webhook 服務
+- `n8n/umio-reply-handler-workflow.json` - n8n workflow
+
+## 8. 下一步
+
+1. ✅ 更新 nginx.conf 添加 `/api/umio` 路由
+2. ✅ 更新 telegram-webhook 轉發到 n8n
+3. 🔄 重新部署 openclaw-http-bridge
+4. 🔄 測試完整流程
