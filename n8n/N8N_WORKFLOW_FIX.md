@@ -28,79 +28,140 @@ n8n workflow `webchat-umio-integration` 出現 404 錯誤：
 
 PocketBase collections 的 API 規則設定為僅 Admin 可存取，但 HTTP Request 節點沒有提供 Admin Token。
 
-### 修正方案
+---
 
-所有 PocketBase HTTP 請求都必須加入 `Authorization: Bearer {admin_token}` Header：
+## 問題 3：環境變數訪問被拒
 
-```javascript
-// 在每個 HTTP Request 節點的 Header Parameters 中
-{
-  "Authorization": "={{ 'Bearer ' + $env.POCKETBASE_ADMIN_TOKEN }}"
-}
+```
+access to env vars denied
+If you need access please contact the administrator to remove the environment variable 'N8N_BLOCK_ENV_ACCESS_IN_NODE'
 ```
 
-**需要在 n8n Environment 中設定環境變數：**
+### 錯誤原因
 
-```bash
-POCKETBASE_ADMIN_TOKEN=eyJhbGciOiJIUzI1NiIs... # PocketBase Admin JWT Token
+n8n 的安全設定 `N8N_BLOCK_ENV_ACCESS_IN_NODE` 阻擋了使用 `$env` 變數。
+
+---
+
+## 修正方案：使用 n8n Credentials
+
+由於 n8n 無法直接訪問環境變數，我們需要使用 **HTTP Header Auth** credential 來儲存 Admin Token。
+
+### 步驟 1：建立 HTTP Header Auth Credential
+
+在 n8n 中：
+
+1. 點擊左側導航欄的 **Settings** → **Credentials**
+2. 點擊 **Add Credential**
+3. 選擇 **HTTP Header Auth**
+4. 填寫：
+   - **Name**: `pocketbase-admin-token`
+   - **Name**: `Authorization`
+   - **Value**: `Bearer YOUR_POCKETBASE_ADMIN_TOKEN`
+
+### 步驟 2：更新 Workflow 使用 Credential
+
+在 workflow JSON 中，所有 HTTP Request 節點需要設定：
+
+```json
+{
+  "parameters": {
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth"
+  },
+  "credentials": {
+    "httpHeaderAuth": {
+      "name": "pocketbase-admin-token",
+      "id": ""
+    }
+  }
+}
 ```
 
 ---
 
-## 修正後的 Workflow 結構
-
-使用 `webchat-umio-integration-workflow-fixed.json`，包含以下節點：
+## 修正後的 Workflow 節點
 
 ### 1. "Get or Create Conversation" 節點
 
-先查詢現有的 conversation，並加入 Admin Token：
-
-```javascript
-GET http://pocketbase-convo.zeabur.internal:8090/api/collections/conversations/records
-Query: filter=guest_session_id="{{sessionId}}" && platform="umio"
-Headers: Authorization: Bearer {{$env.POCKETBASE_ADMIN_TOKEN}}
-```
-
-### 2. "Conversation Exists?" IF 節點
-
-檢查是否已存在 conversation：
-
-```javascript
-// 條件: $json.totalItems > 0
-// True: 使用現有 conversation
-// False: 建立新 conversation
-```
-
-### 3. "Create Conversation" 節點
-
-如果不存在，建立新的 conversation：
-
-```javascript
-POST http://pocketbase-convo.zeabur.internal:8090/api/collections/conversations/records
-Headers: Authorization: Bearer {{$env.POCKETBASE_ADMIN_TOKEN}}
-Body: {
-  guest_session_id: sessionId,
-  platform: "umio",
-  status: "active"
+```json
+{
+  "id": "get-or-create-conversation",
+  "name": "Get or Create Conversation",
+  "type": "n8n-nodes-base.httpRequest",
+  "parameters": {
+    "method": "GET",
+    "url": "http://pocketbase-convo.zeabur.internal:8090/api/collections/conversations/records",
+    "sendQuery": true,
+    "queryParameters": {
+      "parameters": [
+        {
+          "name": "filter",
+          "value": "={{ 'guest_session_id=\"' + $json.body.sessionId + '\" && platform=\"umio\"' }}"
+        }
+      ]
+    },
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true
+  },
+  "credentials": {
+    "httpHeaderAuth": {
+      "name": "pocketbase-admin-token",
+      "id": ""
+    }
+  }
 }
 ```
 
-### 4. "Store User Message" 節點
+### 2. "Create Conversation" 節點
 
-儲存訊息到正確的 conversation：
+```json
+{
+  "id": "create-conversation",
+  "name": "Create Conversation",
+  "type": "n8n-nodes-base.httpRequest",
+  "parameters": {
+    "method": "POST",
+    "url": "http://pocketbase-convo.zeabur.internal:8090/api/collections/conversations/records",
+    "sendBody": true,
+    "contentType": "application/json",
+    "body": "={{ { guest_session_id: $('WebChat Webhook').item.json.body.sessionId, platform: 'umio', status: 'active' } }}",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true
+  },
+  "credentials": {
+    "httpHeaderAuth": {
+      "name": "pocketbase-admin-token",
+      "id": ""
+    }
+  }
+}
+```
 
-```javascript
-POST http://pocketbase-convo.zeabur.internal:8090/api/collections/messages/records
-Headers: Authorization: Bearer {{$env.POCKETBASE_ADMIN_TOKEN}}
-Body: {
-  conversation: conversationId,  // 來自 Get or Create Conversation
-  sender: "user",
-  channel: "web",
-  content: message,
-  metadata: {
-    agent: "umio",
-    platform: "webchat",
-    sessionId: sessionId
+### 3. "Store User Message" 節點
+
+```json
+{
+  "id": "store-user-msg",
+  "name": "Store User Message",
+  "type": "n8n-nodes-base.httpRequest",
+  "parameters": {
+    "method": "POST",
+    "url": "http://pocketbase-convo.zeabur.internal:8090/api/collections/messages/records",
+    "sendBody": true,
+    "contentType": "application/json",
+    "body": "={{ { conversation: $json.items && $json.items[0] ? $json.items[0].id : $json.id, sender: 'user', channel: 'web', content: $('WebChat Webhook').item.json.body.message, metadata: { agent: 'umio', platform: 'webchat', sessionId: $('WebChat Webhook').item.json.body.sessionId } } }}",
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendHeaders": true
+  },
+  "credentials": {
+    "httpHeaderAuth": {
+      "name": "pocketbase-admin-token",
+      "id": ""
+    }
   }
 }
 ```
@@ -110,59 +171,20 @@ Body: {
 ## 如何取得 PocketBase Admin Token
 
 1. 登入 PocketBase Admin UI
-2. 進入 "Settings" → "Admin"
-3. 複製 Admin 的 JWT Token，或建立一個新的 API Key
-4. 在 n8n 的 Environment Variables 中加入：
-   ```bash
-   POCKETBASE_ADMIN_TOKEN=your_token_here
-   ```
-
----
-
-## PocketBase Schema 驗證
-
-確保 `conversations` collection 有以下欄位：
-
-```json
-{
-  "name": "conversations",
-  "fields": [
-    { "name": "user", "type": "relation", "required": false },
-    { "name": "telegram_chat_id", "type": "text", "required": false },
-    { "name": "guest_session_id", "type": "text", "required": false },
-    { "name": "platform", "type": "select", "required": true },
-    { "name": "status", "type": "select", "required": false },
-    { "name": "last_message", "type": "text", "required": false },
-    { "name": "last_message_at", "type": "datetime", "required": false }
-  ]
-}
-```
-
-確保 `messages` collection 有以下欄位：
-
-```json
-{
-  "name": "messages",
-  "fields": [
-    { "name": "conversation", "type": "relation", "required": true },
-    { "name": "sender", "type": "select", "required": true },
-    { "name": "channel", "type": "select", "required": false },
-    { "name": "content", "type": "text", "required": true },
-    { "name": "metadata", "type": "json", "required": false }
-  ]
-}
-```
+2. 進入 **Settings** → **Admin**
+3. 複製 Admin 的 JWT Token
+4. 在 n8n 建立 Credential 時使用：**`Bearer YOUR_TOKEN`**
 
 ---
 
 ## 部署步驟
 
-1. **設定 n8n 環境變數**：
-   ```bash
-   POCKETBASE_ADMIN_TOKEN=eyJhbGciOiJIUzI1NiIs...
-   ```
+1. **在 n8n 中建立 HTTP Header Auth Credential**：
+   - Name: `pocketbase-admin-token`
+   - Header Name: `Authorization`
+   - Header Value: `Bearer YOUR_TOKEN`
 
-2. **在 n8n 中刪除舊的 workflow**：刪除 "WebChat Umio Integration"
+2. **刪除舊的 workflow**：刪除 "WebChat Umio Integration"
 
 3. **匯入修正後的 workflow**：`webchat-umio-integration-workflow-fixed.json`
 
@@ -200,6 +222,7 @@ curl -X POST https://www.neovega.cc/api/webhook/umio-chat \
 
 | 錯誤 | 原因 | 解決方案 |
 |------|------|----------|
-| 403 Forbidden | 缺少 Admin Token | 設定 `POCKETBASE_ADMIN_TOKEN` 環境變數 |
+| 403 Forbidden | 缺少 Admin Token | 建立 `pocketbase-admin-token` HTTP Header Auth credential |
+| access to env vars denied | n8n 安全設定阻擋 | 使用 Credentials 而非環境變數 |
 | 404 Not Found | 欄位名稱錯誤或缺少 relation | 使用正確的 `guest_session_id` 和 `conversation` 欄位 |
 | 400 Bad Request | 缺少必填欄位 | 確保所有必填欄位都有值 |
