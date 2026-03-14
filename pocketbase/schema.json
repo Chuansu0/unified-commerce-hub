@@ -299,6 +299,11 @@
                     "required": false
                 },
                 {
+                    "name": "guest_session_id",
+                    "type": "text",
+                    "required": false
+                },
+                {
                     "name": "platform",
                     "type": "select",
                     "required": true,
@@ -307,7 +312,8 @@
                         "values": [
                             "telegram",
                             "web",
-                            "line"
+                            "line",
+                            "umio"
                         ]
                     }
                 },
