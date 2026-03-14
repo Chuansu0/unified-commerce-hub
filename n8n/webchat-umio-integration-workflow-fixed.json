@@ -1,0 +1,232 @@
+{
+    "name": "WebChat Umio Integration (Fixed)",
+    "nodes": [
+        {
+            "id": "webhook-node",
+            "name": "WebChat Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "parameters": {
+                "httpMethod": "POST",
+                "responseMode": "responseNode",
+                "path": "umio-chat",
+                "options": {}
+            },
+            "webhookId": "umio-chat"
+        },
+        {
+            "id": "get-or-create-conversation",
+            "name": "Get or Create Conversation",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                450,
+                100
+            ],
+            "parameters": {
+                "method": "GET",
+                "url": "http://pocketbase-convo.zeabur.internal:8090/api/collections/conversations/records",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "filter",
+                            "value": "={{ 'guest_session_id=\"' + $json.body.sessionId + '\" && platform=\"umio\"' }}"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "check-conversation-exists",
+            "name": "Conversation Exists?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                650,
+                100
+            ],
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "condition-1",
+                            "leftValue": "={{ $json.totalItems }}",
+                            "rightValue": "0",
+                            "operator": {
+                                "type": "number",
+                                "operation": "gt"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                }
+            }
+        },
+        {
+            "id": "create-conversation",
+            "name": "Create Conversation",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                850,
+                50
+            ],
+            "parameters": {
+                "method": "POST",
+                "url": "http://pocketbase-convo.zeabur.internal:8090/api/collections/conversations/records",
+                "sendBody": true,
+                "contentType": "application/json",
+                "body": "={{ { guest_session_id: $json.body.sessionId, platform: 'umio', status: 'active' } }}"
+            }
+        },
+        {
+            "id": "store-user-msg",
+            "name": "Store User Message",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1050,
+                100
+            ],
+            "parameters": {
+                "method": "POST",
+                "url": "http://pocketbase-convo.zeabur.internal:8090/api/collections/messages/records",
+                "sendBody": true,
+                "contentType": "application/json",
+                "body": "={{ { conversation: $json.items && $json.items[0] ? $json.items[0].id : $json.id, sender: 'user', channel: 'web', content: $('WebChat Webhook').item.json.body.message, metadata: { agent: 'umio', platform: 'webchat', sessionId: $('WebChat Webhook').item.json.body.sessionId } } }}"
+            }
+        },
+        {
+            "id": "telegram-send",
+            "name": "Send to Telegram Group",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                650,
+                300
+            ],
+            "parameters": {
+                "chatId": "-1003806455231",
+                "text": "={{ '🌐 <b>WebChat → Umio</b> @neovegaandrea&#95;bot\\n\\n📝 內容: ' + $json.body.message + '\\n\\n📋 詳細資訊:\\n• Session ID: ' + $json.body.sessionId + '\\n• 平台: ' + ($json.body.platform || 'webchat') + '\\n• 時間: ' + new Date().toISOString() + '\\n\\n💬 回覆此訊息以回覆客戶' }}",
+                "additionalFields": {
+                    "parse_mode": "HTML"
+                }
+            },
+            "credentials": {
+                "telegramApi": {
+                    "name": "telegram-bot-credential",
+                    "id": ""
+                }
+            }
+        },
+        {
+            "id": "respond",
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1250,
+                200
+            ],
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { success: true, message: 'Message forwarded to Umio via Telegram' } }}"
+            }
+        }
+    ],
+    "connections": {
+        "WebChat Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Get or Create Conversation",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Send to Telegram Group",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get or Create Conversation": {
+            "main": [
+                [
+                    {
+                        "node": "Conversation Exists?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Conversation Exists?": {
+            "main": [
+                [
+                    {
+                        "node": "Store User Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Create Conversation",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Create Conversation": {
+            "main": [
+                [
+                    {
+                        "node": "Store User Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Store User Message": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send to Telegram Group": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": []
+}
