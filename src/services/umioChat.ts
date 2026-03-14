@@ -132,40 +132,17 @@ export async function sendToUmio(
 
 /**
  * 儲存用戶訊息到 PocketBase
+ * 暫時跳過 - 等待 PocketBase 權限設定
  */
 async function saveUserMessage(
     sessionId: string,
     content: string,
-    userName?: string,
-    metadata?: Record<string, unknown>
+    _userName?: string,
+    _metadata?: Record<string, unknown>
 ): Promise<void> {
-    try {
-        // 查找或建立對話
-        let conversation = await getOrCreateConversation(sessionId);
-
-        // 儲存訊息
-        await pb.collection("messages").create({
-            conversation: conversation.id,
-            sender: "user",
-            channel: "web",
-            content: content,
-            metadata: {
-                userName,
-                ...metadata
-            }
-        });
-
-        // 更新對話
-        await pb.collection("conversations").update(conversation.id, {
-            last_message: content,
-            last_message_at: new Date().toISOString()
-        });
-
-        console.log(`[UmioChat] Saved user message to conversation ${conversation.id}`);
-    } catch (error) {
-        console.error("[UmioChat] Error saving user message:", error);
-        // 不影響主流程
-    }
+    // TODO: 重新啟用 PocketBase 儲存（設定 API 規則後）
+    console.log(`[UmioChat] Skipping PocketBase save (guest mode) for session ${sessionId}`);
+    return;
 }
 
 /**
