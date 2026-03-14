@@ -88,7 +88,9 @@ app.post('/api/chat', async (req, res) => {
 
 // Umio dedicated endpoint - direct HTTP response without n8n callback
 app.post('/api/umio/chat', async (req, res) => {
-    const { message, sessionId } = req.body;
+    const { message, sessionId, context = {} } = req.body;
+
+    console.log(`[Umio] Received request:`, { message: message?.substring(0, 50), sessionId, context });
 
     if (!message || !sessionId) {
         return res.status(400).json({
@@ -98,23 +100,33 @@ app.post('/api/umio/chat', async (req, res) => {
     }
 
     try {
-        const ws = new WebSocket(`${OPENCLAW_WS}?token=${OPENCLAW_TOKEN}`);
+        const wsUrl = `${OPENCLAW_WS}?token=${OPENCLAW_TOKEN}`;
+        console.log(`[Umio] Connecting to OpenClaw: ${OPENCLAW_WS}`);
+        console.log(`[Umio] Token available:`, !!OPENCLAW_TOKEN);
+
+        const ws = new WebSocket(wsUrl);
         let responseText = '';
         let responseReceived = false;
+        let messageSent = false;
 
         const timeout = setTimeout(() => {
             if (!responseReceived) {
+                console.error(`[Umio] Timeout - no response received after 30s`);
                 ws.close();
                 res.status(504).json({
                     error: 'Umio response timeout',
                     sessionId,
-                    timeout: '30 seconds'
+                    timeout: '30 seconds',
+                    messageSent
                 });
             }
         }, 30000);
 
         ws.on('open', () => {
-            ws.send(JSON.stringify({
+            console.log(`[Umio] WebSocket connected, sending message...`);
+            messageSent = true;
+
+            const payload = {
                 jsonrpc: '2.0',
                 id: sessionId,
                 method: 'agent.chat',
@@ -128,12 +140,16 @@ app.post('/api/umio/chat', async (req, res) => {
                         role: 'digital_content_clerk'
                     }
                 }
-            }));
+            };
+
+            console.log(`[Umio] Sending payload:`, JSON.stringify(payload, null, 2));
+            ws.send(JSON.stringify(payload));
         });
 
         ws.on('message', (data) => {
             try {
                 const msg = JSON.parse(data.toString());
+                console.log(`[Umio] Received message:`, JSON.stringify(msg, null, 2).substring(0, 200));
 
                 // Handle streaming partial responses
                 if (msg.result) {
@@ -145,6 +161,7 @@ app.post('/api/umio/chat', async (req, res) => {
                         clearTimeout(timeout);
                         ws.close();
 
+                        console.log(`[Umio] Complete response received, length:`, responseText.length);
                         res.json({
                             success: true,
                             response: responseText,
@@ -193,6 +210,7 @@ app.post('/api/umio/chat', async (req, res) => {
 
         ws.on('close', () => {
             clearTimeout(timeout);
+            console.log(`[Umio] WebSocket closed`);
         });
 
     } catch (error) {
