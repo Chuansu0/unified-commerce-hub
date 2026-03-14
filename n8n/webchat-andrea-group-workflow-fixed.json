@@ -1,0 +1,61 @@
+{
+    "name": "WebChat to Andrea (Group) - Fixed",
+    "nodes": [
+        {
+            "id": "webhook",
+            "name": "WebChat Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "webchat-to-andrea",
+                "responseMode": "lastNode"
+            }
+        },
+        {
+            "id": "telegram-send",
+            "name": "Send to Group with Mention",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                450,
+                300
+            ],
+            "parameters": {
+                "resource": "message",
+                "operation": "sendMessage",
+                "chatId": "-1003806455231",
+                "text": "={{ '<a href=\"tg://user?id=8647752152\">Andrea</a>\\n📱 WebChat[' + $json.body.sessionId + ']: ' + $json.body.message }}",
+                "additionalFields": {
+                    "parse_mode": "HTML"
+                }
+            },
+            "credentials": {
+                "telegramApi": {
+                    "id": "telegram-umio-credential",
+                    "name": "Telegram Umio Bot"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "WebChat Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Send to Group with Mention",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

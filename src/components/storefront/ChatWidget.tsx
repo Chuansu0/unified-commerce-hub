@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/i18n/I18nContext";
 import storefrontTranslations from "@/i18n/storefront-locales";
-import { useTelegramChat } from "@/hooks/useTelegramChat";
+import { useUmioChat } from "@/hooks/useUmioChat";
 
 interface ChatMsg {
   id: string;
@@ -20,7 +20,7 @@ export function ChatWidget() {
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const { messages, isLoading: loading, sendMessage } = useTelegramChat();
+  const { messages, isLoading: loading, sendMessage } = useUmioChat();
 
   // 轉換訊息格式
   const chatMessages: ChatMsg[] = messages.map((m) => ({

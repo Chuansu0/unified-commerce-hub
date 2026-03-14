@@ -1,9 +1,9 @@
 {
-    "name": "Andrea Reply to WebChat",
+    "name": "Andrea Group Reply to WebChat",
     "nodes": [
         {
             "id": "telegram-trigger",
-            "name": "Listen for Andrea Replies",
+            "name": "Listen for Group Messages",
             "type": "n8n-nodes-base.telegramTrigger",
             "typeVersion": 1.1,
             "position": [
@@ -23,8 +23,8 @@
             }
         },
         {
-            "id": "filter",
-            "name": "Filter Andrea Messages",
+            "id": "filter-andrea",
+            "name": "Filter Andrea in Group",
             "type": "n8n-nodes-base.filter",
             "typeVersion": 2,
             "position": [
@@ -34,9 +34,7 @@
             "parameters": {
                 "conditions": {
                     "options": {
-                        "caseSensitive": false,
-                        "leftValue": "",
-                        "typeValidation": "strict"
+                        "caseSensitive": false
                     },
                     "conditions": [
                         {
@@ -47,6 +45,24 @@
                                 "type": "string",
                                 "operation": "equals"
                             }
+                        },
+                        {
+                            "id": "in-group",
+                            "leftValue": "={{ $json.message.chat.id }}",
+                            "rightValue": "-1003806455231",
+                            "operator": {
+                                "type": "number",
+                                "operation": "equals"
+                            }
+                        },
+                        {
+                            "id": "is-reply",
+                            "leftValue": "={{ $json.message.reply_to_message }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "object",
+                                "operation": "notEmpty"
+                            }
                         }
                     ],
                     "combinator": "and"
@@ -55,7 +71,7 @@
         },
         {
             "id": "extract-session",
-            "name": "Extract Session ID",
+            "name": "Extract Session from Reply",
             "type": "n8n-nodes-base.code",
             "typeVersion": 2,
             "position": [
@@ -64,12 +80,12 @@
             ],
             "parameters": {
                 "language": "javaScript",
-                "jsCode": "const text = $input.item.json.message.text;\nconst sessionMatch = text.match(/Session:\\s*([\\w-]+)/);\nconst sessionId = sessionMatch ? sessionMatch[1] : 'unknown';\n\nconst cleanText = text.replace(/📱 WebChat 訊息[\\s\\S]*?訊息:\\s*/g, '').trim();\n\nreturn {\n  sessionId,\n  message: cleanText,\n  originalText: text\n};"
+                "jsCode": "const replyText = $input.item.json.message.reply_to_message.text || '';\nconst sessionMatch = replyText.match(/WebChat\\[([\\w-]+)\\]/);\nconst sessionId = sessionMatch ? sessionMatch[1] : null;\n\nif (!sessionId) {\n  return null;\n}\n\nconst responseText = $input.item.json.message.text;\n\nreturn {\n  sessionId,\n  message: responseText,\n  timestamp: new Date().toISOString()\n};"
             }
         },
         {
             "id": "http-request",
-            "name": "Send to WebChat",
+            "name": "Send to WebChat API",
             "type": "n8n-nodes-base.httpRequest",
             "typeVersion": 4.2,
             "position": [
@@ -100,33 +116,33 @@
         }
     ],
     "connections": {
-        "Listen for Andrea Replies": {
+        "Listen for Group Messages": {
             "main": [
                 [
                     {
-                        "node": "Filter Andrea Messages",
+                        "node": "Filter Andrea in Group",
                         "type": "main",
                         "index": 0
                     }
                 ]
             ]
         },
-        "Filter Andrea Messages": {
+        "Filter Andrea in Group": {
             "main": [
                 [
                     {
-                        "node": "Extract Session ID",
+                        "node": "Extract Session from Reply",
                         "type": "main",
                         "index": 0
                     }
                 ]
             ]
         },
-        "Extract Session ID": {
+        "Extract Session from Reply": {
             "main": [
                 [
                     {
-                        "node": "Send to WebChat",
+                        "node": "Send to WebChat API",
                         "type": "main",
                         "index": 0
                     }
