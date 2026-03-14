@@ -39,14 +39,14 @@
                         }
                     ]
                 },
-                "authentication": "genericCredentialType",
-                "genericAuthType": "httpHeaderAuth",
-                "sendHeaders": true
-            },
-            "credentials": {
-                "httpHeaderAuth": {
-                    "name": "pocketbase-admin-token",
-                    "id": ""
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "={{ 'Bearer ' + $vars.PB_ADMIN_TOKEN }}"
+                        }
+                    ]
                 }
             }
         },
@@ -96,14 +96,14 @@
                 "sendBody": true,
                 "contentType": "application/json",
                 "body": "={{ { guest_session_id: $('WebChat Webhook').item.json.body.sessionId, platform: 'umio', status: 'active' } }}",
-                "authentication": "genericCredentialType",
-                "genericAuthType": "httpHeaderAuth",
-                "sendHeaders": true
-            },
-            "credentials": {
-                "httpHeaderAuth": {
-                    "name": "pocketbase-admin-token",
-                    "id": ""
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "={{ 'Bearer ' + $vars.PB_ADMIN_TOKEN }}"
+                        }
+                    ]
                 }
             }
         },
@@ -122,14 +122,14 @@
                 "sendBody": true,
                 "contentType": "application/json",
                 "body": "={{ { conversation: $json.items && $json.items[0] ? $json.items[0].id : $json.id, sender: 'user', channel: 'web', content: $('WebChat Webhook').item.json.body.message, metadata: { agent: 'umio', platform: 'webchat', sessionId: $('WebChat Webhook').item.json.body.sessionId } } }}",
-                "authentication": "genericCredentialType",
-                "genericAuthType": "httpHeaderAuth",
-                "sendHeaders": true
-            },
-            "credentials": {
-                "httpHeaderAuth": {
-                    "name": "pocketbase-admin-token",
-                    "id": ""
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "={{ 'Bearer ' + $vars.PB_ADMIN_TOKEN }}"
+                        }
+                    ]
                 }
             }
         },
