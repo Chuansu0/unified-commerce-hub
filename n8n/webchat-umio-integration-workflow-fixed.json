@@ -38,6 +38,15 @@
                             "value": "={{ 'guest_session_id=\"' + $json.body.sessionId + '\" && platform=\"umio\"' }}"
                         }
                     ]
+                },
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "={{ 'Bearer ' + $env.POCKETBASE_ADMIN_TOKEN }}"
+                        }
+                    ]
                 }
             }
         },
@@ -86,7 +95,16 @@
                 "url": "http://pocketbase-convo.zeabur.internal:8090/api/collections/conversations/records",
                 "sendBody": true,
                 "contentType": "application/json",
-                "body": "={{ { guest_session_id: $json.body.sessionId, platform: 'umio', status: 'active' } }}"
+                "body": "={{ { guest_session_id: $('WebChat Webhook').item.json.body.sessionId, platform: 'umio', status: 'active' } }}",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "={{ 'Bearer ' + $env.POCKETBASE_ADMIN_TOKEN }}"
+                        }
+                    ]
+                }
             }
         },
         {
@@ -103,7 +121,16 @@
                 "url": "http://pocketbase-convo.zeabur.internal:8090/api/collections/messages/records",
                 "sendBody": true,
                 "contentType": "application/json",
-                "body": "={{ { conversation: $json.items && $json.items[0] ? $json.items[0].id : $json.id, sender: 'user', channel: 'web', content: $('WebChat Webhook').item.json.body.message, metadata: { agent: 'umio', platform: 'webchat', sessionId: $('WebChat Webhook').item.json.body.sessionId } } }}"
+                "body": "={{ { conversation: $json.items && $json.items[0] ? $json.items[0].id : $json.id, sender: 'user', channel: 'web', content: $('WebChat Webhook').item.json.body.message, metadata: { agent: 'umio', platform: 'webchat', sessionId: $('WebChat Webhook').item.json.body.sessionId } } }}",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "={{ 'Bearer ' + $env.POCKETBASE_ADMIN_TOKEN }}"
+                        }
+                    ]
+                }
             }
         },
         {
