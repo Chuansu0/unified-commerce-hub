@@ -14,7 +14,7 @@ const OPENCLAW_BRIDGE_URL =
     config.umio?.httpBridgeUrl ||
     (window.location.hostname === "localhost"
         ? "https://openclaw-http-bridge.zeabur.app"
-        : "/api");
+        : ""); // 生產環境使用相對路徑，由 nginx 代理 /api/umio/
 
 export interface UmioChatRequest {
     message: string;
