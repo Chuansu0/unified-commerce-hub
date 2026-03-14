@@ -1,0 +1,150 @@
+{
+    "name": "Umio Reply Handler",
+    "nodes": [
+        {
+            "id": "webhook-reply",
+            "name": "Umio Reply Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "position": [
+                250,
+                300
+            ],
+            "parameters": {
+                "httpMethod": "POST",
+                "responseMode": "responseNode",
+                "path": "umio-reply"
+            },
+            "webhookId": "umio-reply"
+        },
+        {
+            "id": "check-session",
+            "name": "Has Session ID?",
+            "type": "n8n-nodes-base.if",
+            "position": [
+                450,
+                300
+            ],
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $json.body.sessionId }}",
+                            "operation": "isNotEmpty"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "store-reply",
+            "name": "Store Umio Reply to PB",
+            "type": "n8n-nodes-base.httpRequest",
+            "position": [
+                700,
+                200
+            ],
+            "parameters": {
+                "method": "POST",
+                "url": "http://pocketbase-convo.zeabur.internal:8090/api/collections/messages/records",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "session_id",
+                            "value": "={{ $json.body.sessionId }}"
+                        },
+                        {
+                            "name": "content",
+                            "value": "={{ $json.body.replyText }}"
+                        },
+                        {
+                            "name": "role",
+                            "value": "assistant"
+                        },
+                        {
+                            "name": "agent",
+                            "value": "umio"
+                        },
+                        {
+                            "name": "platform",
+                            "value": "telegram"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "success-response",
+            "name": "Success Response",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "position": [
+                900,
+                200
+            ],
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { stored: true, sessionId: $json.body.sessionId } }}"
+            }
+        },
+        {
+            "id": "no-session",
+            "name": "No Session Response",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "position": [
+                700,
+                400
+            ],
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { stored: false, reason: 'No sessionId provided' } }}"
+            }
+        }
+    ],
+    "connections": {
+        "Umio Reply Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Has Session ID?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Has Session ID?": {
+            "main": [
+                [
+                    {
+                        "node": "Store Umio Reply to PB",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "No Session Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Store Umio Reply to PB": {
+            "main": [
+                [
+                    {
+                        "node": "Success Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": []
+}
