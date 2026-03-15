@@ -78,13 +78,27 @@ app.post('/webhook/response', async (req, res) => {
 
         console.log('[Response] Received:', { chat_id, message_id, text, source_bot });
 
-        // Send response back to Telegram via OpenClaw bot
-        await openclawBot.telegram.sendMessage(chat_id, text);
+        // Validate input
+        if (!chat_id || !text) {
+            console.error('[Response] Missing required fields:', { chat_id, text });
+            return res.status(400).json({ error: 'Missing chat_id or text' });
+        }
 
-        res.json({ success: true, sent: true });
-    } catch (error) {
-        console.error('[Response] Error:', error);
-        res.status(500).json({ error: 'Failed to send response' });
+        // Send response back to Telegram via OpenClaw bot
+        const result = await openclawBot.telegram.sendMessage(chat_id, text);
+        console.log('[Response] Sent successfully:', result.message_id);
+
+        res.json({ success: true, sent: true, message_id: result.message_id });
+    } catch (error: any) {
+        console.error('[Response] Error:', {
+            message: error.message,
+            code: error.code,
+            response: error.response?.data
+        });
+        res.status(500).json({
+            error: 'Failed to send response',
+            details: error.message
+        });
     }
 });
 
