@@ -79,9 +79,7 @@ app.post('/webhook/response', async (req, res) => {
         console.log('[Response] Received:', { chat_id, message_id, text, source_bot });
 
         // Send response back to Telegram via OpenClaw bot
-        await openclawBot.telegram.sendMessage(chat_id, text, {
-            reply_to_message_id: message_id
-        });
+        await openclawBot.telegram.sendMessage(chat_id, text);
 
         res.json({ success: true, sent: true });
     } catch (error) {
