@@ -1,0 +1,166 @@
+{
+    "name": "Parallel Agent Execution",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "parallel-execution",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-node",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1.1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=http://openclaw-http-bridge.zeabur.internal:8880/chat",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"message\": \"{{ $json.message }}\",\n  \"conversation_id\": \"{{ $json.conversation_id }}\",\n  \"agent\": \"linus\"\n}",
+                "options": {}
+            },
+            "id": "call-linus",
+            "name": "Call Linus",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                450,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=http://openclaw-http-bridge.zeabur.internal:8880/chat",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"message\": \"{{ $json.message }}\",\n  \"conversation_id\": \"{{ $json.conversation_id }}\",\n  \"agent\": \"andrea\"\n}",
+                "options": {}
+            },
+            "id": "call-andrea",
+            "name": "Call Andrea",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                450,
+                400
+            ]
+        },
+        {
+            "parameters": {},
+            "id": "merge-responses",
+            "name": "Merge Responses",
+            "type": "n8n-nodes-base.merge",
+            "typeVersion": 2.1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const items = $input.all();\nconst linusResponse = items.find(i => i.json.agent === 'linus')?.json.response || '';\nconst andreaResponse = items.find(i => i.json.agent === 'andrea')?.json.response || '';\n\nreturn {\n  json: {\n    success: true,\n    responses: [\n      { agent: 'linus', response: linusResponse },\n      { agent: 'andrea', response: andreaResponse }\n    ],\n    combined: `Linus: ${linusResponse}\\n\\nAndrea: ${andreaResponse}`,\n    conversation_id: items[0].json.conversation_id,\n    workflow_id: items[0].json.workflow_id\n  }\n};"
+            },
+            "id": "aggregate-responses",
+            "name": "Aggregate Responses",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ $json }}"
+            },
+            "id": "respond-webhook",
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Call Linus",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Call Andrea",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Call Linus": {
+            "main": [
+                [
+                    {
+                        "node": "Merge Responses",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Call Andrea": {
+            "main": [
+                [
+                    {
+                        "node": "Merge Responses",
+                        "type": "main",
+                        "index": 1
+                    }
+                ]
+            ]
+        },
+        "Merge Responses": {
+            "main": [
+                [
+                    {
+                        "node": "Aggregate Responses",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Aggregate Responses": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "pinData": {},
+    "staticData": null,
+    "tags": [],
+    "triggerCount": 0,
+    "updatedAt": "2026-03-15T04:08:00.000Z",
+    "versionId": "1"
+}

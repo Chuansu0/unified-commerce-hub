@@ -64,7 +64,7 @@
             ],
             "parameters": {
                 "language": "javaScript",
-                "jsCode": "const text = $input.item.json.message.text;\nconst sessionMatch = text.match(/Session:\\s*([\\w-]+)/);\nconst sessionId = sessionMatch ? sessionMatch[1] : 'unknown';\n\nconst cleanText = text.replace(/📱 WebChat 訊息[\\s\\S]*?訊息:\\s*/g, '').trim();\n\nreturn {\n  sessionId,\n  message: cleanText,\n  originalText: text\n};"
+                "jsCode": "const text = $input.item.json.message.text;\nconst sessionMatch = text.match(/Session:\\s*([\\w-]+)/);\nconst sessionId = sessionMatch ? sessionMatch[1] : 'unknown';\n\nconst cleanText = text.replace(/?�� WebChat 訊息[\\s\\S]*?訊息:\\s*/g, '').trim();\n\nreturn {\n  sessionId,\n  message: cleanText,\n  originalText: text\n};"
             }
         },
         {

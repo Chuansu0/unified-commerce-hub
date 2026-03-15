@@ -1,0 +1,179 @@
+{
+    "name": "Message Router",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "message-router",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-node",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1.1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const keywords = {\n  linus: ['infrastructure', 'deploy', 'server', 'database', 'technical', 'devops', 'docker', 'kubernetes'],\n  andrea: ['executive', 'decision', 'approve', 'strategy', 'business', 'management', 'plan']\n};\n\nfor (const item of items) {\n  const message = item.json.message || '';\n  const conversationId = item.json.conversation_id;\n  \n  let agents = [];\n  let workflowType = 'single';\n  \n  const messageLower = message.toLowerCase();\n  \n  const needsLinus = keywords.linus.some(k => messageLower.includes(k));\n  if (needsLinus) {\n    agents.push('linus');\n  }\n  \n  const needsAndrea = keywords.andrea.some(k => messageLower.includes(k));\n  if (needsAndrea) {\n    agents.push('andrea');\n  }\n  \n  if (agents.length === 2) {\n    workflowType = 'sequential';\n  } else if (agents.length === 0) {\n    agents = ['main'];\n    workflowType = 'single';\n  }\n  \n  item.json = {\n    message,\n    conversation_id: conversationId,\n    agents,\n    workflowType,\n    timestamp: new Date().toISOString()\n  };\n}\n\nreturn items;"
+            },
+            "id": "analyze-intent",
+            "name": "Analyze Intent",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://pocketbase.neovega.cc/api/collections/agent_workflows/records",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ {\n  \"conversation\": $json.conversation_id,\n  \"workflow_type\": $json.workflowType,\n  \"agents\": $json.agents,\n  \"status\": \"pending\"\n} }}",
+                "options": {}
+            },
+            "id": "create-workflow-record",
+            "name": "Create Workflow Record",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $json.workflow_type }}",
+                            "operation": "equals",
+                            "value2": "sequential"
+                        }
+                    ]
+                }
+            },
+            "id": "check-sequential",
+            "name": "Check Sequential",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                850,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $json.workflow_type }}",
+                            "operation": "equals",
+                            "value2": "parallel"
+                        }
+                    ]
+                }
+            },
+            "id": "check-parallel",
+            "name": "Check Parallel",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                850,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { \"success\": true, \"workflow_id\": $json.id, \"workflow_type\": $json.workflow_type, \"agents\": $json.agents } }}"
+            },
+            "id": "respond-webhook",
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Analyze Intent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Analyze Intent": {
+            "main": [
+                [
+                    {
+                        "node": "Create Workflow Record",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Create Workflow Record": {
+            "main": [
+                [
+                    {
+                        "node": "Check Sequential",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Check Parallel",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Sequential": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Parallel": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "pinData": {},
+    "staticData": null,
+    "tags": [],
+    "triggerCount": 0,
+    "updatedAt": "2026-03-15T04:08:00.000Z",
+    "versionId": "1"
+}

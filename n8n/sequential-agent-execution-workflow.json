@@ -1,0 +1,221 @@
+{
+    "name": "Sequential Agent Execution",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "sequential-execution",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-node",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1.1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=http://openclaw-http-bridge.zeabur.internal:8880/chat",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"message\": \"{{ $json.message }}\",\n  \"conversation_id\": \"{{ $json.conversation_id }}\",\n  \"agent\": \"linus\"\n}",
+                "options": {}
+            },
+            "id": "call-linus",
+            "name": "Call Linus",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=http://pocketbase.zeabur.internal:8090/api/collections/messages/records",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"conversation\": \"{{ $json.conversation_id }}\",\n  \"content\": \"{{ $json.response }}\",\n  \"sender\": \"agent\",\n  \"agent_type\": \"linus\",\n  \"workflow_id\": \"{{ $json.workflow_id }}\"\n}",
+                "options": {}
+            },
+            "id": "save-linus-response",
+            "name": "Save Linus Response",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const linusResponse = $input.item.json.response || '';\nconst originalMessage = $input.item.json.message || '';\nconst conversationId = $input.item.json.conversation_id;\n\nreturn {\n  json: {\n    message: `${originalMessage}\\n\\nLinus ?„å??‰ï?${linusResponse}`,\n    conversation_id: conversationId,\n    linus_response: linusResponse,\n    workflow_id: $input.item.json.workflow_id\n  }\n};"
+            },
+            "id": "prepare-andrea-context",
+            "name": "Prepare Andrea Context",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=http://openclaw-http-bridge.zeabur.internal:8880/chat",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"message\": \"{{ $json.message }}\",\n  \"conversation_id\": \"{{ $json.conversation_id }}\",\n  \"agent\": \"andrea\"\n}",
+                "options": {}
+            },
+            "id": "call-andrea",
+            "name": "Call Andrea",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1050,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=http://pocketbase.zeabur.internal:8090/api/collections/messages/records",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"conversation\": \"{{ $json.conversation_id }}\",\n  \"content\": \"{{ $json.response }}\",\n  \"sender\": \"agent\",\n  \"agent_type\": \"andrea\",\n  \"workflow_id\": \"{{ $json.workflow_id }}\"\n}",
+                "options": {}
+            },
+            "id": "save-andrea-response",
+            "name": "Save Andrea Response",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const linusResponse = $input.item.json.linus_response || '';\nconst andreaResponse = $input.item.json.response || '';\n\nreturn {\n  json: {\n    success: true,\n    responses: [\n      { agent: 'linus', response: linusResponse },\n      { agent: 'andrea', response: andreaResponse }\n    ],\n    combined: `Linus: ${linusResponse}\\n\\nAndrea: ${andreaResponse}`\n  }\n};"
+            },
+            "id": "aggregate-responses",
+            "name": "Aggregate Responses",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ $json }}"
+            },
+            "id": "respond-webhook",
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1650,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Call Linus",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Call Linus": {
+            "main": [
+                [
+                    {
+                        "node": "Save Linus Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Save Linus Response": {
+            "main": [
+                [
+                    {
+                        "node": "Prepare Andrea Context",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Prepare Andrea Context": {
+            "main": [
+                [
+                    {
+                        "node": "Call Andrea",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Call Andrea": {
+            "main": [
+                [
+                    {
+                        "node": "Save Andrea Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Save Andrea Response": {
+            "main": [
+                [
+                    {
+                        "node": "Aggregate Responses",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Aggregate Responses": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "pinData": {},
+    "staticData": null,
+    "tags": [],
+    "triggerCount": 0,
+    "updatedAt": "2026-03-15T04:08:00.000Z",
+    "versionId": "1"
+}

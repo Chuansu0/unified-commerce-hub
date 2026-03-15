@@ -43,7 +43,7 @@
             ],
             "parameters": {
                 "method": "POST",
-                "url": "http://pocketbase-convo.zeabur.internal:8090/api/collections/messages/records",
+                "url": "http://pocketbase.zeabur.internal:8090/api/collections/messages/records",
                 "body": {
                     "session_id": "={{ $json.body.sessionId }}",
                     "content": "={{ $json.body.replyText }}",

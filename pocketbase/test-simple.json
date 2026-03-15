@@ -1,0 +1,22 @@
+{
+    "collections": [
+        {
+            "name": "test_simple",
+            "type": "base",
+            "schema": [
+                {
+                    "name": "title",
+                    "type": "text",
+                    "required": false
+                }
+            ],
+            "indexes": [],
+            "listRule": null,
+            "viewRule": null,
+            "createRule": null,
+            "updateRule": null,
+            "deleteRule": null,
+            "options": {}
+        }
+    ]
+}

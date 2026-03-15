@@ -1,0 +1,85 @@
+{
+    "collections": [
+        {
+            "name": "agent_workflows",
+            "type": "base",
+            "schema": [
+                {
+                    "name": "conversation",
+                    "type": "relation",
+                    "required": true,
+                    "options": {
+                        "collectionId": "conversations",
+                        "cascadeDelete": false,
+                        "minSelect": null,
+                        "maxSelect": 1
+                    }
+                },
+                {
+                    "name": "workflow_type",
+                    "type": "select",
+                    "required": true,
+                    "options": {
+                        "maxSelect": 1,
+                        "values": [
+                            "single",
+                            "sequential",
+                            "parallel"
+                        ]
+                    }
+                },
+                {
+                    "name": "agents",
+                    "type": "json",
+                    "required": true
+                },
+                {
+                    "name": "status",
+                    "type": "select",
+                    "required": true,
+                    "options": {
+                        "maxSelect": 1,
+                        "values": [
+                            "pending",
+                            "in_progress",
+                            "completed",
+                            "failed"
+                        ]
+                    }
+                },
+                {
+                    "name": "current_agent_index",
+                    "type": "number",
+                    "required": false
+                },
+                {
+                    "name": "results",
+                    "type": "json",
+                    "required": false
+                },
+                {
+                    "name": "error",
+                    "type": "text",
+                    "required": false
+                },
+                {
+                    "name": "created",
+                    "type": "autodate",
+                    "required": false
+                },
+                {
+                    "name": "updated",
+                    "type": "autodate",
+                    "required": false
+                }
+            ],
+            "indexes": [],
+            "listRule": "",
+            "viewRule": "",
+            "createRule": "",
+            "updateRule": "",
+            "deleteRule": "@request.auth.id != ''",
+            "options": {}
+        }
+    ]
+}

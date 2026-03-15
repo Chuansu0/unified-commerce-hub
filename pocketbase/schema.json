@@ -390,7 +390,8 @@
                         "values": [
                             "user",
                             "assistant",
-                            "system"
+                            "system",
+                            "agent"
                         ]
                     }
                 },
@@ -415,6 +416,41 @@
                     "name": "intent",
                     "type": "text",
                     "required": false
+                },
+                {
+                    "name": "agent_type",
+                    "type": "select",
+                    "required": false,
+                    "options": {
+                        "maxSelect": 1,
+                        "values": [
+                            "main",
+                            "linus",
+                            "andrea"
+                        ]
+                    }
+                },
+                {
+                    "name": "parent_message_id",
+                    "type": "relation",
+                    "required": false,
+                    "options": {
+                        "collectionId": "messages",
+                        "cascadeDelete": false,
+                        "minSelect": null,
+                        "maxSelect": 1
+                    }
+                },
+                {
+                    "name": "workflow_id",
+                    "type": "relation",
+                    "required": false,
+                    "options": {
+                        "collectionId": "agent_workflows",
+                        "cascadeDelete": false,
+                        "minSelect": null,
+                        "maxSelect": 1
+                    }
                 },
                 {
                     "name": "metadata",
@@ -544,6 +580,77 @@
             "indexes": [
                 "CREATE UNIQUE INDEX idx_bind_code ON telegram_bind_codes (bind_code)"
             ],
+            "options": {}
+        },
+        {
+            "name": "agent_workflows",
+            "type": "base",
+            "schema": [
+                {
+                    "name": "conversation",
+                    "type": "relation",
+                    "required": true,
+                    "options": {
+                        "collectionId": "conversations",
+                        "cascadeDelete": false,
+                        "minSelect": null,
+                        "maxSelect": 1
+                    }
+                },
+                {
+                    "name": "workflow_type",
+                    "type": "select",
+                    "required": true,
+                    "options": {
+                        "maxSelect": 1,
+                        "values": [
+                            "single",
+                            "sequential",
+                            "parallel"
+                        ]
+                    }
+                },
+                {
+                    "name": "agents",
+                    "type": "json",
+                    "required": true
+                },
+                {
+                    "name": "status",
+                    "type": "select",
+                    "required": true,
+                    "options": {
+                        "maxSelect": 1,
+                        "values": [
+                            "pending",
+                            "in_progress",
+                            "completed",
+                            "failed"
+                        ]
+                    }
+                },
+                {
+                    "name": "results",
+                    "type": "json",
+                    "required": false
+                },
+                {
+                    "name": "created",
+                    "type": "autodate",
+                    "required": false
+                },
+                {
+                    "name": "updated",
+                    "type": "autodate",
+                    "required": false
+                }
+            ],
+            "indexes": [],
+            "listRule": "",
+            "viewRule": "",
+            "createRule": "",
+            "updateRule": "",
+            "deleteRule": "@request.auth.id != ''",
             "options": {}
         }
     ]

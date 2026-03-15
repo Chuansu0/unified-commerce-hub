@@ -1,0 +1,10 @@
+{
+    "conversation": "9rra1vi7oun1l8a",
+    "workflow_type": "sequential",
+    "agents": [
+        "linus",
+        "andrea"
+    ],
+    "status": "pending",
+    "current_agent_index": 0
+}

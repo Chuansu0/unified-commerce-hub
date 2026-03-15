@@ -29,7 +29,7 @@
             ],
             "parameters": {
                 "method": "POST",
-                "url": "http://pocketbase-convo.zeabur.internal:8090/api/collections/messages/records",
+                "url": "http://pocketbase.zeabur.internal:8090/api/collections/messages/records",
                 "sendBody": true,
                 "bodyParameters": {
                     "parameters": [
@@ -68,7 +68,7 @@
             ],
             "parameters": {
                 "chatId": "-1003806455231",
-                "text": "={{ '🌐 <b>WebChat → Umio</b> @neovegaandrea&#95;bot\n\n📝 內容: ' + $json.body.message + '\n\n📋 詳細資訊:\n• Session ID: ' + $json.body.sessionId + '\n• 平台: ' + ($json.body.platform || 'webchat') + '\n• 時間: ' + new Date().toISOString() + '\n\n💬 回覆此訊息以回覆客戶' }}",
+                "text": "={{ '?? <b>WebChat ??Umio</b> @neovegaandrea&#95;bot\n\n?? ?�容: ' + $json.body.message + '\n\n?? 詳細資�?:\n??Session ID: ' + $json.body.sessionId + '\n??平台: ' + ($json.body.platform || 'webchat') + '\n???��?: ' + new Date().toISOString() + '\n\n?�� ?��?此�??�以?��?客戶' }}",
                 "additionalFields": {
                     "parse_mode": "HTML"
                 }

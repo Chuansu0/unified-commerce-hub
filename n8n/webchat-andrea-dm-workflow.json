@@ -29,7 +29,7 @@
                 "resource": "message",
                 "operation": "sendMessage",
                 "chatId": "@neovegaandrea_bot",
-                "text": "={{ '📱 WebChat 訊息\\n\\nSession: ' + $json.body.sessionId + '\\n訊息: ' + $json.body.message }}",
+                "text": "={{ '?�� WebChat 訊息\\n\\nSession: ' + $json.body.sessionId + '\\n訊息: ' + $json.body.message }}",
                 "additionalFields": {}
             },
             "credentials": {

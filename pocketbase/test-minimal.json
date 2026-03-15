@@ -1,0 +1,16 @@
+{
+    "collections": [
+        {
+            "name": "test_collection",
+            "type": "base",
+            "schema": [],
+            "indexes": [],
+            "listRule": null,
+            "viewRule": null,
+            "createRule": null,
+            "updateRule": null,
+            "deleteRule": null,
+            "options": {}
+        }
+    ]
+}

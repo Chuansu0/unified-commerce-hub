@@ -1,0 +1,8 @@
+{
+    "platform": "web",
+    "status": "active",
+    "guest_session_id": "test_session_001",
+    "last_message": "測試對話",
+    "last_message_at": "2026-03-15 15:00:00.000Z",
+    "unread_count": 0
+}

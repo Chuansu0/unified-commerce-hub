@@ -29,7 +29,7 @@
                 "resource": "message",
                 "operation": "sendMessage",
                 "chatId": "-1003806455231",
-                "text": "={{ '<a href=\"tg://user?id=8647752152\">Andrea</a>\\nðŸ“± WebChat[' + $json.body.sessionId + ']: ' + $json.body.message }}",
+                "text": "={{ '<a href=\"tg://user?id=8647752152\">Andrea</a>\\n?“± WebChat[' + $json.body.sessionId + ']: ' + $json.body.message }}",
                 "additionalFields": {
                     "parse_mode": "HTML"
                 }

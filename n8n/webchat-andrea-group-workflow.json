@@ -29,7 +29,7 @@
                 "resource": "message",
                 "operation": "sendMessage",
                 "chatId": "-1003806455231",
-                "text": "={{ '@neovegaandrea_bot\\nðŸ“± WebChat[' + $json.body.sessionId + ']: ' + $json.body.message }}",
+                "text": "={{ '@neovegaandrea_bot\\n?“± WebChat[' + $json.body.sessionId + ']: ' + $json.body.message }}",
                 "additionalFields": {}
             },
             "credentials": {

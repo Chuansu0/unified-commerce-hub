@@ -8,7 +8,7 @@ dotenv.config();
 
 // 環境變數
 const PORT = process.env.PORT || 3000;
-const POCKETBASE_URL = process.env.POCKETBASE_URL || 'http://pocketbase-convo.zeabur.internal:8090';
+const POCKETBASE_URL = process.env.POCKETBASE_URL || 'http://pocketbase.zeabur.internal:8090';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8751641141:AAGeQKXV4WvOguP4H5UpUWegVcq2obdzIVw';
 const OPENCLAW_CHAT_ID = process.env.OPENCLAW_CHAT_ID || '-1003806455231';
 const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'https://www.neovega.cc/api/webhook';

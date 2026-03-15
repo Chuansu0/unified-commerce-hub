@@ -20,7 +20,7 @@ dotenv.config();
 
 // 環境變數
 const PORT = process.env.PORT || 3000;
-const POCKETBASE_URL = process.env.POCKETBASE_URL || "http://pocketbase-convo.zeabur.internal:8090";
+const POCKETBASE_URL = process.env.POCKETBASE_URL || "http://pocketbase.zeabur.internal:8090";
 const UMIO_BOT_TOKEN = process.env.UMIO_BOT_TOKEN || "";
 const UMIO_CHAT_ID = process.env.UMIO_CHAT_ID || ""; // neovegaumio_bot 監聽的 chat
 const TELEGRAM_API = `https://api.telegram.org/bot${UMIO_BOT_TOKEN}`;

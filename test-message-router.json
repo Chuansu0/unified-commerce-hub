@@ -1,0 +1,11 @@
+{
+    "conversation_id": "test_conv_001",
+    "message": "測試訊息：請 Linus 和 Andrea 協助回答",
+    "workflow_type": "sequential",
+    "agents": [
+        "linus",
+        "andrea"
+    ],
+    "user_id": "test_user_001",
+    "channel": "web"
+}
