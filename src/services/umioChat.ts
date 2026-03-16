@@ -168,7 +168,7 @@ async function saveAssistantMessage(
         await pb.collection("messages").create({
             conversation: conversation.id,
             sender: "assistant",
-            channel: "openclaw",
+            channel: "web",
             content: content,
             metadata: {
                 agent: "umio",
@@ -428,7 +428,7 @@ export async function saveUserMessageEnabled(
         await pb.collection("messages").create({
             conversation: conversation.id,
             sender: "user",
-            channel: "webchat",
+            channel: "web",
             content: content,
             metadata: {
                 userName,
