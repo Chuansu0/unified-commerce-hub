@@ -95,12 +95,15 @@ export async function sendToUmio(
             throw new Error(data.error || "Unknown error");
         }
 
+        // 取得回覆內容（支援兩種格式）
+        const replyContent = data.response || data.message || "收到訊息";
+
         // 儲存 AI 回覆到 PocketBase
-        await saveAssistantMessage(sessionId, data.response);
+        await saveAssistantMessage(sessionId, replyContent);
 
         return {
             success: true,
-            message: data.response,
+            message: replyContent,
             sessionId: data.sessionId || sessionId
         };
     } catch (error) {
