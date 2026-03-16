@@ -1,0 +1,215 @@
+[
+    {
+        "id": "conversations_id",
+        "name": "conversations",
+        "type": "base",
+        "system": false,
+        "schema": [
+            {
+                "id": "field_platform",
+                "name": "platform",
+                "type": "select",
+                "system": false,
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSelect": 1,
+                    "values": [
+                        "telegram",
+                        "web",
+                        "umio"
+                    ]
+                }
+            },
+            {
+                "id": "field_telegram_chat_id",
+                "name": "telegram_chat_id",
+                "type": "text",
+                "system": false,
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "pattern": ""
+                }
+            },
+            {
+                "id": "field_guest_session_id",
+                "name": "guest_session_id",
+                "type": "text",
+                "system": false,
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "pattern": ""
+                }
+            },
+            {
+                "id": "field_user_name",
+                "name": "user_name",
+                "type": "text",
+                "system": false,
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "pattern": ""
+                }
+            },
+            {
+                "id": "field_status",
+                "name": "status",
+                "type": "select",
+                "system": false,
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSelect": 1,
+                    "values": [
+                        "active",
+                        "closed",
+                        "archived"
+                    ]
+                }
+            },
+            {
+                "id": "field_metadata",
+                "name": "metadata",
+                "type": "json",
+                "system": false,
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSize": 2000000
+                }
+            }
+        ],
+        "indexes": [
+            "CREATE INDEX idx_conversations_telegram ON conversations (telegram_chat_id)",
+            "CREATE INDEX idx_conversations_guest ON conversations (guest_session_id)"
+        ],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": "",
+        "deleteRule": "",
+        "options": {}
+    },
+    {
+        "id": "messages_id",
+        "name": "messages",
+        "type": "base",
+        "system": false,
+        "schema": [
+            {
+                "id": "field_conversation",
+                "name": "conversation",
+                "type": "relation",
+                "system": false,
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "collectionId": "conversations_id",
+                    "cascadeDelete": true,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": null
+                }
+            },
+            {
+                "id": "field_sender",
+                "name": "sender",
+                "type": "select",
+                "system": false,
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSelect": 1,
+                    "values": [
+                        "user",
+                        "assistant",
+                        "system",
+                        "agent"
+                    ]
+                }
+            },
+            {
+                "id": "field_channel",
+                "name": "channel",
+                "type": "select",
+                "system": false,
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSelect": 1,
+                    "values": [
+                        "web",
+                        "telegram"
+                    ]
+                }
+            },
+            {
+                "id": "field_content",
+                "name": "content",
+                "type": "text",
+                "system": false,
+                "required": true,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "pattern": ""
+                }
+            },
+            {
+                "id": "field_intent",
+                "name": "intent",
+                "type": "text",
+                "system": false,
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "pattern": ""
+                }
+            },
+            {
+                "id": "field_metadata",
+                "name": "metadata",
+                "type": "json",
+                "system": false,
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "maxSize": 2000000
+                }
+            }
+        ],
+        "indexes": [
+            "CREATE INDEX idx_messages_conversation ON messages (conversation)"
+        ],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": "",
+        "deleteRule": "",
+        "options": {}
+    }
+]

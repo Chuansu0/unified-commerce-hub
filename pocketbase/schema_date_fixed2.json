@@ -1,0 +1,65 @@
+"collections": [
+    {
+      "name": "users",
+      "type": "auth",
+      "schema": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": false
+        },
+        {
+          "name": "avatar",
+          "type": "file",
+          "required": false,
+          "options": {
+            "maxSelect": 1,
+            "maxSize": 5242880
+          }
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "options": {
+            "maxSelect": 1,
+            "values": [
+              "superadmin",
+              "user"
+            ]
+          }
+        },
+        {
+          "name": "phone",
+          "type": "text",
+          "required": false
+        },
+        {
+          "name": "is_active",
+          "type": "bool",
+          "required": false
+        },
+        {
+          "name": "telegram_user_id",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "telegram_username",
+          "type": "text",
+          "required": false
+        },
+        {
+          "name": "telegram_bound_at",
+          "type": "date",
+          "required": false
+        }
+      ],
+      "indexes": [],
+      "options": {
+        "allowEmailAuth": true,
+        "allowOAuth2Auth": false,
+        "allowUsernameAuth": true,
+        "requireEmail": false
+      }
+    }
