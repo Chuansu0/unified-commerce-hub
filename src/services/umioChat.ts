@@ -135,17 +135,14 @@ export async function sendToUmio(
 
 /**
  * 儲存用戶訊息到 PocketBase
- * 暫時跳過 - 等待 PocketBase 權限設定
  */
 async function saveUserMessage(
     sessionId: string,
     content: string,
-    _userName?: string,
-    _metadata?: Record<string, unknown>
+    userName?: string,
+    metadata?: Record<string, unknown>
 ): Promise<void> {
-    // TODO: 重新啟用 PocketBase 儲存（設定 API 規則後）
-    console.log(`[UmioChat] Skipping PocketBase save (guest mode) for session ${sessionId}`);
-    return;
+    return saveUserMessageEnabled(sessionId, content, userName, metadata);
 }
 
 /**
