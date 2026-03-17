@@ -156,6 +156,9 @@ async function saveAssistantMessage(
     content: string
 ): Promise<void> {
     try {
+        console.log(`[UmioChat] Saving assistant message for session: ${sessionId}`);
+        console.log(`[UmioChat] Content to save:`, content);
+
         // 查找對話
         const conversation = await pb
             .collection("conversations")
@@ -167,8 +170,10 @@ async function saveAssistantMessage(
             return;
         }
 
-        // 儲存訊息
-        await pb.collection("messages").create({
+        console.log(`[UmioChat] Found conversation:`, conversation.id);
+
+        // 準備訊息資料
+        const messageData = {
             conversation: conversation.id,
             sender: "assistant",
             channel: "web",
@@ -177,7 +182,12 @@ async function saveAssistantMessage(
                 agent: "umio",
                 source: "openclaw-http-bridge"
             }
-        });
+        };
+
+        console.log(`[UmioChat] Creating message with data:`, messageData);
+
+        // 儲存訊息
+        await pb.collection("messages").create(messageData);
 
         // 更新對話
         await pb.collection("conversations").update(conversation.id, {
