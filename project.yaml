@@ -2,1244 +2,1244 @@
 apiVersion: zeabur.com/v1
 kind: Template
 metadata:
-  name: Lovale_homepage
+    name: Lovale_homepage
 spec:
-  description: Exported from project 69acf423f0457ca4d13be9b9
-  icon: https://i.imgur.com/KUcP61Z.png
-  services:
-    - name: Redis
-      icon: https://raw.githubusercontent.com/zeabur/service-icons/main/marketplace/redis.svg
-      template: PREBUILT_V2
-      spec:
-        source:
-          image: redis:7-alpine
-        ports:
-          - id: database
-            port: 6379
-            type: TCP
-        volumes:
-          - id: data
-            dir: /data
-        instructions:
-          - title: Command to connect to your Redis
-            content: redis-cli -h ${PORT_FORWARDED_HOSTNAME} -p ${DATABASE_PORT_FORWARDED_PORT} -a ${REDIS_PASSWORD}
-          - title: Redis Connection String
-            content: redis://:${REDIS_PASSWORD}@${PORT_FORWARDED_HOSTNAME}:${DATABASE_PORT_FORWARDED_PORT}
-          - title: Redis password
-            content: ${REDIS_PASSWORD}
-          - title: Redis host
-            content: ${PORT_FORWARDED_HOSTNAME}
-          - title: Redis port
-            content: ${DATABASE_PORT_FORWARDED_PORT}
-        env:
-          POSTGRESQL_PASSWORD:
-            default: 6fsWBvcH534h0ut9gkP1XYS8F2E7zTjO
-            expose: false
-          REDIS_ARGS:
-            default: --requirepass ${REDIS_PASSWORD}
-            expose: false
-          REDIS_CONNECTION_STRING:
-            default: redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}
-            expose: true
-          REDIS_HOST:
-            default: ${CONTAINER_HOSTNAME}
-            expose: true
-          REDIS_PASSWORD:
-            default: ${PASSWORD}
-            expose: true
-          REDIS_PORT:
-            default: ${DATABASE_PORT}
-            expose: true
-          REDIS_URI:
-            default: ${REDIS_CONNECTION_STRING}
-            expose: true
-        configs: []
-        portForwarding:
-          enabled: true
-    - name: N8N
-      icon: https://i.imgur.com/KUcP61Z.png
-      template: PREBUILT_V2
-      spec:
-        source:
-          image: docker.io/n8nio/n8n:2.3.6
-        ports:
-          - id: web
-            port: 5678
-            type: HTTP
-          - id: taskbroker
-            port: 5679
-            type: TCP
-        volumes:
-          - id: data
-            dir: /root/.n8n
-        instructions:
-          - title: N8N ENCRYPTION KEY
-            content: ${N8N_ENCRYPTION_KEY}
-          - title: N8N RUNNERS AUTH TOKEN
-            content: ${N8N_RUNNERS_AUTH_TOKEN}
-        env:
-          API_SECRET_KEY:
-            default: 527@Chuan
-            expose: false
-          DB_POSTGRESDB_DATABASE:
-            default: ${POSTGRES_DB}
-            expose: false
-          DB_POSTGRESDB_HOST:
-            default: ${POSTGRES_HOST}
-            expose: false
-          DB_POSTGRESDB_PASSWORD:
-            default: ${POSTGRES_PASSWORD}
-            expose: false
-          DB_POSTGRESDB_PORT:
-            default: ${POSTGRES_PORT}
-            expose: false
-          DB_POSTGRESDB_USER:
-            default: ${POSTGRES_USERNAME}
-            expose: false
-          DB_TYPE:
-            default: postgresdb
-            expose: false
-          EXECUTIONS_MODE:
-            default: queue
-            expose: false
-          N8N_ENCRYPTION_KEY:
-            default: ${PASSWORD}
-            expose: false
-          N8N_ENCRYPTION_KEY_WORKER:
-            default: ${N8N_ENCRYPTION_KEY}
-            expose: true
-          N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS:
-            default: "true"
-            expose: false
-          N8N_HOST:
-            default: ${ZEABUR_WEB_DOMAIN}
-            expose: false
-          N8N_RUNNERS_AUTH_TOKEN:
-            default: ${PASSWORD}
-            expose: false
-          N8N_RUNNERS_BROKER_LISTEN_ADDRESS:
-            default: 0.0.0.0
-            expose: false
-          N8N_RUNNERS_ENABLED:
-            default: "true"
-            expose: false
-          N8N_RUNNERS_MODE:
-            default: external
-            expose: false
-          NODE_ENV:
-            default: production
-            expose: false
-          OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS:
-            default: "true"
-            expose: false
-          POSTGRESQL_PASSWORD:
-            default: 6fsWBvcH534h0ut9gkP1XYS8F2E7zTjO
-            expose: false
-          QUEUE_BULL_REDIS_HOST:
-            default: ${REDIS_HOST}
-            expose: false
-          QUEUE_BULL_REDIS_PASSWORD:
-            default: ${REDIS_PASSWORD}
-            expose: false
-          QUEUE_BULL_REDIS_PORT:
-            default: ${REDIS_PORT}
-            expose: false
-          REDIS_PASSWORD:
-            default: 71v86dpE92IsjF4SlDOuQZLgc35ho0qT
-            expose: false
-          RUNNERS_PASSWORD:
-            default: 2K3E0l75J9f6q1g4ivLGCkUBMdu8wzDm
-            expose: false
-          TASK_RUNNERS_AUTH_TOKEN:
-            default: ${N8N_RUNNERS_AUTH_TOKEN}
-            expose: true
-          WEBHOOK_URL:
-            default: ${ZEABUR_WEB_URL}
-            expose: false
-          WORKER_PASSWORD:
-            default: 0CzWY1kfyLg9qHu547rj6vKaID8Vw2Z3
-            expose: false
-        configs: []
-        portForwarding:
-          enabled: true
-    - name: Runners
-      icon: https://i.imgur.com/KUcP61Z.png
-      template: PREBUILT_V2
-      spec:
-        source:
-          image: n8nio/runners:stable
-        env:
-          N8N_RUNNERS_AUTH_TOKEN:
-            default: ${TASK_RUNNERS_AUTH_TOKEN}
-            expose: false
-          N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT:
-            default: "15"
-            expose: false
-          N8N_RUNNERS_TASK_BROKER_URI:
-            default: http://Worker:5679
-            expose: false
-          POSTGRESQL_PASSWORD:
-            default: 6fsWBvcH534h0ut9gkP1XYS8F2E7zTjO
-            expose: false
-          REDIS_PASSWORD:
-            default: 71v86dpE92IsjF4SlDOuQZLgc35ho0qT
-            expose: false
-          WORKER_PASSWORD:
-            default: 0CzWY1kfyLg9qHu547rj6vKaID8Vw2Z3
-            expose: false
-        configs: []
-    - name: PostgreSQL
-      icon: https://raw.githubusercontent.com/zeabur/service-icons/main/marketplace/postgresql.svg
-      template: PREBUILT_V2
-      spec:
-        source:
-          image: postgres:17
-          command:
-            - docker-entrypoint.sh
-            - -c
-            - config_file=/etc/postgresql/postgresql.conf
-        ports:
-          - id: database
-            port: 5432
-            type: TCP
-        volumes:
-          - id: data
-            dir: /var/lib/postgresql/data
-        instructions:
-          - title: Connection String
-            content: postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${PORT_FORWARDED_HOSTNAME}:${DATABASE_PORT_FORWARDED_PORT}/${POSTGRES_DATABASE}
-          - title: PostgreSQL Connect Command
-            content: psql "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${PORT_FORWARDED_HOSTNAME}:${DATABASE_PORT_FORWARDED_PORT}/${POSTGRES_DATABASE}"
-          - title: PostgreSQL username
-            content: ${POSTGRES_USERNAME}
-          - title: PostgresSQL password
-            content: ${POSTGRES_PASSWORD}
-          - title: PostgresSQL database
-            content: ${POSTGRES_DATABASE}
-          - title: PostgreSQL host
-            content: ${PORT_FORWARDED_HOSTNAME}
-          - title: PostgreSQL port
-            content: ${DATABASE_PORT_FORWARDED_PORT}
-        env:
-          PGDATA:
-            default: /var/lib/postgresql/data/pgdata
-            expose: false
-          POSTGRES_CONNECTION_STRING:
-            default: postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}
-            expose: true
-          POSTGRES_DATABASE:
-            default: ${POSTGRES_DB}
-            expose: true
-          POSTGRES_DB:
-            default: zeabur
-            expose: true
-          POSTGRES_HOST:
-            default: ${CONTAINER_HOSTNAME}
-            expose: true
-          POSTGRES_PASSWORD:
-            default: ${PASSWORD}
-            expose: true
-          POSTGRES_PORT:
-            default: ${DATABASE_PORT}
-            expose: true
-          POSTGRES_URI:
-            default: ${POSTGRES_CONNECTION_STRING}
-            expose: true
-          POSTGRES_USER:
-            default: root
-            expose: false
-          POSTGRES_USERNAME:
-            default: ${POSTGRES_USER}
-            expose: true
-        configs:
-          - path: /etc/postgresql/postgresql.conf
-            template: |
-              # https://github.com/postgres/postgres/blob/master/src/backend/utils/misc/postgresql.conf.sample
-              listen_addresses = '*'
-              max_connections = 100
-              shared_buffers = 128MB
-              dynamic_shared_memory_type = posix
-              max_wal_size = 1GB
-              min_wal_size = 80MB
-              log_timezone = 'Etc/UTC'
-              datestyle = 'iso, mdy'
-              timezone = 'Etc/UTC'
-              lc_messages = 'en_US.utf8'
-              lc_monetary = 'en_US.utf8'
-              lc_numeric = 'en_US.utf8'
-              lc_time = 'en_US.utf8'
-              default_text_search_config = 'pg_catalog.english'
-            permission: null
-            envsubst: null
-        portForwarding:
-          enabled: true
-    - name: OpenClaw
-      icon: https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/pixel-lobster.svg
-      template: PREBUILT_V2
-      spec:
-        source:
-          image: ghcr.io/openclaw/openclaw:2026.3.2
-          command:
-            - /bin/sh
-            - -c
-            - /opt/openclaw/startup.sh && /opt/openclaw/start_gateway.sh
-        ports:
-          - id: web
-            port: 18789
-            type: HTTP
-          - id: port-18790
-            port: 18790
-            type: TCP
-        volumes:
-          - id: data
-            dir: /home/node
-        instructions:
-          - title: Web UI (with token)
-            content: ${ZEABUR_WEB_URL}?token=${OPENCLAW_GATEWAY_TOKEN}
-          - title: Gateway Token
-            content: ${OPENCLAW_GATEWAY_TOKEN}
-        env:
-          ANTHROPIC_API_KEY:
-            default: " sk-rsjG7SpAS3ux9US8mdEkbXEUsoBaeHyaRGYbtUQgK5CrSl6w"
-            expose: false
-          ANTHROPIC_BASE_URL:
-            default: https://claude.buzz7.top
-            expose: false
-          HOME:
-            default: /home/node
-            expose: false
-          N8N_PASSWORD:
-            default: 7RMV1To0CBzAYu8P5rs4ZJ9XSqm632hn
-            expose: false
-          OPENCLAW_DISABLE_BONJOUR:
-            default: "1"
-            expose: false
-          OPENCLAW_GATEWAY_TOKEN:
-            default: FCo0g2jyi864v9VxEqQw753GSbkdWn1X
-            expose: false
-          OPENCLAW_TELEGRAM_DISABLE_AUTO_SELECT_FAMILY:
-            default: "true"
-            expose: false
-          POSTGRESQL_PASSWORD:
-            default: 6fsWBvcH534h0ut9gkP1XYS8F2E7zTjO
-            expose: false
-          REDIS_PASSWORD:
-            default: 71v86dpE92IsjF4SlDOuQZLgc35ho0qT
-            expose: false
-          RUNNERS_PASSWORD:
-            default: 2K3E0l75J9f6q1g4ivLGCkUBMdu8wzDm
-            expose: false
-          TELEGRAM_ANDREA_BOT_TOKEN:
-            default: 8647752152:AAFt7U18c_BfVf5zEKW-TMZD41NDtUOHx-Y
-            expose: false
-          TELEGRAM_LINUS_BOT_TOKEN:
-            default: 8672162699:AAEyEDVYYIKEA7-oT59upjvuCi7z_ci98gs
-            expose: false
-          WORKER_PASSWORD:
-            default: 0CzWY1kfyLg9qHu547rj6vKaID8Vw2Z3
-            expose: false
-          ZEABUR_AI_HUB_API_KEY:
-            default: ""
-            expose: false
-        configs:
-          - path: /opt/openclaw/startup.sh
-            template: |
-              #!/bin/sh
-              set -e
+    description: Exported from project 69acf423f0457ca4d13be9b9
+    icon: https://i.imgur.com/KUcP61Z.png
+    services:
+        - name: Redis
+          icon: https://raw.githubusercontent.com/zeabur/service-icons/main/marketplace/redis.svg
+          template: PREBUILT_V2
+          spec:
+            source:
+                image: redis:7-alpine
+            ports:
+                - id: database
+                  port: 6379
+                  type: TCP
+            volumes:
+                - id: data
+                  dir: /data
+            instructions:
+                - title: Command to connect to your Redis
+                  content: redis-cli -h ${PORT_FORWARDED_HOSTNAME} -p ${DATABASE_PORT_FORWARDED_PORT} -a ${REDIS_PASSWORD}
+                - title: Redis Connection String
+                  content: redis://:${REDIS_PASSWORD}@${PORT_FORWARDED_HOSTNAME}:${DATABASE_PORT_FORWARDED_PORT}
+                - title: Redis password
+                  content: ${REDIS_PASSWORD}
+                - title: Redis host
+                  content: ${PORT_FORWARDED_HOSTNAME}
+                - title: Redis port
+                  content: ${DATABASE_PORT_FORWARDED_PORT}
+            env:
+                POSTGRESQL_PASSWORD:
+                    default: 6fsWBvcH534h0ut9gkP1XYS8F2E7zTjO
+                    expose: false
+                REDIS_ARGS:
+                    default: --requirepass ${REDIS_PASSWORD}
+                    expose: false
+                REDIS_CONNECTION_STRING:
+                    default: redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}
+                    expose: true
+                REDIS_HOST:
+                    default: ${CONTAINER_HOSTNAME}
+                    expose: true
+                REDIS_PASSWORD:
+                    default: ${PASSWORD}
+                    expose: true
+                REDIS_PORT:
+                    default: ${DATABASE_PORT}
+                    expose: true
+                REDIS_URI:
+                    default: ${REDIS_CONNECTION_STRING}
+                    expose: true
+            configs: []
+            portForwarding:
+                enabled: true
+        - name: N8N
+          icon: https://i.imgur.com/KUcP61Z.png
+          template: PREBUILT_V2
+          spec:
+            source:
+                image: docker.io/n8nio/n8n:2.3.6
+            ports:
+                - id: web
+                  port: 5678
+                  type: HTTP
+                - id: taskbroker
+                  port: 5679
+                  type: TCP
+            volumes:
+                - id: data
+                  dir: /root/.n8n
+            instructions:
+                - title: N8N ENCRYPTION KEY
+                  content: ${N8N_ENCRYPTION_KEY}
+                - title: N8N RUNNERS AUTH TOKEN
+                  content: ${N8N_RUNNERS_AUTH_TOKEN}
+            env:
+                API_SECRET_KEY:
+                    default: 527@Chuan
+                    expose: false
+                DB_POSTGRESDB_DATABASE:
+                    default: ${POSTGRES_DB}
+                    expose: false
+                DB_POSTGRESDB_HOST:
+                    default: ${POSTGRES_HOST}
+                    expose: false
+                DB_POSTGRESDB_PASSWORD:
+                    default: ${POSTGRES_PASSWORD}
+                    expose: false
+                DB_POSTGRESDB_PORT:
+                    default: ${POSTGRES_PORT}
+                    expose: false
+                DB_POSTGRESDB_USER:
+                    default: ${POSTGRES_USERNAME}
+                    expose: false
+                DB_TYPE:
+                    default: postgresdb
+                    expose: false
+                EXECUTIONS_MODE:
+                    default: queue
+                    expose: false
+                N8N_ENCRYPTION_KEY:
+                    default: ${PASSWORD}
+                    expose: false
+                N8N_ENCRYPTION_KEY_WORKER:
+                    default: ${N8N_ENCRYPTION_KEY}
+                    expose: true
+                N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS:
+                    default: "true"
+                    expose: false
+                N8N_HOST:
+                    default: ${ZEABUR_WEB_DOMAIN}
+                    expose: false
+                N8N_RUNNERS_AUTH_TOKEN:
+                    default: ${PASSWORD}
+                    expose: false
+                N8N_RUNNERS_BROKER_LISTEN_ADDRESS:
+                    default: 0.0.0.0
+                    expose: false
+                N8N_RUNNERS_ENABLED:
+                    default: "true"
+                    expose: false
+                N8N_RUNNERS_MODE:
+                    default: external
+                    expose: false
+                NODE_ENV:
+                    default: production
+                    expose: false
+                OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS:
+                    default: "true"
+                    expose: false
+                POSTGRESQL_PASSWORD:
+                    default: 6fsWBvcH534h0ut9gkP1XYS8F2E7zTjO
+                    expose: false
+                QUEUE_BULL_REDIS_HOST:
+                    default: ${REDIS_HOST}
+                    expose: false
+                QUEUE_BULL_REDIS_PASSWORD:
+                    default: ${REDIS_PASSWORD}
+                    expose: false
+                QUEUE_BULL_REDIS_PORT:
+                    default: ${REDIS_PORT}
+                    expose: false
+                REDIS_PASSWORD:
+                    default: 71v86dpE92IsjF4SlDOuQZLgc35ho0qT
+                    expose: false
+                RUNNERS_PASSWORD:
+                    default: 2K3E0l75J9f6q1g4ivLGCkUBMdu8wzDm
+                    expose: false
+                TASK_RUNNERS_AUTH_TOKEN:
+                    default: ${N8N_RUNNERS_AUTH_TOKEN}
+                    expose: true
+                WEBHOOK_URL:
+                    default: ${ZEABUR_WEB_URL}
+                    expose: false
+                WORKER_PASSWORD:
+                    default: 0CzWY1kfyLg9qHu547rj6vKaID8Vw2Z3
+                    expose: false
+            configs: []
+            portForwarding:
+                enabled: true
+        - name: Runners
+          icon: https://i.imgur.com/KUcP61Z.png
+          template: PREBUILT_V2
+          spec:
+            source:
+                image: n8nio/runners:stable
+            env:
+                N8N_RUNNERS_AUTH_TOKEN:
+                    default: ${TASK_RUNNERS_AUTH_TOKEN}
+                    expose: false
+                N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT:
+                    default: "15"
+                    expose: false
+                N8N_RUNNERS_TASK_BROKER_URI:
+                    default: http://Worker:5679
+                    expose: false
+                POSTGRESQL_PASSWORD:
+                    default: 6fsWBvcH534h0ut9gkP1XYS8F2E7zTjO
+                    expose: false
+                REDIS_PASSWORD:
+                    default: 71v86dpE92IsjF4SlDOuQZLgc35ho0qT
+                    expose: false
+                WORKER_PASSWORD:
+                    default: 0CzWY1kfyLg9qHu547rj6vKaID8Vw2Z3
+                    expose: false
+            configs: []
+        - name: PostgreSQL
+          icon: https://raw.githubusercontent.com/zeabur/service-icons/main/marketplace/postgresql.svg
+          template: PREBUILT_V2
+          spec:
+            source:
+                image: postgres:17
+                command:
+                    - docker-entrypoint.sh
+                    - -c
+                    - config_file=/etc/postgresql/postgresql.conf
+            ports:
+                - id: database
+                  port: 5432
+                  type: TCP
+            volumes:
+                - id: data
+                  dir: /var/lib/postgresql/data
+            instructions:
+                - title: Connection String
+                  content: postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${PORT_FORWARDED_HOSTNAME}:${DATABASE_PORT_FORWARDED_PORT}/${POSTGRES_DATABASE}
+                - title: PostgreSQL Connect Command
+                  content: psql "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${PORT_FORWARDED_HOSTNAME}:${DATABASE_PORT_FORWARDED_PORT}/${POSTGRES_DATABASE}"
+                - title: PostgreSQL username
+                  content: ${POSTGRES_USERNAME}
+                - title: PostgresSQL password
+                  content: ${POSTGRES_PASSWORD}
+                - title: PostgresSQL database
+                  content: ${POSTGRES_DATABASE}
+                - title: PostgreSQL host
+                  content: ${PORT_FORWARDED_HOSTNAME}
+                - title: PostgreSQL port
+                  content: ${DATABASE_PORT_FORWARDED_PORT}
+            env:
+                PGDATA:
+                    default: /var/lib/postgresql/data/pgdata
+                    expose: false
+                POSTGRES_CONNECTION_STRING:
+                    default: postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}
+                    expose: true
+                POSTGRES_DATABASE:
+                    default: ${POSTGRES_DB}
+                    expose: true
+                POSTGRES_DB:
+                    default: zeabur
+                    expose: true
+                POSTGRES_HOST:
+                    default: ${CONTAINER_HOSTNAME}
+                    expose: true
+                POSTGRES_PASSWORD:
+                    default: ${PASSWORD}
+                    expose: true
+                POSTGRES_PORT:
+                    default: ${DATABASE_PORT}
+                    expose: true
+                POSTGRES_URI:
+                    default: ${POSTGRES_CONNECTION_STRING}
+                    expose: true
+                POSTGRES_USER:
+                    default: root
+                    expose: false
+                POSTGRES_USERNAME:
+                    default: ${POSTGRES_USER}
+                    expose: true
+            configs:
+                - path: /etc/postgresql/postgresql.conf
+                  template: |
+                    # https://github.com/postgres/postgres/blob/master/src/backend/utils/misc/postgresql.conf.sample
+                    listen_addresses = '*'
+                    max_connections = 100
+                    shared_buffers = 128MB
+                    dynamic_shared_memory_type = posix
+                    max_wal_size = 1GB
+                    min_wal_size = 80MB
+                    log_timezone = 'Etc/UTC'
+                    datestyle = 'iso, mdy'
+                    timezone = 'Etc/UTC'
+                    lc_messages = 'en_US.utf8'
+                    lc_monetary = 'en_US.utf8'
+                    lc_numeric = 'en_US.utf8'
+                    lc_time = 'en_US.utf8'
+                    default_text_search_config = 'pg_catalog.english'
+                  permission: null
+                  envsubst: null
+            portForwarding:
+                enabled: true
+        - name: OpenClaw
+          icon: https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/pixel-lobster.svg
+          template: PREBUILT_V2
+          spec:
+            source:
+                image: ghcr.io/openclaw/openclaw:2026.3.2
+                command:
+                    - /bin/sh
+                    - -c
+                    - /opt/openclaw/startup.sh && /opt/openclaw/start_gateway.sh
+            ports:
+                - id: web
+                  port: 18789
+                  type: HTTP
+                - id: port-18790
+                  port: 18790
+                  type: TCP
+            volumes:
+                - id: data
+                  dir: /home/node
+            instructions:
+                - title: Web UI (with token)
+                  content: ${ZEABUR_WEB_URL}?token=${OPENCLAW_GATEWAY_TOKEN}
+                - title: Gateway Token
+                  content: ${OPENCLAW_GATEWAY_TOKEN}
+            env:
+                ANTHROPIC_API_KEY:
+                    default: ' sk-rsjG7SpAS3ux9US8mdEkbXEUsoBaeHyaRGYbtUQgK5CrSl6w'
+                    expose: false
+                ANTHROPIC_BASE_URL:
+                    default: https://claude.buzz7.top
+                    expose: false
+                HOME:
+                    default: /home/node
+                    expose: false
+                N8N_PASSWORD:
+                    default: 7RMV1To0CBzAYu8P5rs4ZJ9XSqm632hn
+                    expose: false
+                OPENCLAW_DISABLE_BONJOUR:
+                    default: "1"
+                    expose: false
+                OPENCLAW_GATEWAY_TOKEN:
+                    default: FCo0g2jyi864v9VxEqQw753GSbkdWn1X
+                    expose: false
+                OPENCLAW_TELEGRAM_DISABLE_AUTO_SELECT_FAMILY:
+                    default: "true"
+                    expose: false
+                POSTGRESQL_PASSWORD:
+                    default: 6fsWBvcH534h0ut9gkP1XYS8F2E7zTjO
+                    expose: false
+                REDIS_PASSWORD:
+                    default: 71v86dpE92IsjF4SlDOuQZLgc35ho0qT
+                    expose: false
+                RUNNERS_PASSWORD:
+                    default: 2K3E0l75J9f6q1g4ivLGCkUBMdu8wzDm
+                    expose: false
+                TELEGRAM_ANDREA_BOT_TOKEN:
+                    default: 8647752152:AAFt7U18c_BfVf5zEKW-TMZD41NDtUOHx-Y
+                    expose: false
+                TELEGRAM_LINUS_BOT_TOKEN:
+                    default: 8672162699:AAEyEDVYYIKEA7-oT59upjvuCi7z_ci98gs
+                    expose: false
+                WORKER_PASSWORD:
+                    default: 0CzWY1kfyLg9qHu547rj6vKaID8Vw2Z3
+                    expose: false
+                ZEABUR_AI_HUB_API_KEY:
+                    default: ""
+                    expose: false
+            configs:
+                - path: /opt/openclaw/startup.sh
+                  template: |
+                    #!/bin/sh
+                    set -e
 
-              echo "=== Setting up openclaw command ==="
-              WORKDIR="$(pwd)"
-              mkdir -p /home/node/bin
-              cat > /home/node/bin/openclaw << SCRIPT
-              #!/bin/sh
-              exec node ${WORKDIR}/dist/index.js "\$@"
-              SCRIPT
-              chmod +x /home/node/bin/openclaw
-              ln -sf /home/node/bin/openclaw /usr/local/bin/openclaw
-              ln -sf /opt/openclaw/backup.sh /home/node/bin/backup
-              ln -sf /opt/openclaw/restore.sh /home/node/bin/restore
-              ln -sf /home/node/bin/backup /usr/local/bin/backup
-              ln -sf /home/node/bin/restore /usr/local/bin/restore
-              export PATH="/home/node/bin:$PATH"
-              export NODE_ENV="${NODE_ENV:-production}"
-              export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=1024}"
-              echo "openclaw command ready at /home/node/bin/openclaw"
+                    echo "=== Setting up openclaw command ==="
+                    WORKDIR="$(pwd)"
+                    mkdir -p /home/node/bin
+                    cat > /home/node/bin/openclaw << SCRIPT
+                    #!/bin/sh
+                    exec node ${WORKDIR}/dist/index.js "\$@"
+                    SCRIPT
+                    chmod +x /home/node/bin/openclaw
+                    ln -sf /home/node/bin/openclaw /usr/local/bin/openclaw
+                    ln -sf /opt/openclaw/backup.sh /home/node/bin/backup
+                    ln -sf /opt/openclaw/restore.sh /home/node/bin/restore
+                    ln -sf /home/node/bin/backup /usr/local/bin/backup
+                    ln -sf /home/node/bin/restore /usr/local/bin/restore
+                    export PATH="/home/node/bin:$PATH"
+                    export NODE_ENV="${NODE_ENV:-production}"
+                    export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=1024}"
+                    echo "openclaw command ready at /home/node/bin/openclaw"
 
-              # Setup config directories
-              CONFIG_DIR="/home/node/.openclaw"
-              CONFIG_FILE="$CONFIG_DIR/openclaw.json"
-              PROVIDERS_DIR="$CONFIG_DIR/providers"
-              mkdir -p "$CONFIG_DIR" "$PROVIDERS_DIR"
-              chmod 700 "$CONFIG_DIR"
+                    # Setup config directories
+                    CONFIG_DIR="/home/node/.openclaw"
+                    CONFIG_FILE="$CONFIG_DIR/openclaw.json"
+                    PROVIDERS_DIR="$CONFIG_DIR/providers"
+                    mkdir -p "$CONFIG_DIR" "$PROVIDERS_DIR"
+                    chmod 700 "$CONFIG_DIR"
 
-              # Check if API key is a real value (not an unresolved template variable like '${ZEABUR_AI_HUB_API_KEY}')
-              HAS_AI_HUB_KEY=false
-              case "${ZEABUR_AI_HUB_API_KEY}" in '${'*'}') ;; '') ;; *) HAS_AI_HUB_KEY=true ;; esac
+                    # Check if API key is a real value (not an unresolved template variable like '${ZEABUR_AI_HUB_API_KEY}')
+                    HAS_AI_HUB_KEY=false
+                    case "${ZEABUR_AI_HUB_API_KEY}" in '${'*'}') ;; '') ;; *) HAS_AI_HUB_KEY=true ;; esac
 
-              # Copy provider config from /opt (injected by Zeabur configs) on every start
-              # so template model-list updates and user Configs edits take effect
-              if [ "$HAS_AI_HUB_KEY" = true ] && [ -f /opt/openclaw/providers/zeabur-ai-hub.json5 ]; then
-                cp /opt/openclaw/providers/zeabur-ai-hub.json5 "$PROVIDERS_DIR/"
-                echo "Synced Zeabur AI Hub provider config from /opt"
-              fi
+                    # Copy provider config from /opt (injected by Zeabur configs) on every start
+                    # so template model-list updates and user Configs edits take effect
+                    if [ "$HAS_AI_HUB_KEY" = true ] && [ -f /opt/openclaw/providers/zeabur-ai-hub.json5 ]; then
+                      cp /opt/openclaw/providers/zeabur-ai-hub.json5 "$PROVIDERS_DIR/"
+                      echo "Synced Zeabur AI Hub provider config from /opt"
+                    fi
 
-              # Create initial config (only if not exists)
-              if [ ! -f "$CONFIG_FILE" ]; then
-                echo "Creating initial config..."
-                if [ "$HAS_AI_HUB_KEY" = true ]; then
-                  cat > "$CONFIG_FILE" << 'EOF'
-              {
-                "gateway": { "trustedProxies": ["10.0.0.0/8", "172.16.0.0/12"], "controlUi": { "allowInsecureAuth": true, "dangerouslyAllowHostHeaderOriginFallback": true, "dangerouslyDisableDeviceAuth": true } },
-                "agents": { "defaults": { "model": { "primary": "zeabur-ai/glm-4.7-flash", "fallbacks": ["zeabur-ai/grok-4-fast-non-reasoning", "zeabur-ai/minimax-m2.5", "zeabur-ai/kimi-k2.5", "zeabur-ai/qwen-3-235b", "zeabur-ai/gpt-5-mini"] } } },
-                "models": {
-                  "providers": { "$include": "./providers/zeabur-ai-hub.json5" }
-                }
-              }
-              EOF
-                else
-                  cat > "$CONFIG_FILE" << 'EOF'
-              {
-                "gateway": { "trustedProxies": ["10.0.0.0/8", "172.16.0.0/12"], "controlUi": { "allowInsecureAuth": true, "dangerouslyAllowHostHeaderOriginFallback": true, "dangerouslyDisableDeviceAuth": true } }
-              }
-              EOF
-                fi
-                chmod 600 "$CONFIG_FILE"
-              else
-                echo "Config exists, checking for updates..."
-                # Add Zeabur AI Hub provider via $include if API key is set but provider not configured
-                if [ "$HAS_AI_HUB_KEY" = true ]; then
-                  node -e "
+                    # Create initial config (only if not exists)
+                    if [ ! -f "$CONFIG_FILE" ]; then
+                      echo "Creating initial config..."
+                      if [ "$HAS_AI_HUB_KEY" = true ]; then
+                        cat > "$CONFIG_FILE" << 'EOF'
+                    {
+                      "gateway": { "trustedProxies": ["10.0.0.0/8", "172.16.0.0/12"], "controlUi": { "allowInsecureAuth": true, "dangerouslyAllowHostHeaderOriginFallback": true, "dangerouslyDisableDeviceAuth": true } },
+                      "agents": { "defaults": { "model": { "primary": "zeabur-ai/glm-4.7-flash", "fallbacks": ["zeabur-ai/grok-4-fast-non-reasoning", "zeabur-ai/minimax-m2.5", "zeabur-ai/kimi-k2.5", "zeabur-ai/qwen-3-235b", "zeabur-ai/gpt-5-mini"] } } },
+                      "models": {
+                        "providers": { "$include": "./providers/zeabur-ai-hub.json5" }
+                      }
+                    }
+                    EOF
+                      else
+                        cat > "$CONFIG_FILE" << 'EOF'
+                    {
+                      "gateway": { "trustedProxies": ["10.0.0.0/8", "172.16.0.0/12"], "controlUi": { "allowInsecureAuth": true, "dangerouslyAllowHostHeaderOriginFallback": true, "dangerouslyDisableDeviceAuth": true } }
+                    }
+                    EOF
+                      fi
+                      chmod 600 "$CONFIG_FILE"
+                    else
+                      echo "Config exists, checking for updates..."
+                      # Add Zeabur AI Hub provider via $include if API key is set but provider not configured
+                      if [ "$HAS_AI_HUB_KEY" = true ]; then
+                        node -e "
+                          const fs = require('fs');
+                          const configPath = '$CONFIG_FILE';
+
+                          try {
+                            const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+                            // Check if zeabur-ai provider already exists (either directly or via \$include)
+                            const hasZeaburAi = config.models?.providers?.['zeabur-ai'] ||
+                              (config.models?.providers?.['\$include'] &&
+                               String(config.models.providers['\$include']).includes('zeabur-ai'));
+
+                            if (!hasZeaburAi) {
+                              console.log('Adding Zeabur AI Hub provider via \$include...');
+
+                              // Initialize models.providers if needed
+                              if (!config.models) config.models = {};
+                              if (!config.models.providers) config.models.providers = {};
+
+                              // Add \$include reference
+                              config.models.providers['\$include'] = './providers/zeabur-ai-hub.json5';
+
+                              // Only set default model if user hasn't configured any model
+                              if (!config.agents?.defaults?.model?.primary) {
+                                if (!config.agents) config.agents = {};
+                                if (!config.agents.defaults) config.agents.defaults = {};
+                                config.agents.defaults.model = { primary: 'zeabur-ai/glm-4.7-flash', fallbacks: ['zeabur-ai/grok-4-fast-non-reasoning', 'zeabur-ai/minimax-m2.5', 'zeabur-ai/kimi-k2.5', 'zeabur-ai/qwen-3-235b', 'zeabur-ai/gpt-5-mini'] };
+                                console.log('Default model set to zeabur-ai/glm-4.7-flash with fallbacks.');
+                              } else {
+                                console.log('Keeping existing default model: ' + config.agents.defaults.model.primary);
+                              }
+
+                              fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+                              console.log('Zeabur AI Hub provider added.');
+                            } else {
+                              console.log('Zeabur AI Hub provider already configured.');
+                            }
+                          } catch (err) {
+                            console.error('Warning: Failed to update config for Zeabur AI Hub:', err.message);
+                            console.error('You may need to configure the provider manually via Web UI.');
+                          }
+                        "
+                      fi
+
+                      # Ensure gateway.trustedProxies is set for Zeabur reverse proxy
+                      node -e "
+                        const fs = require('fs');
+                        const configPath = '$CONFIG_FILE';
+                        try {
+                          const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                          if (!config.gateway) config.gateway = {};
+                          let changed = false;
+                          if (!config.gateway.trustedProxies) {
+                            config.gateway.trustedProxies = ['10.0.0.0/8', '172.16.0.0/12'];
+                            changed = true;
+                            console.log('Added gateway.trustedProxies for Zeabur reverse proxy.');
+                          }
+                          if (!config.gateway.controlUi) config.gateway.controlUi = {};
+                          if (!config.gateway.controlUi.dangerouslyDisableDeviceAuth) {
+                            config.gateway.controlUi.dangerouslyDisableDeviceAuth = true;
+                            changed = true;
+                            console.log('Enabled dangerouslyDisableDeviceAuth for cloud deployment.');
+                          }
+                          if (!config.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback) {
+                            config.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback = true;
+                            changed = true;
+                          }
+                          if (!config.gateway.controlUi.allowInsecureAuth) {
+                            config.gateway.controlUi.allowInsecureAuth = true;
+                            changed = true;
+                          }
+                          if (changed) {
+                            fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+                            console.log('Gateway config updated.');
+                          } else {
+                            console.log('Gateway config already up to date.');
+                          }
+                        } catch (err) {
+                          console.error('Warning: Failed to update gateway config:', err.message);
+                        }
+                      "
+                      chmod 600 "$CONFIG_FILE" 2>/dev/null || true
+                    fi
+
+                    # Copy Zeabur image gen skill if API key is set
+                    MANAGED_SKILLS_DIR="$CONFIG_DIR/skills"
+                    if [ "$HAS_AI_HUB_KEY" = true ]; then
+                      SKILL_DIR="$MANAGED_SKILLS_DIR/zeabur-image-gen"
+                      if [ ! -d "$SKILL_DIR" ]; then
+                        mkdir -p "$SKILL_DIR/scripts"
+                        cp /opt/openclaw/skills/zeabur-image-gen/SKILL.md "$SKILL_DIR/"
+                        cp /opt/openclaw/skills/zeabur-image-gen/scripts/generate_image.mjs "$SKILL_DIR/scripts/"
+                        echo "Installed zeabur-image-gen skill"
+                      fi
+                    fi
+
+                    # Sync channel env vars into config file so they're visible to config-based patches
+                    if [ -f "$CONFIG_FILE" ]; then
+                      node -e "
+                        const fs = require('fs');
+                        const configPath = '$CONFIG_FILE';
+                        const envMap = [
+                          { env: 'TELEGRAM_BOT_TOKEN',        channel: 'telegram', key: 'botToken' },
+                          { env: 'DISCORD_BOT_TOKEN',         channel: 'discord',  key: 'token' },
+                          { env: 'SLACK_BOT_TOKEN',           channel: 'slack',    key: 'botToken' },
+                          { env: 'SLACK_APP_TOKEN',           channel: 'slack',    key: 'appToken' },
+                          { env: 'LINE_CHANNEL_ACCESS_TOKEN', channel: 'line',     key: 'channelAccessToken' },
+                          { env: 'LINE_CHANNEL_SECRET',       channel: 'line',     key: 'channelSecret' },
+                        ];
+                        try {
+                          const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                          let changed = false;
+                          const enabledPlugins = new Set();
+                          for (const { env, channel, key } of envMap) {
+                            const val = process.env[env];
+                            if (!val) continue;
+                            if (!config.channels) config.channels = {};
+                            if (!config.channels[channel]) config.channels[channel] = {};
+                            if (config.channels[channel][key]) {
+                              console.log(env + ': already set in config, skipping');
+                            } else {
+                              config.channels[channel][key] = val;
+                              changed = true;
+                              console.log(env + ' -> channels.' + channel + '.' + key);
+                            }
+                            enabledPlugins.add(channel);
+                          }
+                          // Auto-enable bundled channel plugins (they are disabled by default)
+                          // Respect explicit enabled:false (user intentionally disabled the plugin)
+                          for (const pluginId of enabledPlugins) {
+                            if (!config.plugins) config.plugins = {};
+                            if (!config.plugins.entries) config.plugins.entries = {};
+                            const entry = config.plugins.entries[pluginId];
+                            if (entry && entry.enabled === false) {
+                              console.log('Plugin ' + pluginId + ': explicitly disabled, skipping');
+                              continue;
+                            }
+                            if (!entry) config.plugins.entries[pluginId] = {};
+                            if (config.plugins.entries[pluginId].enabled !== true) {
+                              config.plugins.entries[pluginId].enabled = true;
+                              changed = true;
+                              console.log('Auto-enabled plugin: ' + pluginId);
+                            }
+                          }
+                          if (changed) {
+                            fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+                            console.log('Channel config updated from env vars');
+                          }
+                        } catch (err) {
+                          console.error('Warning: Failed to sync env vars to config:', err.message);
+                        }
+                      "
+                    fi
+
+                    # Patch heartbeat config: auto-detect channel and set explicit delivery target
+                    # This fixes cron proactive notifications which require a resolved delivery target.
+                    # Without this, heartbeat defaults to target:"last" which resolves to "none" if
+                    # no one has messaged the bot yet.
+                    if [ -f "$CONFIG_FILE" ]; then
+                      node -e "
+                        const fs = require('fs');
+                        const configPath = '$CONFIG_FILE';
+                        try {
+                          const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                          const channels = config.channels || {};
+                          const heartbeat = config.agents?.defaults?.heartbeat;
+
+                          // Skip if user already configured heartbeat target explicitly
+                          if (heartbeat?.target && heartbeat.target !== 'last') {
+                            console.log('Heartbeat target already set to: ' + heartbeat.target);
+                          } else {
+                            // Auto-detect first configured channel as heartbeat target
+                            const channelPriority = ['telegram', 'whatsapp', 'discord', 'slack', 'line'];
+                            let detected = null;
+                            for (const ch of channelPriority) {
+                              const chCfg = channels[ch];
+                              if (chCfg && (chCfg.enabled !== false)) {
+                                // Check channel has credentials configured
+                                if (ch === 'telegram' && chCfg.botToken) { detected = ch; break; }
+                                if (ch === 'whatsapp' && (chCfg.phoneNumberId || chCfg.enabled)) { detected = ch; break; }
+                                if (ch === 'discord' && chCfg.token) { detected = ch; break; }
+                                if (ch === 'slack' && chCfg.botToken) { detected = ch; break; }
+                                if (ch === 'line' && chCfg.channelAccessToken) { detected = ch; break; }
+                              }
+                            }
+                            if (detected) {
+                              if (!config.agents) config.agents = {};
+                              if (!config.agents.defaults) config.agents.defaults = {};
+                              config.agents.defaults.heartbeat = {
+                                ...(config.agents.defaults.heartbeat || {}),
+                                target: detected,
+                              };
+                              fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+                              console.log('Heartbeat target auto-set to: ' + detected);
+                            } else {
+                              console.log('No channel detected, heartbeat target unchanged (last)');
+                            }
+                          }
+                        } catch (err) {
+                          console.error('Warning: Failed to patch heartbeat config:', err.message);
+                        }
+                      "
+                    fi
+
+                    # Initialize workspace
+                    OPENCLAW_WORKSPACE_DIR="${OPENCLAW_WORKSPACE_DIR:-/home/node/.openclaw/workspace}"
+                    mkdir -p "${OPENCLAW_WORKSPACE_DIR}"
+                    if [ ! -f "${OPENCLAW_WORKSPACE_DIR}/MEMORY.md" ]; then
+                      echo "# Memory" > "${OPENCLAW_WORKSPACE_DIR}/MEMORY.md"
+                    fi
+
+                    # Ensure HEARTBEAT.md has actionable content for cron notifications.
+                    # OpenClaw skips heartbeat when HEARTBEAT.md is effectively empty (only
+                    # comments/headers), which silently blocks cron-triggered notifications.
+                    # Only write for NEW workspaces to avoid overwriting existing user config.
+                    HEARTBEAT_FILE="${OPENCLAW_WORKSPACE_DIR}/HEARTBEAT.md"
+                    if [ ! -f "$HEARTBEAT_FILE" ]; then
+                      printf '%s\n' '# HEARTBEAT.md' '' 'Check for pending notifications, cron job results, and system events.' 'If nothing needs attention, reply HEARTBEAT_OK.' > "$HEARTBEAT_FILE"
+                      echo "HEARTBEAT.md initialized with actionable content"
+                    fi
+                  permission: 493
+                  envsubst: false
+                - path: /opt/openclaw/start_gateway.sh
+                  template: |
+                    #!/bin/sh
+                    GATEWAY_LOG="/tmp/openclaw-gateway.log"
+                    PORT="${OPENCLAW_GATEWAY_PORT:-18789}"
+
+                    while true; do
+                      echo "=== Starting OpenClaw Gateway ==="
+                      node dist/index.js gateway --allow-unconfigured --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port "$PORT" --token "${OPENCLAW_GATEWAY_TOKEN}" 2>&1 | tee "$GATEWAY_LOG"
+                      EXIT_CODE=$?
+                      echo "=== Gateway exited (code: $EXIT_CODE), restarting in 1h... ==="
+
+                      # Start fallback page on the same port
+                      node /opt/openclaw/fallback.js "$PORT" "$EXIT_CODE" "$GATEWAY_LOG" &
+                      FALLBACK_PID=$!
+
+                      sleep 3600
+                      kill $FALLBACK_PID 2>/dev/null
+                      wait $FALLBACK_PID 2>/dev/null
+                    done
+                  permission: 493
+                  envsubst: false
+                - path: /opt/openclaw/fallback.html
+                  template: "<!DOCTYPE html>\n<html lang=\"en\" class=\"dark\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <meta http-equiv=\"refresh\" content=\"60\">\n  <title>OpenClaw \U0001F99E Unavailable — Zeabur</title>\n  <link href=\"https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700&family=Inter:wght@400;500&display=swap\" rel=\"stylesheet\">\n  <style>\n    :root{\n      --bg:#0F0E11;--surface:#19181B;--surface-hover:#212023;\n      --border:#322F37;--border-light:#3F3C44;\n      --text:#fff;--text-secondary:#B7B4BB;--text-tertiary:#7E7A85;--text-muted:#4C4851;\n      --violet:#6300FF;--violet-hover:#501ECB;--violet-subtle:rgba(99,0,255,.08);\n      --orange:#EE430E;--orange-subtle:rgba(238,67,14,.1);--orange-border:rgba(238,67,14,.2);\n      --success:#22D180;\n      --radius-lg:12px;--radius-xl:16px;\n    }\n    *{margin:0;padding:0;box-sizing:border-box}\n    body{font-family:'Albert Sans','Inter',sans-serif;background:var(--bg);color:var(--text-secondary);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem}\n\n    .page{max-width:480px;width:100%;text-align:center}\n\n    /* Zeabur logo */\n    .logo{margin-bottom:2rem;display:flex;justify-content:center}\n    .logo svg{height:28px;color:var(--text)}\n\n    /* Hero section */\n    .status-dot{display:inline-block;width:10px;height:10px;background:var(--orange);border-radius:50%;margin-right:8px;vertical-align:middle;position:relative}\n    .status-dot::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:2px solid rgba(238,67,14,.3);animation:pulse-ring 2s ease-out infinite}\n    @keyframes pulse-ring{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.6)}}\n\n    h1{font-size:1.5rem;font-weight:700;color:var(--text);letter-spacing:-.02em;line-height:1.3;margin-bottom:.75rem}\n    .desc{font-size:.9375rem;line-height:1.6;color:var(--text-tertiary);margin-bottom:2rem;max-width:400px;margin-left:auto;margin-right:auto}\n\n    /* Steps card */\n    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);overflow:hidden;text-align:left;margin-bottom:1.5rem}\n    .card-header{padding:.875rem 1rem;border-bottom:1px solid var(--border);font-size:.8125rem;font-weight:600;color:var(--text);display:flex;align-items:center;gap:.5rem}\n    .card-header svg{width:16px;height:16px;color:var(--text-tertiary)}\n    .step{padding:.875rem 1rem;display:flex;gap:.75rem;align-items:flex-start}\n    .step+.step{border-top:1px solid var(--border)}\n    .step-num{flex-shrink:0;width:20px;height:20px;display:flex;align-items:center;justify-content:center;background:var(--violet-subtle);color:var(--violet);font-size:.6875rem;font-weight:700;border-radius:6px;margin-top:1px}\n    .step-content{flex:1;font-size:.8125rem;line-height:1.5;color:var(--text-secondary)}\n    .step-content strong{color:var(--text);font-weight:600}\n    .step-content a{color:var(--violet);text-decoration:none}\n    .step-content a:hover{text-decoration:underline}\n    .step-content code{font-family:'Inter',monospace;background:rgba(255,255,255,.05);padding:.0625rem .375rem;border-radius:4px;font-size:.75rem;color:var(--text-tertiary)}\n\n    /* Log viewer */\n    .log-box{margin-top:.625rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:.75rem;max-height:240px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}\n    .log-box::-webkit-scrollbar{width:3px}\n    .log-box::-webkit-scrollbar-track{background:transparent}\n    .log-box::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}\n    .log-box pre{font-family:'Inter',monospace;font-size:.6875rem;line-height:1.7;color:var(--text-muted);white-space:pre-wrap;word-break:break-all}\n\n  </style>\n</head>\n<body>\n  <div class=\"page\">\n    <!-- Zeabur logo -->\n    <div class=\"logo\">\n      <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"31.229\" height=\"24.403\" viewBox=\"0 0 31.229 24.403\"><g transform=\"translate(-289.741 -131.96)\"><g transform=\"translate(289.741 131.96)\"><path d=\"M301.875,151.848h19.1v8.963H289.741v-8.963h8.779l12.087-6.477H289.741v-8.963h31.229v8.963Z\" transform=\"translate(-289.741 -136.408)\" fill=\"#fff\"/><rect width=\"20.761\" height=\"8.963\" fill=\"#6300ff\"/><rect width=\"18.999\" height=\"8.963\" transform=\"translate(12.231 15.44)\" fill=\"#f40\"/></g></g></svg>\n    </div>\n\n    <!-- Status indicator + heading -->\n    <h1><span class=\"status-dot\"></span>OpenClaw \U0001F99E Unavailable</h1>\n    <p class=\"desc\">Your OpenClaw service ran into a problem and stopped. This is a Zeabur helper page — it will disappear automatically once the service is running again.</p>\n\n    <!-- How to fix it -->\n    <div class=\"card\">\n      <div class=\"card-header\">\n        <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path fill-rule=\"evenodd\" d=\"M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z\" clip-rule=\"evenodd\"/></svg>\n        How to fix it\n      </div>\n      <div class=\"step\">\n        <div class=\"step-num\">1</div>\n        <div class=\"step-content\">\n          <strong>Check the error message</strong> &mdash; see what went wrong below. For complete logs, go to your Zeabur Dashboard and open the <strong>Logs</strong> tab.\n          <div class=\"log-box\"><pre>{{LOGS}}</pre></div>\n        </div>\n      </div>\n      <div class=\"step\">\n        <div class=\"step-num\">2</div>\n        <div class=\"step-content\"><strong>If config invalid, fix the configuration</strong> &mdash; open the <strong>Files</strong> tab in your dashboard, navigate to the config file (`/home/node/.openclaw/openclaw.json`), and correct the issue. Then click <strong>Restart</strong>.</div>\n      </div>\n    </div>\n  </div>\n  <script>\n    setInterval(function(){\n      fetch(location.href,{method:'HEAD'}).then(function(r){\n        if(r.status!==503) location.reload();\n      }).catch(function(){});\n    },5000);\n  </script>\n</body>\n</html>\n"
+                  permission: 420
+                  envsubst: false
+                - path: /opt/openclaw/fallback.js
+                  template: |
+                    const http = require('http');
                     const fs = require('fs');
-                    const configPath = '$CONFIG_FILE';
 
+                    const port = parseInt(process.argv[2], 10) || 18789;
+                    const exitCode = process.argv[3] || 'unknown';
+                    const logFile = process.argv[4] || '/tmp/openclaw-gateway.log';
+
+                    function getLastLines(filePath, n) {
+                      try {
+                        const data = fs.readFileSync(filePath, 'utf8');
+                        const lines = data.split('\n');
+                        return lines.slice(-n).join('\n');
+                      } catch (e) {
+                        return '(no logs available)';
+                      }
+                    }
+
+                    function escapeHtml(str) {
+                      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    }
+
+                    let template;
                     try {
-                      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                      template = fs.readFileSync('/opt/openclaw/fallback.html', 'utf8');
+                    } catch (e) {
+                      template = '<html><body><h1>OpenClaw is restarting (exit code: {{EXIT_CODE}})</h1><pre>{{LOGS}}</pre></body></html>';
+                    }
 
-                      // Check if zeabur-ai provider already exists (either directly or via \$include)
-                      const hasZeaburAi = config.models?.providers?.['zeabur-ai'] ||
-                        (config.models?.providers?.['\$include'] &&
-                         String(config.models.providers['\$include']).includes('zeabur-ai'));
+                    const server = http.createServer((req, res) => {
+                      const logs = escapeHtml(getLastLines(logFile, 50));
+                      const html = template
+                        .replace(/\{\{EXIT_CODE\}\}/g, escapeHtml(String(exitCode)))
+                        .replace(/\{\{LOGS\}\}/g, logs);
+                      res.writeHead(503, { 'Content-Type': 'text/html; charset=utf-8' });
+                      res.end(html);
+                    });
 
-                      if (!hasZeaburAi) {
-                        console.log('Adding Zeabur AI Hub provider via \$include...');
+                    server.listen(port, '0.0.0.0', () => {
+                      console.log('Fallback page serving on port ' + port);
+                    });
+                  permission: 493
+                  envsubst: false
+                - path: /opt/openclaw/backup.sh
+                  template: |
+                    #!/bin/sh
+                    set -e
+                    cd /home/node
+                    BACKUP_FILE="backup-$(date +%H%M).tar.gz"
+                    echo "Creating backup..."
+                    tar -czvf "$BACKUP_FILE" .openclaw
+                    echo ""
+                    echo "=== Backup Complete ==="
+                    echo "File: /home/node/$BACKUP_FILE"
+                    echo "Download it from Files tab in Zeabur dashboard"
+                  permission: 493
+                  envsubst: false
+                - path: /opt/openclaw/restore.sh
+                  template: |
+                    #!/bin/sh
+                    set -e
+                    if [ -z "$1" ]; then
+                      echo "Usage: restore <backup-file> [--strip N]"
+                      echo ""
+                      echo "Supports .tar.gz and .zip formats."
+                      echo ""
+                      echo "Examples:"
+                      echo "  restore backup-1430.tar.gz"
+                      echo "  restore backup-xxxxx.zip"
+                      echo "  restore backup-xxxxx.tar.gz --strip 2  # For Zeabur backup service files"
+                      exit 1
+                    fi
+                    cd /home/node
+                    BACKUP_FILE="$1"
+                    if [ ! -f "$BACKUP_FILE" ]; then
+                      echo "Error: File not found: $BACKUP_FILE"
+                      exit 1
+                    fi
+                    case "$BACKUP_FILE" in
+                      *.zip)
+                        echo "Restoring from $BACKUP_FILE (zip)..."
+                        TMPDIR=$(mktemp -d)
+                        unzip -o "$BACKUP_FILE" -d "$TMPDIR"
+                        if [ -d "$TMPDIR/data/data" ]; then
+                          cp -a "$TMPDIR/data/data/." /home/node/
+                        elif [ -d "$TMPDIR/data" ]; then
+                          cp -a "$TMPDIR/data/." /home/node/
+                        else
+                          cp -a "$TMPDIR/." /home/node/
+                        fi
+                        rm -rf "$TMPDIR"
+                        ;;
+                      *.tar.gz|*.tgz)
+                        if [ "$2" = "--strip" ] && [ -n "$3" ]; then
+                          echo "Restoring from $BACKUP_FILE (strip-components=$3)..."
+                          tar -xzvf "$BACKUP_FILE" --strip-components="$3" -C /home/node
+                        else
+                          echo "Restoring from $BACKUP_FILE..."
+                          tar -xzvf "$BACKUP_FILE"
+                        fi
+                        ;;
+                      *)
+                        echo "Error: Unsupported format. Use .tar.gz or .zip"
+                        exit 1
+                        ;;
+                    esac
+                    echo ""
+                    echo "=== Restore Complete ==="
+                    echo "Please restart the service for changes to take effect."
+                  permission: 493
+                  envsubst: false
+                - path: /opt/openclaw/setup-tailscale.sh
+                  template: |
+                    #!/bin/sh
+                    set -e
 
-                        // Initialize models.providers if needed
-                        if (!config.models) config.models = {};
-                        if (!config.models.providers) config.models.providers = {};
+                    # setup-tailscale.sh — Install and configure Tailscale for OpenClaw
+                    # Enables HTTPS access via Tailscale + MagicDNS with OpenClaw's built-in
+                    # Tailscale Serve integration (gateway --tailscale serve).
+                    #
+                    # This script only installs Tailscale and authenticates.
+                    # OpenClaw gateway handles `tailscale serve` itself.
+                    #
+                    # Usage: sh /opt/openclaw/setup-tailscale.sh
+                    # Safe to run multiple times (idempotent).
+                    #
+                    # Environment variables:
+                    #   TS_AUTHKEY   (required)  Tailscale auth key. Script skips if unset.
+                    #                            Get one at: https://login.tailscale.com/admin/settings/keys
+                    #   TS_VERSION   (optional)  Tailscale version to install. Default: 1.82.5
+                    #   TS_HOSTNAME  (optional)  Hostname on tailnet. Default: openclaw
 
-                        // Add \$include reference
-                        config.models.providers['\$include'] = './providers/zeabur-ai-hub.json5';
+                    echo "=== Tailscale Setup ==="
 
-                        // Only set default model if user hasn't configured any model
-                        if (!config.agents?.defaults?.model?.primary) {
-                          if (!config.agents) config.agents = {};
-                          if (!config.agents.defaults) config.agents.defaults = {};
-                          config.agents.defaults.model = { primary: 'zeabur-ai/glm-4.7-flash', fallbacks: ['zeabur-ai/grok-4-fast-non-reasoning', 'zeabur-ai/minimax-m2.5', 'zeabur-ai/kimi-k2.5', 'zeabur-ai/qwen-3-235b', 'zeabur-ai/gpt-5-mini'] };
-                          console.log('Default model set to zeabur-ai/glm-4.7-flash with fallbacks.');
-                        } else {
-                          console.log('Keeping existing default model: ' + config.agents.defaults.model.primary);
-                        }
+                    # --- Config variables ---
+                    TS_VERSION="${TS_VERSION:-1.82.5}"
+                    TS_HOSTNAME="${TS_HOSTNAME:-openclaw}"
+                    BIN_DIR="$HOME/bin"
+                    STATE_DIR="$HOME/.tailscale/state"
+                    SOCK="$HOME/.tailscale/tailscaled.sock"
+                    LOG="$HOME/.tailscale/tailscaled.log"
 
-                        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-                        console.log('Zeabur AI Hub provider added.');
-                      } else {
-                        console.log('Zeabur AI Hub provider already configured.');
+                    # --- 0. Check TS_AUTHKEY ---
+                    if [ -z "$TS_AUTHKEY" ]; then
+                      echo "TS_AUTHKEY not set — skipping Tailscale setup."
+                      exit 0
+                    fi
+
+                    # --- 1. Detect architecture ---
+                    ARCH="$(uname -m)"
+                    case "$ARCH" in
+                      x86_64)  TS_ARCH="amd64" ;;
+                      aarch64) TS_ARCH="arm64" ;;
+                      arm64)   TS_ARCH="arm64" ;;
+                      *)
+                        echo "Error: Unsupported architecture: $ARCH"
+                        exit 1
+                        ;;
+                    esac
+                    echo "Architecture: $ARCH ($TS_ARCH)"
+
+                    # --- 2. Install Tailscale binaries ---
+                    INSTALLED_VERSION=""
+                    if [ -x "$BIN_DIR/tailscale" ]; then
+                      INSTALLED_VERSION="$("$BIN_DIR/tailscale" version 2>/dev/null | head -1 || true)"
+                    fi
+
+                    if [ "$INSTALLED_VERSION" = "$TS_VERSION" ]; then
+                      echo "Tailscale $TS_VERSION already installed."
+                    else
+                      echo "Installing Tailscale $TS_VERSION..."
+                      TARBALL="tailscale_${TS_VERSION}_${TS_ARCH}.tgz"
+                      URL="https://pkgs.tailscale.com/stable/${TARBALL}"
+                      TMPDIR="$(mktemp -d)"
+
+                      curl -fsSL "$URL" -o "$TMPDIR/$TARBALL"
+                      tar -xzf "$TMPDIR/$TARBALL" -C "$TMPDIR"
+
+                      mkdir -p "$BIN_DIR"
+                      cp "$TMPDIR/tailscale_${TS_VERSION}_${TS_ARCH}/tailscale" "$BIN_DIR/tailscale"
+                      cp "$TMPDIR/tailscale_${TS_VERSION}_${TS_ARCH}/tailscaled" "$BIN_DIR/tailscaled"
+                      chmod +x "$BIN_DIR/tailscale" "$BIN_DIR/tailscaled"
+
+                      rm -rf "$TMPDIR"
+                      echo "Tailscale $TS_VERSION installed to $BIN_DIR"
+                    fi
+
+                    # --- 3. Start tailscaled ---
+                    mkdir -p "$HOME/.tailscale/state"
+
+                    # Check if tailscaled is already running
+                    if [ -S "$SOCK" ] && "$BIN_DIR/tailscale" --socket="$SOCK" status >/dev/null 2>&1; then
+                      echo "tailscaled already running."
+                    else
+                      echo "Starting tailscaled..."
+
+                      # Kill any stale tailscaled process
+                      if [ -f "$HOME/.tailscale/tailscaled.pid" ]; then
+                        OLD_PID="$(cat "$HOME/.tailscale/tailscaled.pid")"
+                        kill "$OLD_PID" 2>/dev/null || true
+                        sleep 1
+                      fi
+
+                      # Remove stale socket
+                      rm -f "$SOCK"
+
+                      "$BIN_DIR/tailscaled" \
+                        --tun=userspace-networking \
+                        --statedir="$STATE_DIR" \
+                        --socket="$SOCK" \
+                        >"$LOG" 2>&1 &
+
+                      TAILSCALED_PID=$!
+                      echo "$TAILSCALED_PID" > "$HOME/.tailscale/tailscaled.pid"
+                      echo "tailscaled started (PID $TAILSCALED_PID)"
+
+                      # Wait for socket to be ready
+                      echo "Waiting for tailscaled socket..."
+                      WAIT=0
+                      while [ ! -S "$SOCK" ]; do
+                        sleep 1
+                        WAIT=$((WAIT + 1))
+                        if [ "$WAIT" -ge 30 ]; then
+                          echo "Error: tailscaled socket not ready after 30s"
+                          echo "Check logs: $LOG"
+                          exit 1
+                        fi
+                      done
+                      echo "tailscaled socket ready."
+                    fi
+
+                    # --- 4. Authenticate ---
+                    BACKEND_STATE="$("$BIN_DIR/tailscale" --socket="$SOCK" status --json 2>/dev/null | node -e "
+                      let d = '';
+                      process.stdin.on('data', c => d += c);
+                      process.stdin.on('end', () => {
+                        try { console.log(JSON.parse(d).BackendState); }
+                        catch(e) { console.log('Unknown'); }
+                      });
+                    " 2>/dev/null || echo "Unknown")"
+
+                    if [ "$BACKEND_STATE" = "Running" ]; then
+                      echo "Tailscale already authenticated."
+                    else
+                      echo "Authenticating with Tailscale..."
+                      "$BIN_DIR/tailscale" --socket="$SOCK" up \
+                        --authkey="$TS_AUTHKEY" \
+                        --hostname="$TS_HOSTNAME"
+                      echo "Tailscale authenticated."
+                    fi
+
+                    # --- 5. Print status ---
+                    echo ""
+                    echo "=== Tailscale Setup Complete ==="
+                    "$BIN_DIR/tailscale" --socket="$SOCK" status || true
+                    echo ""
+                    echo "Tailscale state: $STATE_DIR"
+                    echo "Daemon log:      $LOG"
+                    echo "Socket:          $SOCK"
+                    echo ""
+                    echo "Gateway will start with Tailscale Serve (HTTPS)."
+                    echo "Access OpenClaw at: https://${TS_HOSTNAME}.<your-tailnet>.ts.net"
+                  permission: 493
+                  envsubst: false
+                - path: /opt/openclaw/start_gateway_tailscale.sh
+                  template: |
+                    #!/bin/sh
+                    set -e
+
+                    # Setup Tailscale (install + authenticate)
+                    sh /opt/openclaw/setup-tailscale.sh
+
+                    # Symlink socket to default path so tailscale CLI finds it
+                    mkdir -p /var/run/tailscale
+                    ln -sf "$HOME/.tailscale/tailscaled.sock" /var/run/tailscale/tailscaled.sock
+
+                    set +e
+                    GATEWAY_LOG="/tmp/openclaw-gateway.log"
+                    PORT="18789"
+
+                    while true; do
+                      echo "=== Starting OpenClaw Gateway (Tailscale) ==="
+                      node dist/index.js gateway --tailscale serve --allow-unconfigured 2>&1 | tee "$GATEWAY_LOG"
+                      EXIT_CODE=$?
+                      echo "=== Gateway exited (code: $EXIT_CODE), restarting in 1h... ==="
+
+                      # Start fallback page on the same port
+                      node /opt/openclaw/fallback.js "$PORT" "$EXIT_CODE" "$GATEWAY_LOG" &
+                      FALLBACK_PID=$!
+
+                      sleep 3600
+                      kill $FALLBACK_PID 2>/dev/null
+                      wait $FALLBACK_PID 2>/dev/null
+                    done
+                  permission: 493
+                  envsubst: false
+                - path: /opt/openclaw/providers/zeabur-ai-hub.json5
+                  template: |
+                    {
+                      "zeabur-ai": {
+                        "baseUrl": "https://hnd1.aihub.zeabur.ai/v1",
+                        "apiKey": "${ZEABUR_AI_HUB_API_KEY}",
+                        "api": "openai-completions",
+                        "models": [
+                          { "id": "gemini-3-pro-image-preview", "name": "Gemini 3 Pro Image Preview (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 2, "output": 120, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192 },
+                          { "id": "gemini-3-pro-preview", "name": "Gemini 3 Pro Preview (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 2, "output": 12, "cacheRead": 0.2, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192 },
+                          { "id": "gpt-5", "name": "GPT-5 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 1.25, "output": 10, "cacheRead": 0.13, "cacheWrite": 0 }, "contextWindow": 400000, "maxTokens": 8192 },
+                          { "id": "claude-opus-4-6", "name": "Claude Opus 4.6 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 5, "output": 25, "cacheRead": 0.5, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192, "compat": { "supportsStore": false } },
+                          { "id": "claude-sonnet-4-5", "name": "Claude Sonnet 4.5 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 3.3, "output": 16.5, "cacheRead": 0.33, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192, "compat": { "supportsStore": false } },
+                          { "id": "gemini-3-flash-preview", "name": "Gemini 3 Flash Preview (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.5, "output": 3, "cacheRead": 0.05, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192 },
+                          { "id": "gpt-5-mini", "name": "GPT-5 Mini (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.25, "output": 2, "cacheRead": 0.03, "cacheWrite": 0 }, "contextWindow": 400000, "maxTokens": 8192 },
+                          { "id": "claude-haiku-4-5", "name": "Claude Haiku 4.5 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 1.1, "output": 5.5, "cacheRead": 0.11, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192, "compat": { "supportsStore": false } },
+                          { "id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 1.25, "output": 10, "cacheRead": 0.125, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192 },
+                          { "id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.3, "output": 2.5, "cacheRead": 0.03, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192 },
+                          { "id": "gemini-2.5-flash-lite", "name": "Gemini 2.5 Flash Lite (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.1, "output": 0.4, "cacheRead": 0.01, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192 },
+                          { "id": "gemini-2.5-flash-image", "name": "Gemini 2.5 Flash Image (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.3, "output": 30, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192 },
+                          { "id": "deepseek-v3.2", "name": "DeepSeek V3.2 (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.27, "output": 0.4, "cacheRead": 0.216, "cacheWrite": 0 }, "contextWindow": 164000, "maxTokens": 8192 },
+                          { "id": "gpt-4.1", "name": "GPT-4.1 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 2, "output": 8, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 1048576, "maxTokens": 8192 },
+                          { "id": "gpt-4.1-mini", "name": "GPT-4.1 mini (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.4, "output": 1.6, "cacheRead": 0.1, "cacheWrite": 0 }, "contextWindow": 1048576, "maxTokens": 8192 },
+                          { "id": "gpt-4o", "name": "GPT-4o (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 2.5, "output": 10, "cacheRead": 1.25, "cacheWrite": 0 }, "contextWindow": 128000, "maxTokens": 8192 },
+                          { "id": "gpt-4o-mini", "name": "GPT-4o mini (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.15, "output": 0.6, "cacheRead": 0.075, "cacheWrite": 0 }, "contextWindow": 128000, "maxTokens": 8192 },
+                          { "id": "gpt-oss-120b", "name": "GPT OSS 120B (Zeabur AI Hub)", "reasoning": true, "input": ["text"], "cost": { "input": 0.35, "output": 0.75, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 131072, "maxTokens": 8192, "compat": { "supportsStore": false } },
+                          { "id": "grok-4-fast-non-reasoning", "name": "Grok 4 Fast (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.2, "output": 0.5, "cacheRead": 0.05, "cacheWrite": 0 }, "contextWindow": 2000000, "maxTokens": 8192 },
+                          { "id": "glm-4.6", "name": "GLM-4.6 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.45, "output": 1.9, "cacheRead": 0.11, "cacheWrite": 0 }, "contextWindow": 204800, "maxTokens": 8192 },
+                          { "id": "llama-3.1-8b", "name": "Llama 3.1 8B (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.02, "output": 0.05, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 131072, "maxTokens": 8192 },
+                          { "id": "qwen-3-235b", "name": "Qwen 3 235B (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.18, "output": 0.54, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 32768, "maxTokens": 8192 },
+                          { "id": "qwen3-next", "name": "Qwen 3 Next 80B (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.14, "output": 1.1, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 32768, "maxTokens": 8192 },
+                          { "id": "kimi-k2-thinking", "name": "Kimi K2 Thinking (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.55, "output": 2.5, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 131072, "maxTokens": 8192 },
+                          { "id": "gpt-5.2", "name": "GPT-5.2 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 1.5, "output": 12, "cacheRead": 0.15, "cacheWrite": 0 }, "contextWindow": 400000, "maxTokens": 8192 },
+                          { "id": "gpt-5.1", "name": "GPT-5.1 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 1.35, "output": 11, "cacheRead": 0.14, "cacheWrite": 0 }, "contextWindow": 400000, "maxTokens": 8192 },
+                          { "id": "gpt-5-nano", "name": "GPT-5 Nano (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.1, "output": 0.8, "cacheRead": 0.01, "cacheWrite": 0 }, "contextWindow": 400000, "maxTokens": 8192 },
+                          { "id": "glm-4.7", "name": "GLM-4.7 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.5, "output": 2, "cacheRead": 0.12, "cacheWrite": 0 }, "contextWindow": 204800, "maxTokens": 8192 },
+                          { "id": "glm-4.7-flash", "name": "GLM-4.7 Flash (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.25, "output": 1, "cacheRead": 0.06, "cacheWrite": 0 }, "contextWindow": 204800, "maxTokens": 8192 },
+                          { "id": "kimi-k2.5", "name": "Kimi K2.5 (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.45, "output": 2, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 131072, "maxTokens": 8192 },
+                          { "id": "minimax-m2.5", "name": "MiniMax M2.5 (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.27, "output": 0.95, "cacheRead": 0.03, "cacheWrite": 0 }, "contextWindow": 196608, "maxTokens": 8192 },
+                          { "id": "step-3.5-flash", "name": "Step 3.5 Flash (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.1, "output": 0.3, "cacheRead": 0.02, "cacheWrite": 0 }, "contextWindow": 256000, "maxTokens": 8192 }
+                        ]
                       }
-                    } catch (err) {
-                      console.error('Warning: Failed to update config for Zeabur AI Hub:', err.message);
-                      console.error('You may need to configure the provider manually via Web UI.');
                     }
-                  "
-                fi
+                  permission: null
+                  envsubst: null
+                - path: /opt/openclaw/skills/zeabur-image-gen/SKILL.md
+                  template: "---\nname: zeabur-image-gen\ndescription: Generate images via Zeabur AI Hub using Gemini image models.\nhomepage: https://zeabur.com/ai-hub\nmetadata:\n  {\n    \"openclaw\":\n      {\n        \"emoji\": \"\U0001F3A8\",\n        \"requires\": { \"env\": [\"ZEABUR_AI_HUB_API_KEY\"] },\n        \"primaryEnv\": \"ZEABUR_AI_HUB_API_KEY\",\n      },\n  }\n---\n\n# Zeabur Image Gen\n\nGenerate images via Zeabur AI Hub using Gemini image models.\n\n## Run\n\n```bash\nnode {baseDir}/scripts/generate_image.mjs --prompt \"your image description\" --filename \"output.png\"\n```\n\nUseful flags:\n\n```bash\n# Use a specific model\nnode {baseDir}/scripts/generate_image.mjs --prompt \"a cat on the moon\" --filename \"cat-moon.png\" --model gemini-3-pro-image-preview\n\n# Use SFO1 endpoint (default is HND1 Tokyo)\nnode {baseDir}/scripts/generate_image.mjs --prompt \"cherry blossoms\" --filename \"sakura.png\" --endpoint sfo1\n```\n\n## Supported Models\n\n- `gemini-2.5-flash-image` (default) - faster\n- `gemini-3-pro-image-preview` - higher quality\n\n## API Key\n\n- `ZEABUR_AI_HUB_API_KEY` env var\n- Or set `skills.\"zeabur-image-gen\".apiKey` / `skills.\"zeabur-image-gen\".env.ZEABUR_AI_HUB_API_KEY` in `~/.openclaw/openclaw.json`\n\n## Notes\n\n- Endpoints: `hnd1` (Tokyo, default), `sfo1` (San Francisco).\n- Use timestamps in filenames: `yyyy-mm-dd-hh-mm-ss-name.png`.\n- The script prints a `MEDIA:` line for OpenClaw to auto-attach on supported chat providers.\n- Do not read the image back; report the saved path only.\n"
+                  permission: 420
+                  envsubst: false
+                - path: /opt/openclaw/skills/zeabur-image-gen/scripts/generate_image.mjs
+                  template: |
+                    #!/usr/bin/env node
+                    /**
+                     * Generate images using Zeabur AI Hub via Chat Completions API.
+                     *
+                     * Usage:
+                     *   node generate_image.mjs --prompt "your image description" --filename "output.png"
+                     *   node generate_image.mjs --prompt "a cat" --filename "cat.png" --model gemini-2.5-flash-image
+                     */
 
-                # Ensure gateway.trustedProxies is set for Zeabur reverse proxy
-                node -e "
-                  const fs = require('fs');
-                  const configPath = '$CONFIG_FILE';
-                  try {
-                    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-                    if (!config.gateway) config.gateway = {};
-                    let changed = false;
-                    if (!config.gateway.trustedProxies) {
-                      config.gateway.trustedProxies = ['10.0.0.0/8', '172.16.0.0/12'];
-                      changed = true;
-                      console.log('Added gateway.trustedProxies for Zeabur reverse proxy.');
+                    import { parseArgs } from "node:util";
+                    import { writeFile, mkdir } from "node:fs/promises";
+                    import { resolve, dirname } from "node:path";
+
+                    const ENDPOINTS = {
+                      hnd1: "https://hnd1.aihub.zeabur.ai",
+                      sfo1: "https://sfo1.aihub.zeabur.ai",
+                    };
+
+                    const DEFAULT_MODEL = "gemini-2.5-flash-image";
+
+                    const { values } = parseArgs({
+                      options: {
+                        prompt: { type: "string", short: "p" },
+                        filename: { type: "string", short: "f" },
+                        model: { type: "string", short: "m", default: DEFAULT_MODEL },
+                        endpoint: { type: "string", short: "e", default: "hnd1" },
+                        "api-key": { type: "string", short: "k" },
+                      },
+                      strict: true,
+                    });
+
+                    if (!values.prompt || !values.filename) {
+                      console.error("Usage: node generate_image.mjs --prompt <text> --filename <path>");
+                      process.exit(1);
                     }
-                    if (!config.gateway.controlUi) config.gateway.controlUi = {};
-                    if (!config.gateway.controlUi.dangerouslyDisableDeviceAuth) {
-                      config.gateway.controlUi.dangerouslyDisableDeviceAuth = true;
-                      changed = true;
-                      console.log('Enabled dangerouslyDisableDeviceAuth for cloud deployment.');
+
+                    const apiKey = values["api-key"] || process.env.ZEABUR_AI_HUB_API_KEY;
+                    if (!apiKey) {
+                      console.error("Error: No API key provided.");
+                      console.error("  1. Provide --api-key argument");
+                      console.error("  2. Set ZEABUR_AI_HUB_API_KEY environment variable");
+                      process.exit(1);
                     }
-                    if (!config.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback) {
-                      config.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback = true;
-                      changed = true;
+
+                    const baseUrl = ENDPOINTS[values.endpoint];
+                    if (!baseUrl) {
+                      console.error(`Error: Unknown endpoint "${values.endpoint}". Use: ${Object.keys(ENDPOINTS).join(", ")}`);
+                      process.exit(1);
                     }
-                    if (!config.gateway.controlUi.allowInsecureAuth) {
-                      config.gateway.controlUi.allowInsecureAuth = true;
-                      changed = true;
+
+                    const model = values.model;
+                    const prompt = values.prompt;
+                    const outputPath = resolve(values.filename);
+
+                    await mkdir(dirname(outputPath), { recursive: true });
+
+                    console.log(`Generating image with ${model} via ${values.endpoint}...`);
+                    console.log(`Prompt: ${prompt}`);
+
+                    const resp = await fetch(`${baseUrl}/v1/chat/completions`, {
+                      method: "POST",
+                      headers: {
+                        Authorization: `Bearer ${apiKey}`,
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        model,
+                        messages: [{ role: "user", content: prompt }],
+                        stream: false,
+                      }),
+                      signal: AbortSignal.timeout(300_000),
+                    });
+
+                    if (!resp.ok) {
+                      const body = await resp.text();
+                      console.error(`Zeabur AI Hub API failed (${resp.status}): ${body}`);
+                      process.exit(1);
                     }
-                    if (changed) {
-                      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-                      console.log('Gateway config updated.');
-                    } else {
-                      console.log('Gateway config already up to date.');
+
+                    const res = await resp.json();
+                    const msg = res.choices?.[0]?.message;
+
+                    // Extract base64 image from response
+                    const imgEntry = msg?.images?.[0]?.image_url?.url;
+                    if (!imgEntry) {
+                      console.error("Error: No image in response.");
+                      console.error(`Response: ${JSON.stringify(res).slice(0, 400)}`);
+                      process.exit(1);
                     }
-                  } catch (err) {
-                    console.error('Warning: Failed to update gateway config:', err.message);
-                  }
-                "
-                chmod 600 "$CONFIG_FILE" 2>/dev/null || true
-              fi
 
-              # Copy Zeabur image gen skill if API key is set
-              MANAGED_SKILLS_DIR="$CONFIG_DIR/skills"
-              if [ "$HAS_AI_HUB_KEY" = true ]; then
-                SKILL_DIR="$MANAGED_SKILLS_DIR/zeabur-image-gen"
-                if [ ! -d "$SKILL_DIR" ]; then
-                  mkdir -p "$SKILL_DIR/scripts"
-                  cp /opt/openclaw/skills/zeabur-image-gen/SKILL.md "$SKILL_DIR/"
-                  cp /opt/openclaw/skills/zeabur-image-gen/scripts/generate_image.mjs "$SKILL_DIR/scripts/"
-                  echo "Installed zeabur-image-gen skill"
-                fi
-              fi
+                    const b64 = imgEntry.replace(/^data:image\/\w+;base64,/, "");
+                    await writeFile(outputPath, Buffer.from(b64, "base64"));
 
-              # Sync channel env vars into config file so they're visible to config-based patches
-              if [ -f "$CONFIG_FILE" ]; then
-                node -e "
-                  const fs = require('fs');
-                  const configPath = '$CONFIG_FILE';
-                  const envMap = [
-                    { env: 'TELEGRAM_BOT_TOKEN',        channel: 'telegram', key: 'botToken' },
-                    { env: 'DISCORD_BOT_TOKEN',         channel: 'discord',  key: 'token' },
-                    { env: 'SLACK_BOT_TOKEN',           channel: 'slack',    key: 'botToken' },
-                    { env: 'SLACK_APP_TOKEN',           channel: 'slack',    key: 'appToken' },
-                    { env: 'LINE_CHANNEL_ACCESS_TOKEN', channel: 'line',     key: 'channelAccessToken' },
-                    { env: 'LINE_CHANNEL_SECRET',       channel: 'line',     key: 'channelSecret' },
-                  ];
-                  try {
-                    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-                    let changed = false;
-                    const enabledPlugins = new Set();
-                    for (const { env, channel, key } of envMap) {
-                      const val = process.env[env];
-                      if (!val) continue;
-                      if (!config.channels) config.channels = {};
-                      if (!config.channels[channel]) config.channels[channel] = {};
-                      if (config.channels[channel][key]) {
-                        console.log(env + ': already set in config, skipping');
-                      } else {
-                        config.channels[channel][key] = val;
-                        changed = true;
-                        console.log(env + ' -> channels.' + channel + '.' + key);
-                      }
-                      enabledPlugins.add(channel);
-                    }
-                    // Auto-enable bundled channel plugins (they are disabled by default)
-                    // Respect explicit enabled:false (user intentionally disabled the plugin)
-                    for (const pluginId of enabledPlugins) {
-                      if (!config.plugins) config.plugins = {};
-                      if (!config.plugins.entries) config.plugins.entries = {};
-                      const entry = config.plugins.entries[pluginId];
-                      if (entry && entry.enabled === false) {
-                        console.log('Plugin ' + pluginId + ': explicitly disabled, skipping');
-                        continue;
-                      }
-                      if (!entry) config.plugins.entries[pluginId] = {};
-                      if (config.plugins.entries[pluginId].enabled !== true) {
-                        config.plugins.entries[pluginId].enabled = true;
-                        changed = true;
-                        console.log('Auto-enabled plugin: ' + pluginId);
-                      }
-                    }
-                    if (changed) {
-                      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-                      console.log('Channel config updated from env vars');
-                    }
-                  } catch (err) {
-                    console.error('Warning: Failed to sync env vars to config:', err.message);
-                  }
-                "
-              fi
-
-              # Patch heartbeat config: auto-detect channel and set explicit delivery target
-              # This fixes cron proactive notifications which require a resolved delivery target.
-              # Without this, heartbeat defaults to target:"last" which resolves to "none" if
-              # no one has messaged the bot yet.
-              if [ -f "$CONFIG_FILE" ]; then
-                node -e "
-                  const fs = require('fs');
-                  const configPath = '$CONFIG_FILE';
-                  try {
-                    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-                    const channels = config.channels || {};
-                    const heartbeat = config.agents?.defaults?.heartbeat;
-
-                    // Skip if user already configured heartbeat target explicitly
-                    if (heartbeat?.target && heartbeat.target !== 'last') {
-                      console.log('Heartbeat target already set to: ' + heartbeat.target);
-                    } else {
-                      // Auto-detect first configured channel as heartbeat target
-                      const channelPriority = ['telegram', 'whatsapp', 'discord', 'slack', 'line'];
-                      let detected = null;
-                      for (const ch of channelPriority) {
-                        const chCfg = channels[ch];
-                        if (chCfg && (chCfg.enabled !== false)) {
-                          // Check channel has credentials configured
-                          if (ch === 'telegram' && chCfg.botToken) { detected = ch; break; }
-                          if (ch === 'whatsapp' && (chCfg.phoneNumberId || chCfg.enabled)) { detected = ch; break; }
-                          if (ch === 'discord' && chCfg.token) { detected = ch; break; }
-                          if (ch === 'slack' && chCfg.botToken) { detected = ch; break; }
-                          if (ch === 'line' && chCfg.channelAccessToken) { detected = ch; break; }
-                        }
-                      }
-                      if (detected) {
-                        if (!config.agents) config.agents = {};
-                        if (!config.agents.defaults) config.agents.defaults = {};
-                        config.agents.defaults.heartbeat = {
-                          ...(config.agents.defaults.heartbeat || {}),
-                          target: detected,
-                        };
-                        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-                        console.log('Heartbeat target auto-set to: ' + detected);
-                      } else {
-                        console.log('No channel detected, heartbeat target unchanged (last)');
-                      }
-                    }
-                  } catch (err) {
-                    console.error('Warning: Failed to patch heartbeat config:', err.message);
-                  }
-                "
-              fi
-
-              # Initialize workspace
-              OPENCLAW_WORKSPACE_DIR="${OPENCLAW_WORKSPACE_DIR:-/home/node/.openclaw/workspace}"
-              mkdir -p "${OPENCLAW_WORKSPACE_DIR}"
-              if [ ! -f "${OPENCLAW_WORKSPACE_DIR}/MEMORY.md" ]; then
-                echo "# Memory" > "${OPENCLAW_WORKSPACE_DIR}/MEMORY.md"
-              fi
-
-              # Ensure HEARTBEAT.md has actionable content for cron notifications.
-              # OpenClaw skips heartbeat when HEARTBEAT.md is effectively empty (only
-              # comments/headers), which silently blocks cron-triggered notifications.
-              # Only write for NEW workspaces to avoid overwriting existing user config.
-              HEARTBEAT_FILE="${OPENCLAW_WORKSPACE_DIR}/HEARTBEAT.md"
-              if [ ! -f "$HEARTBEAT_FILE" ]; then
-                printf '%s\n' '# HEARTBEAT.md' '' 'Check for pending notifications, cron job results, and system events.' 'If nothing needs attention, reply HEARTBEAT_OK.' > "$HEARTBEAT_FILE"
-                echo "HEARTBEAT.md initialized with actionable content"
-              fi
-            permission: 493
-            envsubst: false
-          - path: /opt/openclaw/start_gateway.sh
-            template: |
-              #!/bin/sh
-              GATEWAY_LOG="/tmp/openclaw-gateway.log"
-              PORT="${OPENCLAW_GATEWAY_PORT:-18789}"
-
-              while true; do
-                echo "=== Starting OpenClaw Gateway ==="
-                node dist/index.js gateway --allow-unconfigured --bind "${OPENCLAW_GATEWAY_BIND:-lan}" --port "$PORT" --token "${OPENCLAW_GATEWAY_TOKEN}" 2>&1 | tee "$GATEWAY_LOG"
-                EXIT_CODE=$?
-                echo "=== Gateway exited (code: $EXIT_CODE), restarting in 1h... ==="
-
-                # Start fallback page on the same port
-                node /opt/openclaw/fallback.js "$PORT" "$EXIT_CODE" "$GATEWAY_LOG" &
-                FALLBACK_PID=$!
-
-                sleep 3600
-                kill $FALLBACK_PID 2>/dev/null
-                wait $FALLBACK_PID 2>/dev/null
-              done
-            permission: 493
-            envsubst: false
-          - path: /opt/openclaw/fallback.html
-            template: "<!DOCTYPE html>\n<html lang=\"en\" class=\"dark\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <meta http-equiv=\"refresh\" content=\"60\">\n  <title>OpenClaw \U0001F99E Unavailable — Zeabur</title>\n  <link href=\"https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700&family=Inter:wght@400;500&display=swap\" rel=\"stylesheet\">\n  <style>\n    :root{\n      --bg:#0F0E11;--surface:#19181B;--surface-hover:#212023;\n      --border:#322F37;--border-light:#3F3C44;\n      --text:#fff;--text-secondary:#B7B4BB;--text-tertiary:#7E7A85;--text-muted:#4C4851;\n      --violet:#6300FF;--violet-hover:#501ECB;--violet-subtle:rgba(99,0,255,.08);\n      --orange:#EE430E;--orange-subtle:rgba(238,67,14,.1);--orange-border:rgba(238,67,14,.2);\n      --success:#22D180;\n      --radius-lg:12px;--radius-xl:16px;\n    }\n    *{margin:0;padding:0;box-sizing:border-box}\n    body{font-family:'Albert Sans','Inter',sans-serif;background:var(--bg);color:var(--text-secondary);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem}\n\n    .page{max-width:480px;width:100%;text-align:center}\n\n    /* Zeabur logo */\n    .logo{margin-bottom:2rem;display:flex;justify-content:center}\n    .logo svg{height:28px;color:var(--text)}\n\n    /* Hero section */\n    .status-dot{display:inline-block;width:10px;height:10px;background:var(--orange);border-radius:50%;margin-right:8px;vertical-align:middle;position:relative}\n    .status-dot::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:2px solid rgba(238,67,14,.3);animation:pulse-ring 2s ease-out infinite}\n    @keyframes pulse-ring{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.6)}}\n\n    h1{font-size:1.5rem;font-weight:700;color:var(--text);letter-spacing:-.02em;line-height:1.3;margin-bottom:.75rem}\n    .desc{font-size:.9375rem;line-height:1.6;color:var(--text-tertiary);margin-bottom:2rem;max-width:400px;margin-left:auto;margin-right:auto}\n\n    /* Steps card */\n    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);overflow:hidden;text-align:left;margin-bottom:1.5rem}\n    .card-header{padding:.875rem 1rem;border-bottom:1px solid var(--border);font-size:.8125rem;font-weight:600;color:var(--text);display:flex;align-items:center;gap:.5rem}\n    .card-header svg{width:16px;height:16px;color:var(--text-tertiary)}\n    .step{padding:.875rem 1rem;display:flex;gap:.75rem;align-items:flex-start}\n    .step+.step{border-top:1px solid var(--border)}\n    .step-num{flex-shrink:0;width:20px;height:20px;display:flex;align-items:center;justify-content:center;background:var(--violet-subtle);color:var(--violet);font-size:.6875rem;font-weight:700;border-radius:6px;margin-top:1px}\n    .step-content{flex:1;font-size:.8125rem;line-height:1.5;color:var(--text-secondary)}\n    .step-content strong{color:var(--text);font-weight:600}\n    .step-content a{color:var(--violet);text-decoration:none}\n    .step-content a:hover{text-decoration:underline}\n    .step-content code{font-family:'Inter',monospace;background:rgba(255,255,255,.05);padding:.0625rem .375rem;border-radius:4px;font-size:.75rem;color:var(--text-tertiary)}\n\n    /* Log viewer */\n    .log-box{margin-top:.625rem;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:.75rem;max-height:240px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}\n    .log-box::-webkit-scrollbar{width:3px}\n    .log-box::-webkit-scrollbar-track{background:transparent}\n    .log-box::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}\n    .log-box pre{font-family:'Inter',monospace;font-size:.6875rem;line-height:1.7;color:var(--text-muted);white-space:pre-wrap;word-break:break-all}\n\n  </style>\n</head>\n<body>\n  <div class=\"page\">\n    <!-- Zeabur logo -->\n    <div class=\"logo\">\n      <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"31.229\" height=\"24.403\" viewBox=\"0 0 31.229 24.403\"><g transform=\"translate(-289.741 -131.96)\"><g transform=\"translate(289.741 131.96)\"><path d=\"M301.875,151.848h19.1v8.963H289.741v-8.963h8.779l12.087-6.477H289.741v-8.963h31.229v8.963Z\" transform=\"translate(-289.741 -136.408)\" fill=\"#fff\"/><rect width=\"20.761\" height=\"8.963\" fill=\"#6300ff\"/><rect width=\"18.999\" height=\"8.963\" transform=\"translate(12.231 15.44)\" fill=\"#f40\"/></g></g></svg>\n    </div>\n\n    <!-- Status indicator + heading -->\n    <h1><span class=\"status-dot\"></span>OpenClaw \U0001F99E Unavailable</h1>\n    <p class=\"desc\">Your OpenClaw service ran into a problem and stopped. This is a Zeabur helper page — it will disappear automatically once the service is running again.</p>\n\n    <!-- How to fix it -->\n    <div class=\"card\">\n      <div class=\"card-header\">\n        <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><path fill-rule=\"evenodd\" d=\"M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z\" clip-rule=\"evenodd\"/></svg>\n        How to fix it\n      </div>\n      <div class=\"step\">\n        <div class=\"step-num\">1</div>\n        <div class=\"step-content\">\n          <strong>Check the error message</strong> &mdash; see what went wrong below. For complete logs, go to your Zeabur Dashboard and open the <strong>Logs</strong> tab.\n          <div class=\"log-box\"><pre>{{LOGS}}</pre></div>\n        </div>\n      </div>\n      <div class=\"step\">\n        <div class=\"step-num\">2</div>\n        <div class=\"step-content\"><strong>If config invalid, fix the configuration</strong> &mdash; open the <strong>Files</strong> tab in your dashboard, navigate to the config file (`/home/node/.openclaw/openclaw.json`), and correct the issue. Then click <strong>Restart</strong>.</div>\n      </div>\n    </div>\n  </div>\n  <script>\n    setInterval(function(){\n      fetch(location.href,{method:'HEAD'}).then(function(r){\n        if(r.status!==503) location.reload();\n      }).catch(function(){});\n    },5000);\n  </script>\n</body>\n</html>\n"
-            permission: 420
-            envsubst: false
-          - path: /opt/openclaw/fallback.js
-            template: |
-              const http = require('http');
-              const fs = require('fs');
-
-              const port = parseInt(process.argv[2], 10) || 18789;
-              const exitCode = process.argv[3] || 'unknown';
-              const logFile = process.argv[4] || '/tmp/openclaw-gateway.log';
-
-              function getLastLines(filePath, n) {
-                try {
-                  const data = fs.readFileSync(filePath, 'utf8');
-                  const lines = data.split('\n');
-                  return lines.slice(-n).join('\n');
-                } catch (e) {
-                  return '(no logs available)';
-                }
-              }
-
-              function escapeHtml(str) {
-                return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-              }
-
-              let template;
-              try {
-                template = fs.readFileSync('/opt/openclaw/fallback.html', 'utf8');
-              } catch (e) {
-                template = '<html><body><h1>OpenClaw is restarting (exit code: {{EXIT_CODE}})</h1><pre>{{LOGS}}</pre></body></html>';
-              }
-
-              const server = http.createServer((req, res) => {
-                const logs = escapeHtml(getLastLines(logFile, 50));
-                const html = template
-                  .replace(/\{\{EXIT_CODE\}\}/g, escapeHtml(String(exitCode)))
-                  .replace(/\{\{LOGS\}\}/g, logs);
-                res.writeHead(503, { 'Content-Type': 'text/html; charset=utf-8' });
-                res.end(html);
-              });
-
-              server.listen(port, '0.0.0.0', () => {
-                console.log('Fallback page serving on port ' + port);
-              });
-            permission: 493
-            envsubst: false
-          - path: /opt/openclaw/backup.sh
-            template: |
-              #!/bin/sh
-              set -e
-              cd /home/node
-              BACKUP_FILE="backup-$(date +%H%M).tar.gz"
-              echo "Creating backup..."
-              tar -czvf "$BACKUP_FILE" .openclaw
-              echo ""
-              echo "=== Backup Complete ==="
-              echo "File: /home/node/$BACKUP_FILE"
-              echo "Download it from Files tab in Zeabur dashboard"
-            permission: 493
-            envsubst: false
-          - path: /opt/openclaw/restore.sh
-            template: |
-              #!/bin/sh
-              set -e
-              if [ -z "$1" ]; then
-                echo "Usage: restore <backup-file> [--strip N]"
-                echo ""
-                echo "Supports .tar.gz and .zip formats."
-                echo ""
-                echo "Examples:"
-                echo "  restore backup-1430.tar.gz"
-                echo "  restore backup-xxxxx.zip"
-                echo "  restore backup-xxxxx.tar.gz --strip 2  # For Zeabur backup service files"
-                exit 1
-              fi
-              cd /home/node
-              BACKUP_FILE="$1"
-              if [ ! -f "$BACKUP_FILE" ]; then
-                echo "Error: File not found: $BACKUP_FILE"
-                exit 1
-              fi
-              case "$BACKUP_FILE" in
-                *.zip)
-                  echo "Restoring from $BACKUP_FILE (zip)..."
-                  TMPDIR=$(mktemp -d)
-                  unzip -o "$BACKUP_FILE" -d "$TMPDIR"
-                  if [ -d "$TMPDIR/data/data" ]; then
-                    cp -a "$TMPDIR/data/data/." /home/node/
-                  elif [ -d "$TMPDIR/data" ]; then
-                    cp -a "$TMPDIR/data/." /home/node/
-                  else
-                    cp -a "$TMPDIR/." /home/node/
-                  fi
-                  rm -rf "$TMPDIR"
-                  ;;
-                *.tar.gz|*.tgz)
-                  if [ "$2" = "--strip" ] && [ -n "$3" ]; then
-                    echo "Restoring from $BACKUP_FILE (strip-components=$3)..."
-                    tar -xzvf "$BACKUP_FILE" --strip-components="$3" -C /home/node
-                  else
-                    echo "Restoring from $BACKUP_FILE..."
-                    tar -xzvf "$BACKUP_FILE"
-                  fi
-                  ;;
-                *)
-                  echo "Error: Unsupported format. Use .tar.gz or .zip"
-                  exit 1
-                  ;;
-              esac
-              echo ""
-              echo "=== Restore Complete ==="
-              echo "Please restart the service for changes to take effect."
-            permission: 493
-            envsubst: false
-          - path: /opt/openclaw/setup-tailscale.sh
-            template: |
-              #!/bin/sh
-              set -e
-
-              # setup-tailscale.sh — Install and configure Tailscale for OpenClaw
-              # Enables HTTPS access via Tailscale + MagicDNS with OpenClaw's built-in
-              # Tailscale Serve integration (gateway --tailscale serve).
-              #
-              # This script only installs Tailscale and authenticates.
-              # OpenClaw gateway handles `tailscale serve` itself.
-              #
-              # Usage: sh /opt/openclaw/setup-tailscale.sh
-              # Safe to run multiple times (idempotent).
-              #
-              # Environment variables:
-              #   TS_AUTHKEY   (required)  Tailscale auth key. Script skips if unset.
-              #                            Get one at: https://login.tailscale.com/admin/settings/keys
-              #   TS_VERSION   (optional)  Tailscale version to install. Default: 1.82.5
-              #   TS_HOSTNAME  (optional)  Hostname on tailnet. Default: openclaw
-
-              echo "=== Tailscale Setup ==="
-
-              # --- Config variables ---
-              TS_VERSION="${TS_VERSION:-1.82.5}"
-              TS_HOSTNAME="${TS_HOSTNAME:-openclaw}"
-              BIN_DIR="$HOME/bin"
-              STATE_DIR="$HOME/.tailscale/state"
-              SOCK="$HOME/.tailscale/tailscaled.sock"
-              LOG="$HOME/.tailscale/tailscaled.log"
-
-              # --- 0. Check TS_AUTHKEY ---
-              if [ -z "$TS_AUTHKEY" ]; then
-                echo "TS_AUTHKEY not set — skipping Tailscale setup."
-                exit 0
-              fi
-
-              # --- 1. Detect architecture ---
-              ARCH="$(uname -m)"
-              case "$ARCH" in
-                x86_64)  TS_ARCH="amd64" ;;
-                aarch64) TS_ARCH="arm64" ;;
-                arm64)   TS_ARCH="arm64" ;;
-                *)
-                  echo "Error: Unsupported architecture: $ARCH"
-                  exit 1
-                  ;;
-              esac
-              echo "Architecture: $ARCH ($TS_ARCH)"
-
-              # --- 2. Install Tailscale binaries ---
-              INSTALLED_VERSION=""
-              if [ -x "$BIN_DIR/tailscale" ]; then
-                INSTALLED_VERSION="$("$BIN_DIR/tailscale" version 2>/dev/null | head -1 || true)"
-              fi
-
-              if [ "$INSTALLED_VERSION" = "$TS_VERSION" ]; then
-                echo "Tailscale $TS_VERSION already installed."
-              else
-                echo "Installing Tailscale $TS_VERSION..."
-                TARBALL="tailscale_${TS_VERSION}_${TS_ARCH}.tgz"
-                URL="https://pkgs.tailscale.com/stable/${TARBALL}"
-                TMPDIR="$(mktemp -d)"
-
-                curl -fsSL "$URL" -o "$TMPDIR/$TARBALL"
-                tar -xzf "$TMPDIR/$TARBALL" -C "$TMPDIR"
-
-                mkdir -p "$BIN_DIR"
-                cp "$TMPDIR/tailscale_${TS_VERSION}_${TS_ARCH}/tailscale" "$BIN_DIR/tailscale"
-                cp "$TMPDIR/tailscale_${TS_VERSION}_${TS_ARCH}/tailscaled" "$BIN_DIR/tailscaled"
-                chmod +x "$BIN_DIR/tailscale" "$BIN_DIR/tailscaled"
-
-                rm -rf "$TMPDIR"
-                echo "Tailscale $TS_VERSION installed to $BIN_DIR"
-              fi
-
-              # --- 3. Start tailscaled ---
-              mkdir -p "$HOME/.tailscale/state"
-
-              # Check if tailscaled is already running
-              if [ -S "$SOCK" ] && "$BIN_DIR/tailscale" --socket="$SOCK" status >/dev/null 2>&1; then
-                echo "tailscaled already running."
-              else
-                echo "Starting tailscaled..."
-
-                # Kill any stale tailscaled process
-                if [ -f "$HOME/.tailscale/tailscaled.pid" ]; then
-                  OLD_PID="$(cat "$HOME/.tailscale/tailscaled.pid")"
-                  kill "$OLD_PID" 2>/dev/null || true
-                  sleep 1
-                fi
-
-                # Remove stale socket
-                rm -f "$SOCK"
-
-                "$BIN_DIR/tailscaled" \
-                  --tun=userspace-networking \
-                  --statedir="$STATE_DIR" \
-                  --socket="$SOCK" \
-                  >"$LOG" 2>&1 &
-
-                TAILSCALED_PID=$!
-                echo "$TAILSCALED_PID" > "$HOME/.tailscale/tailscaled.pid"
-                echo "tailscaled started (PID $TAILSCALED_PID)"
-
-                # Wait for socket to be ready
-                echo "Waiting for tailscaled socket..."
-                WAIT=0
-                while [ ! -S "$SOCK" ]; do
-                  sleep 1
-                  WAIT=$((WAIT + 1))
-                  if [ "$WAIT" -ge 30 ]; then
-                    echo "Error: tailscaled socket not ready after 30s"
-                    echo "Check logs: $LOG"
-                    exit 1
-                  fi
-                done
-                echo "tailscaled socket ready."
-              fi
-
-              # --- 4. Authenticate ---
-              BACKEND_STATE="$("$BIN_DIR/tailscale" --socket="$SOCK" status --json 2>/dev/null | node -e "
-                let d = '';
-                process.stdin.on('data', c => d += c);
-                process.stdin.on('end', () => {
-                  try { console.log(JSON.parse(d).BackendState); }
-                  catch(e) { console.log('Unknown'); }
-                });
-              " 2>/dev/null || echo "Unknown")"
-
-              if [ "$BACKEND_STATE" = "Running" ]; then
-                echo "Tailscale already authenticated."
-              else
-                echo "Authenticating with Tailscale..."
-                "$BIN_DIR/tailscale" --socket="$SOCK" up \
-                  --authkey="$TS_AUTHKEY" \
-                  --hostname="$TS_HOSTNAME"
-                echo "Tailscale authenticated."
-              fi
-
-              # --- 5. Print status ---
-              echo ""
-              echo "=== Tailscale Setup Complete ==="
-              "$BIN_DIR/tailscale" --socket="$SOCK" status || true
-              echo ""
-              echo "Tailscale state: $STATE_DIR"
-              echo "Daemon log:      $LOG"
-              echo "Socket:          $SOCK"
-              echo ""
-              echo "Gateway will start with Tailscale Serve (HTTPS)."
-              echo "Access OpenClaw at: https://${TS_HOSTNAME}.<your-tailnet>.ts.net"
-            permission: 493
-            envsubst: false
-          - path: /opt/openclaw/start_gateway_tailscale.sh
-            template: |
-              #!/bin/sh
-              set -e
-
-              # Setup Tailscale (install + authenticate)
-              sh /opt/openclaw/setup-tailscale.sh
-
-              # Symlink socket to default path so tailscale CLI finds it
-              mkdir -p /var/run/tailscale
-              ln -sf "$HOME/.tailscale/tailscaled.sock" /var/run/tailscale/tailscaled.sock
-
-              set +e
-              GATEWAY_LOG="/tmp/openclaw-gateway.log"
-              PORT="18789"
-
-              while true; do
-                echo "=== Starting OpenClaw Gateway (Tailscale) ==="
-                node dist/index.js gateway --tailscale serve --allow-unconfigured 2>&1 | tee "$GATEWAY_LOG"
-                EXIT_CODE=$?
-                echo "=== Gateway exited (code: $EXIT_CODE), restarting in 1h... ==="
-
-                # Start fallback page on the same port
-                node /opt/openclaw/fallback.js "$PORT" "$EXIT_CODE" "$GATEWAY_LOG" &
-                FALLBACK_PID=$!
-
-                sleep 3600
-                kill $FALLBACK_PID 2>/dev/null
-                wait $FALLBACK_PID 2>/dev/null
-              done
-            permission: 493
-            envsubst: false
-          - path: /opt/openclaw/providers/zeabur-ai-hub.json5
-            template: |
-              {
-                "zeabur-ai": {
-                  "baseUrl": "https://hnd1.aihub.zeabur.ai/v1",
-                  "apiKey": "${ZEABUR_AI_HUB_API_KEY}",
-                  "api": "openai-completions",
-                  "models": [
-                    { "id": "gemini-3-pro-image-preview", "name": "Gemini 3 Pro Image Preview (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 2, "output": 120, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192 },
-                    { "id": "gemini-3-pro-preview", "name": "Gemini 3 Pro Preview (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 2, "output": 12, "cacheRead": 0.2, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192 },
-                    { "id": "gpt-5", "name": "GPT-5 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 1.25, "output": 10, "cacheRead": 0.13, "cacheWrite": 0 }, "contextWindow": 400000, "maxTokens": 8192 },
-                    { "id": "claude-opus-4-6", "name": "Claude Opus 4.6 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 5, "output": 25, "cacheRead": 0.5, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192, "compat": { "supportsStore": false } },
-                    { "id": "claude-sonnet-4-5", "name": "Claude Sonnet 4.5 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 3.3, "output": 16.5, "cacheRead": 0.33, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192, "compat": { "supportsStore": false } },
-                    { "id": "gemini-3-flash-preview", "name": "Gemini 3 Flash Preview (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.5, "output": 3, "cacheRead": 0.05, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192 },
-                    { "id": "gpt-5-mini", "name": "GPT-5 Mini (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.25, "output": 2, "cacheRead": 0.03, "cacheWrite": 0 }, "contextWindow": 400000, "maxTokens": 8192 },
-                    { "id": "claude-haiku-4-5", "name": "Claude Haiku 4.5 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 1.1, "output": 5.5, "cacheRead": 0.11, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192, "compat": { "supportsStore": false } },
-                    { "id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 1.25, "output": 10, "cacheRead": 0.125, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192 },
-                    { "id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.3, "output": 2.5, "cacheRead": 0.03, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192 },
-                    { "id": "gemini-2.5-flash-lite", "name": "Gemini 2.5 Flash Lite (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.1, "output": 0.4, "cacheRead": 0.01, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192 },
-                    { "id": "gemini-2.5-flash-image", "name": "Gemini 2.5 Flash Image (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.3, "output": 30, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 1000000, "maxTokens": 8192 },
-                    { "id": "deepseek-v3.2", "name": "DeepSeek V3.2 (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.27, "output": 0.4, "cacheRead": 0.216, "cacheWrite": 0 }, "contextWindow": 164000, "maxTokens": 8192 },
-                    { "id": "gpt-4.1", "name": "GPT-4.1 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 2, "output": 8, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 1048576, "maxTokens": 8192 },
-                    { "id": "gpt-4.1-mini", "name": "GPT-4.1 mini (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.4, "output": 1.6, "cacheRead": 0.1, "cacheWrite": 0 }, "contextWindow": 1048576, "maxTokens": 8192 },
-                    { "id": "gpt-4o", "name": "GPT-4o (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 2.5, "output": 10, "cacheRead": 1.25, "cacheWrite": 0 }, "contextWindow": 128000, "maxTokens": 8192 },
-                    { "id": "gpt-4o-mini", "name": "GPT-4o mini (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.15, "output": 0.6, "cacheRead": 0.075, "cacheWrite": 0 }, "contextWindow": 128000, "maxTokens": 8192 },
-                    { "id": "gpt-oss-120b", "name": "GPT OSS 120B (Zeabur AI Hub)", "reasoning": true, "input": ["text"], "cost": { "input": 0.35, "output": 0.75, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 131072, "maxTokens": 8192, "compat": { "supportsStore": false } },
-                    { "id": "grok-4-fast-non-reasoning", "name": "Grok 4 Fast (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.2, "output": 0.5, "cacheRead": 0.05, "cacheWrite": 0 }, "contextWindow": 2000000, "maxTokens": 8192 },
-                    { "id": "glm-4.6", "name": "GLM-4.6 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.45, "output": 1.9, "cacheRead": 0.11, "cacheWrite": 0 }, "contextWindow": 204800, "maxTokens": 8192 },
-                    { "id": "llama-3.1-8b", "name": "Llama 3.1 8B (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.02, "output": 0.05, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 131072, "maxTokens": 8192 },
-                    { "id": "qwen-3-235b", "name": "Qwen 3 235B (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.18, "output": 0.54, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 32768, "maxTokens": 8192 },
-                    { "id": "qwen3-next", "name": "Qwen 3 Next 80B (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.14, "output": 1.1, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 32768, "maxTokens": 8192 },
-                    { "id": "kimi-k2-thinking", "name": "Kimi K2 Thinking (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.55, "output": 2.5, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 131072, "maxTokens": 8192 },
-                    { "id": "gpt-5.2", "name": "GPT-5.2 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 1.5, "output": 12, "cacheRead": 0.15, "cacheWrite": 0 }, "contextWindow": 400000, "maxTokens": 8192 },
-                    { "id": "gpt-5.1", "name": "GPT-5.1 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 1.35, "output": 11, "cacheRead": 0.14, "cacheWrite": 0 }, "contextWindow": 400000, "maxTokens": 8192 },
-                    { "id": "gpt-5-nano", "name": "GPT-5 Nano (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.1, "output": 0.8, "cacheRead": 0.01, "cacheWrite": 0 }, "contextWindow": 400000, "maxTokens": 8192 },
-                    { "id": "glm-4.7", "name": "GLM-4.7 (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.5, "output": 2, "cacheRead": 0.12, "cacheWrite": 0 }, "contextWindow": 204800, "maxTokens": 8192 },
-                    { "id": "glm-4.7-flash", "name": "GLM-4.7 Flash (Zeabur AI Hub)", "reasoning": false, "input": ["text", "image"], "cost": { "input": 0.25, "output": 1, "cacheRead": 0.06, "cacheWrite": 0 }, "contextWindow": 204800, "maxTokens": 8192 },
-                    { "id": "kimi-k2.5", "name": "Kimi K2.5 (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.45, "output": 2, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 131072, "maxTokens": 8192 },
-                    { "id": "minimax-m2.5", "name": "MiniMax M2.5 (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.27, "output": 0.95, "cacheRead": 0.03, "cacheWrite": 0 }, "contextWindow": 196608, "maxTokens": 8192 },
-                    { "id": "step-3.5-flash", "name": "Step 3.5 Flash (Zeabur AI Hub)", "reasoning": false, "input": ["text"], "cost": { "input": 0.1, "output": 0.3, "cacheRead": 0.02, "cacheWrite": 0 }, "contextWindow": 256000, "maxTokens": 8192 }
-                  ]
-                }
-              }
-            permission: null
-            envsubst: null
-          - path: /opt/openclaw/skills/zeabur-image-gen/SKILL.md
-            template: "---\nname: zeabur-image-gen\ndescription: Generate images via Zeabur AI Hub using Gemini image models.\nhomepage: https://zeabur.com/ai-hub\nmetadata:\n  {\n    \"openclaw\":\n      {\n        \"emoji\": \"\U0001F3A8\",\n        \"requires\": { \"env\": [\"ZEABUR_AI_HUB_API_KEY\"] },\n        \"primaryEnv\": \"ZEABUR_AI_HUB_API_KEY\",\n      },\n  }\n---\n\n# Zeabur Image Gen\n\nGenerate images via Zeabur AI Hub using Gemini image models.\n\n## Run\n\n```bash\nnode {baseDir}/scripts/generate_image.mjs --prompt \"your image description\" --filename \"output.png\"\n```\n\nUseful flags:\n\n```bash\n# Use a specific model\nnode {baseDir}/scripts/generate_image.mjs --prompt \"a cat on the moon\" --filename \"cat-moon.png\" --model gemini-3-pro-image-preview\n\n# Use SFO1 endpoint (default is HND1 Tokyo)\nnode {baseDir}/scripts/generate_image.mjs --prompt \"cherry blossoms\" --filename \"sakura.png\" --endpoint sfo1\n```\n\n## Supported Models\n\n- `gemini-2.5-flash-image` (default) - faster\n- `gemini-3-pro-image-preview` - higher quality\n\n## API Key\n\n- `ZEABUR_AI_HUB_API_KEY` env var\n- Or set `skills.\"zeabur-image-gen\".apiKey` / `skills.\"zeabur-image-gen\".env.ZEABUR_AI_HUB_API_KEY` in `~/.openclaw/openclaw.json`\n\n## Notes\n\n- Endpoints: `hnd1` (Tokyo, default), `sfo1` (San Francisco).\n- Use timestamps in filenames: `yyyy-mm-dd-hh-mm-ss-name.png`.\n- The script prints a `MEDIA:` line for OpenClaw to auto-attach on supported chat providers.\n- Do not read the image back; report the saved path only.\n"
-            permission: 420
-            envsubst: false
-          - path: /opt/openclaw/skills/zeabur-image-gen/scripts/generate_image.mjs
-            template: |
-              #!/usr/bin/env node
-              /**
-               * Generate images using Zeabur AI Hub via Chat Completions API.
-               *
-               * Usage:
-               *   node generate_image.mjs --prompt "your image description" --filename "output.png"
-               *   node generate_image.mjs --prompt "a cat" --filename "cat.png" --model gemini-2.5-flash-image
-               */
-
-              import { parseArgs } from "node:util";
-              import { writeFile, mkdir } from "node:fs/promises";
-              import { resolve, dirname } from "node:path";
-
-              const ENDPOINTS = {
-                hnd1: "https://hnd1.aihub.zeabur.ai",
-                sfo1: "https://sfo1.aihub.zeabur.ai",
-              };
-
-              const DEFAULT_MODEL = "gemini-2.5-flash-image";
-
-              const { values } = parseArgs({
-                options: {
-                  prompt: { type: "string", short: "p" },
-                  filename: { type: "string", short: "f" },
-                  model: { type: "string", short: "m", default: DEFAULT_MODEL },
-                  endpoint: { type: "string", short: "e", default: "hnd1" },
-                  "api-key": { type: "string", short: "k" },
-                },
-                strict: true,
-              });
-
-              if (!values.prompt || !values.filename) {
-                console.error("Usage: node generate_image.mjs --prompt <text> --filename <path>");
-                process.exit(1);
-              }
-
-              const apiKey = values["api-key"] || process.env.ZEABUR_AI_HUB_API_KEY;
-              if (!apiKey) {
-                console.error("Error: No API key provided.");
-                console.error("  1. Provide --api-key argument");
-                console.error("  2. Set ZEABUR_AI_HUB_API_KEY environment variable");
-                process.exit(1);
-              }
-
-              const baseUrl = ENDPOINTS[values.endpoint];
-              if (!baseUrl) {
-                console.error(`Error: Unknown endpoint "${values.endpoint}". Use: ${Object.keys(ENDPOINTS).join(", ")}`);
-                process.exit(1);
-              }
-
-              const model = values.model;
-              const prompt = values.prompt;
-              const outputPath = resolve(values.filename);
-
-              await mkdir(dirname(outputPath), { recursive: true });
-
-              console.log(`Generating image with ${model} via ${values.endpoint}...`);
-              console.log(`Prompt: ${prompt}`);
-
-              const resp = await fetch(`${baseUrl}/v1/chat/completions`, {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${apiKey}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  model,
-                  messages: [{ role: "user", content: prompt }],
-                  stream: false,
-                }),
-                signal: AbortSignal.timeout(300_000),
-              });
-
-              if (!resp.ok) {
-                const body = await resp.text();
-                console.error(`Zeabur AI Hub API failed (${resp.status}): ${body}`);
-                process.exit(1);
-              }
-
-              const res = await resp.json();
-              const msg = res.choices?.[0]?.message;
-
-              // Extract base64 image from response
-              const imgEntry = msg?.images?.[0]?.image_url?.url;
-              if (!imgEntry) {
-                console.error("Error: No image in response.");
-                console.error(`Response: ${JSON.stringify(res).slice(0, 400)}`);
-                process.exit(1);
-              }
-
-              const b64 = imgEntry.replace(/^data:image\/\w+;base64,/, "");
-              await writeFile(outputPath, Buffer.from(b64, "base64"));
-
-              console.log(`\nImage saved: ${outputPath}`);
-              console.log(`MEDIA: ${outputPath}`);
-            permission: 420
-            envsubst: false
-        portForwarding:
-          enabled: false
-    - name: Worker
-      icon: https://i.imgur.com/KUcP61Z.png
-      template: PREBUILT_V2
-      spec:
-        source:
-          image: docker.io/n8nio/n8n:2.7.4
-          command:
-            - /bin/sh
-          args:
-            - -c
-            - n8n worker
-        ports:
-          - id: taskbroker
-            port: 5679
-            type: TCP
-        volumes:
-          - id: data
-            dir: /root/.n8n
-        env:
-          DB_POSTGRESDB_DATABASE:
-            default: ${POSTGRES_DB}
-            expose: false
-          DB_POSTGRESDB_HOST:
-            default: ${POSTGRES_HOST}
-            expose: false
-          DB_POSTGRESDB_PASSWORD:
-            default: ${POSTGRES_PASSWORD}
-            expose: false
-          DB_POSTGRESDB_PORT:
-            default: ${POSTGRES_PORT}
-            expose: false
-          DB_POSTGRESDB_USER:
-            default: ${POSTGRES_USERNAME}
-            expose: false
-          DB_TYPE:
-            default: postgresdb
-            expose: false
-          EXECUTIONS_MODE:
-            default: queue
-            expose: false
-          N8N_ENCRYPTION_KEY:
-            default: ${N8N_ENCRYPTION_KEY_WORKER}
-            expose: false
-          N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS:
-            default: "true"
-            expose: false
-          N8N_HOST:
-            default: ${ZEABUR_WEB_DOMAIN}
-            expose: false
-          N8N_RUNNERS_AUTH_TOKEN:
-            default: ${TASK_RUNNERS_AUTH_TOKEN}
-            expose: false
-          N8N_RUNNERS_BROKER_LISTEN_ADDRESS:
-            default: 0.0.0.0
-            expose: false
-          N8N_RUNNERS_ENABLED:
-            default: "true"
-            expose: false
-          N8N_RUNNERS_MODE:
-            default: external
-            expose: false
-          NODE_ENV:
-            default: production
-            expose: false
-          OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS:
-            default: "true"
-            expose: false
-          POSTGRESQL_PASSWORD:
-            default: 6fsWBvcH534h0ut9gkP1XYS8F2E7zTjO
-            expose: false
-          QUEUE_BULL_REDIS_HOST:
-            default: ${REDIS_HOST}
-            expose: false
-          QUEUE_BULL_REDIS_PASSWORD:
-            default: ${REDIS_PASSWORD}
-            expose: false
-          QUEUE_BULL_REDIS_PORT:
-            default: ${REDIS_PORT}
-            expose: false
-          REDIS_PASSWORD:
-            default: 71v86dpE92IsjF4SlDOuQZLgc35ho0qT
-            expose: false
-          WEBHOOK_URL:
-            default: ${ZEABUR_WEB_URL}
-            expose: false
-        configs: []
-        portForwarding:
-          enabled: true
-    - name: unified-commerce-hub
-      icon: https://service-icons.zeabur.com/git/bun/default.svg
-      template: PREBUILT_V2
-      spec:
-        source:
-          source: GITHUB
-          repo: 1175945965
-          branch: main
-          rootDirectory: /
-        ports:
-          - id: web
-            port: 8080
-            type: HTTP
-        env:
-          CORS_ORIGIN:
-            default: "*"
-            expose: false
-          JWT_SECRET:
-            default: neovega-jwt-2026-s3cur3-k3y-x9f2m4p7r1q8w5t3y6u0
-            expose: false
-          PORT:
-            default: ${WEB_PORT}
-            expose: false
-          ROOT_ID:
-            default: admin
-            expose: false
-          ROOT_PASSWORD:
-            default: ${PASSWORD}
-            expose: false
-          VITE_POCKETBASE_URL:
-            default: https://pocketbase.zeabur.internal:8090
-            expose: false
-        configs: []
-        portForwarding:
-          enabled: false
-    - name: PocketBase
-      icon: https://pocketbase.io/images/logo.svg
-      template: PREBUILT_V2
-      spec:
-        source:
-          image: ghcr.io/muchobien/pocketbase:0.18
-        ports:
-          - id: web
-            port: 8090
-            type: HTTP
-        volumes:
-          - id: data
-            dir: /pb_data
-        env: {}
-        configs: []
-        portForwarding:
-          enabled: false
+                    console.log(`\nImage saved: ${outputPath}`);
+                    console.log(`MEDIA: ${outputPath}`);
+                  permission: 420
+                  envsubst: false
+            portForwarding:
+                enabled: false
+        - name: Worker
+          icon: https://i.imgur.com/KUcP61Z.png
+          template: PREBUILT_V2
+          spec:
+            source:
+                image: docker.io/n8nio/n8n:2.7.4
+                command:
+                    - /bin/sh
+                args:
+                    - -c
+                    - n8n worker
+            ports:
+                - id: taskbroker
+                  port: 5679
+                  type: TCP
+            volumes:
+                - id: data
+                  dir: /root/.n8n
+            env:
+                DB_POSTGRESDB_DATABASE:
+                    default: ${POSTGRES_DB}
+                    expose: false
+                DB_POSTGRESDB_HOST:
+                    default: ${POSTGRES_HOST}
+                    expose: false
+                DB_POSTGRESDB_PASSWORD:
+                    default: ${POSTGRES_PASSWORD}
+                    expose: false
+                DB_POSTGRESDB_PORT:
+                    default: ${POSTGRES_PORT}
+                    expose: false
+                DB_POSTGRESDB_USER:
+                    default: ${POSTGRES_USERNAME}
+                    expose: false
+                DB_TYPE:
+                    default: postgresdb
+                    expose: false
+                EXECUTIONS_MODE:
+                    default: queue
+                    expose: false
+                N8N_ENCRYPTION_KEY:
+                    default: ${N8N_ENCRYPTION_KEY_WORKER}
+                    expose: false
+                N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS:
+                    default: "true"
+                    expose: false
+                N8N_HOST:
+                    default: ${ZEABUR_WEB_DOMAIN}
+                    expose: false
+                N8N_RUNNERS_AUTH_TOKEN:
+                    default: ${TASK_RUNNERS_AUTH_TOKEN}
+                    expose: false
+                N8N_RUNNERS_BROKER_LISTEN_ADDRESS:
+                    default: 0.0.0.0
+                    expose: false
+                N8N_RUNNERS_ENABLED:
+                    default: "true"
+                    expose: false
+                N8N_RUNNERS_MODE:
+                    default: external
+                    expose: false
+                NODE_ENV:
+                    default: production
+                    expose: false
+                OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS:
+                    default: "true"
+                    expose: false
+                POSTGRESQL_PASSWORD:
+                    default: 6fsWBvcH534h0ut9gkP1XYS8F2E7zTjO
+                    expose: false
+                QUEUE_BULL_REDIS_HOST:
+                    default: ${REDIS_HOST}
+                    expose: false
+                QUEUE_BULL_REDIS_PASSWORD:
+                    default: ${REDIS_PASSWORD}
+                    expose: false
+                QUEUE_BULL_REDIS_PORT:
+                    default: ${REDIS_PORT}
+                    expose: false
+                REDIS_PASSWORD:
+                    default: 71v86dpE92IsjF4SlDOuQZLgc35ho0qT
+                    expose: false
+                WEBHOOK_URL:
+                    default: ${ZEABUR_WEB_URL}
+                    expose: false
+            configs: []
+            portForwarding:
+                enabled: true
+        - name: unified-commerce-hub
+          icon: https://service-icons.zeabur.com/git/bun/default.svg
+          template: PREBUILT_V2
+          spec:
+            source:
+                source: GITHUB
+                repo: 1175945965
+                branch: main
+                rootDirectory: /
+            ports:
+                - id: web
+                  port: 8080
+                  type: HTTP
+            env:
+                CORS_ORIGIN:
+                    default: '*'
+                    expose: false
+                JWT_SECRET:
+                    default: neovega-jwt-2026-s3cur3-k3y-x9f2m4p7r1q8w5t3y6u0
+                    expose: false
+                PORT:
+                    default: ${WEB_PORT}
+                    expose: false
+                ROOT_ID:
+                    default: admin
+                    expose: false
+                ROOT_PASSWORD:
+                    default: ${PASSWORD}
+                    expose: false
+                VITE_POCKETBASE_URL:
+                    default: https://pocketbase.zeabur.internal:8090
+                    expose: false
+            configs: []
+            portForwarding:
+                enabled: false
+        - name: PocketBase
+          icon: https://pocketbase.io/images/logo.svg
+          template: PREBUILT_V2
+          spec:
+            source:
+                image: ghcr.io/muchobien/pocketbase:0.18
+            ports:
+                - id: web
+                  port: 8090
+                  type: HTTP
+            volumes:
+                - id: data
+                  dir: /pb_data
+            env: {}
+            configs: []
+            portForwarding:
+                enabled: false
