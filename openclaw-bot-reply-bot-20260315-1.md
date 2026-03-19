@@ -1,406 +1,373 @@
-# OpenClaw Bot 互動增強計畫
+# Telegram Bot-to-Bot 互動解決方案評估計畫
 
-**建立日期：** 2026-03-15  
-**狀態：** 計畫中  
-**優先級：** 高
+**文件編號**: openclaw-bot-reply-bot-20260315-1  
+**建立日期**: 2026-03-18  
+**狀態**: 評估階段
 
-## 問題分析
+## 1. 問題描述
 
-### 原始問題描述
+### 1.1 核心問題
+Telegram 平台有一個已知的限制：**Bot 無法讀取其他 Bot 發送的訊息**。這是 Telegram 的設計決策，目的是防止 bot 之間的無限循環和濫用。
 
-> "Telegram 會自動過濾 bot 發出的訊息而不讓其他 bot 讀取反應，達不到互動的目標"
+### 1.2 當前架構影響
+在我們的 unified-commerce-hub 系統中，這個限制導致：
+- Andrea Bot 無法看到 Umio Bot 的回覆
+- Linus Bot 無法看到 Andrea Bot 的回覆
+- 無法實現多 bot 協作的工作流程
+- 客戶服務場景中的 bot 接力無法實現
 
-### 真實問題診斷
+### 1.3 業務需求
+我們需要實現以下場景：
+1. **客服接力**: Umio Bot 初步回應 → Andrea Bot 深度分析 → Linus Bot 技術支援
+2. **專業分工**: 不同 bot 處理不同類型的查詢
+3. **品質控制**: 一個 bot 審核另一個 bot 的回覆
+4. **協作回應**: 多個 bot 共同完成複雜任務
 
-經過深入分析，發現問題的根本原因**不是** Telegram 過濾 bot 訊息，而是：
+## 2. 解決方案評估
 
-**⚠️ Webhook 和 getUpdates 模式衝突**
+### 方案 A: User Bot 架構（使用真實用戶帳號）
 
-**技術細節：**
-- Telegram Bot API 限制：同一個 bot 不能同時使用 webhook 和 getUpdates
-- 當前架構：
-  - OpenClaw Bot 使用 Webhook 模式（透過 webhook-bridge）
-  - Andrea/Umio Bots 使用 getUpdates 模式（輪詢）
-- 結果：當 webhook 啟用時，getUpdates 返回空結果，導致 agents 無法接收訊息
+#### 2.1 技術原理
+使用 Telegram User Bot（基於 MTProto API）而不是 Bot API。User Bot 使用真實用戶帳號，可以看到所有訊息。
 
-**症狀：**
-1. Webhook Bridge 啟用後，Zeabur 上的 agents 停止回應
-2. 重啟 OpenClaw 服務後才能暫時恢復
-3. 看起來像是"bot 訊息被過濾"，實際上是 API 模式衝突
+#### 2.2 優點
+- ✅ 可以讀取所有訊息，包括其他 bot 的訊息
+- ✅ 功能完整，與真實用戶相同
+- ✅ 可以加入群組、頻道
+- ✅ 支援所有 Telegram 功能
 
-## 解決方案評估
+#### 2.3 缺點
+- ❌ **違反 Telegram 服務條款**（User Bot 用於自動化可能被封禁）
+- ❌ 需要真實手機號碼
+- ❌ 安全風險高（需要用戶的 session）
+- ❌ 不穩定（Telegram 可能隨時封禁）
+- ❌ 法律風險（可能違反用戶協議）
 
-### 方案 A：統一使用 Webhook 模式 ⭐ (推薦)
+#### 2.4 實作複雜度
+- 技術複雜度: ⭐⭐⭐⭐
+- 維護成本: ⭐⭐⭐⭐⭐
+- 風險等級: 🔴 極高
 
-**概述：**
-所有 bots（OpenClaw、Andrea、Umio）都使用 webhook 模式，透過 Webhook Bridge 統一接收和處理訊息。
-
-**優點：**
-- ✅ 即時性最佳（無輪詢延遲）
-- ✅ 資源效率高（無需持續輪詢）
-- ✅ 架構統一，易於維護和擴展
-- ✅ 符合現代 bot 開發最佳實踐
-- ✅ 已有 Webhook Bridge 基礎，只需擴展
-
-**缺點：**
-- ⚠️ 需要修改現有 Zeabur agents 代碼
-- ⚠️ 需要公開的 webhook URL（已有）
-- ⚠️ 實施工作量中等
-
-**技術架構：**
-```
-Telegram API
-  ├── OpenClaw Bot → webhook-bridge/webhook/openclaw
-  ├── Andrea Bot → webhook-bridge/webhook/andrea
-  └── Umio Bot → webhook-bridge/webhook/umio
-
-Webhook Bridge (webhook-bridge.neovega.cc)
-  ├── 接收所有 bots 的 webhook 更新
-  ├── 解析並路由訊息
-  ├── 轉發到 n8n 進行智能路由
-  └── 接收回覆並發送回 Telegram
-
-n8n Workflows
-  ├── message-router: 分析訊息並決定路由
-  ├── andrea-handler: 處理 Andrea 相關訊息
-  └── umio-handler: 處理 Umio 相關訊息
-```
-
-**實施步驟：**
-1. 擴展 Webhook Bridge 添加 `/webhook/andrea` 和 `/webhook/umio` 端點
-2. 為 Andrea 和 Umio bots 設定 webhook
-3. 修改 Zeabur agents 移除 getUpdates 邏輯
-4. 測試完整流程
-
-**預估工時：** 4-6 小時
+#### 2.5 建議
+**不推薦**。雖然技術上可行，但違反服務條款且風險極高。
 
 ---
 
-### 方案 B：統一使用 getUpdates 模式
+### 方案 B: 中間層協調架構（推薦）
 
-**概述：**
-移除所有 webhook 設定，所有 bots 都使用 getUpdates（輪詢）模式。
+#### 2.1 技術原理
+使用 PocketBase 作為中間層，所有 bot 的訊息都儲存在資料庫中。Bot 之間不直接通訊，而是透過資料庫協調。
 
-**優點：**
-- ✅ 實施簡單（移除 webhook 即可）
-- ✅ 不需要公開的 webhook URL
-- ✅ 適合開發和測試環境
+#### 2.2 架構設計
 
-**缺點：**
-- ❌ 需要持續輪詢（消耗資源）
-- ❌ 延遲較高（輪詢間隔通常 1-3 秒）
-- ❌ 不適合高流量場景
-- ❌ 不符合生產環境最佳實踐
-- ❌ 失去 Webhook Bridge 的優勢
-
-**技術架構：**
 ```
-Telegram API
-  ├── OpenClaw Bot ← getUpdates 輪詢
-  ├── Andrea Bot ← getUpdates 輪詢
-  └── Umio Bot ← getUpdates 輪詢
-
-Zeabur Services
-  ├── OpenClaw Agent (輪詢 + 處理)
-  ├── Andrea Agent (輪詢 + 處理)
-  └── Umio Agent (輪詢 + 處理)
+┌─────────────┐
+│  Telegram   │
+│   Group     │
+└──────┬──────┘
+       │
+       ├──────────┐
+       │          │
+   ┌───▼───┐  ┌──▼────┐
+   │ Umio  │  │Andrea │
+   │  Bot  │  │  Bot  │
+   └───┬───┘  └──┬────┘
+       │         │
+       └────┬────┘
+            │
+     ┌──────▼──────┐
+     │ PocketBase  │
+     │  Database   │
+     └──────┬──────┘
+            │
+     ┌──────▼──────┐
+     │   n8n       │
+     │ Workflow    │
+     │ Orchestrator│
+     └─────────────┘
 ```
 
-**實施步驟：**
-1. 刪除所有 bots 的 webhook 設定
-2. 停用 Webhook Bridge 服務
-3. 確保所有 agents 使用 getUpdates 邏輯
-4. 測試完整流程
+#### 2.3 工作流程
 
-**預估工時：** 2-3 小時
+**階段 1: 訊息接收**
+1. 用戶在 Telegram 發送訊息
+2. Umio Bot 接收訊息
+3. Umio Bot 將訊息儲存到 PocketBase `messages` collection
+4. Umio Bot 回覆用戶
+
+**階段 2: 訊息路由**
+5. n8n workflow 監聽 PocketBase 新訊息
+6. 根據 `intent` 欄位決定需要哪些 bot 處理
+7. 建立 `agent_workflows` 記錄，定義執行順序
+
+**階段 3: Bot 協作**
+8. n8n 觸發 Andrea Bot（透過 OpenClaw API）
+9. Andrea Bot 從 PocketBase 讀取訊息歷史
+10. Andrea Bot 生成回覆並儲存到 PocketBase
+11. n8n 將 Andrea 的回覆發送到 Telegram
+
+**階段 4: 後續處理**
+12. 如果需要，n8n 觸發 Linus Bot
+13. Linus Bot 讀取完整對話歷史（包括 Andrea 的回覆）
+14. Linus Bot 生成最終回覆
+15. n8n 發送到 Telegram
+
+#### 2.4 優點
+- ✅ 完全合法，符合 Telegram 服務條款
+- ✅ 可擴展，易於添加新 bot
+- ✅ 完整的訊息歷史記錄
+- ✅ 靈活的工作流程編排
+- ✅ 易於除錯和監控
+- ✅ 支援複雜的業務邏輯
+
+#### 2.5 缺點
+- ⚠️ 需要額外的基礎設施（PocketBase + n8n）
+- ⚠️ 回應延遲較高（多個步驟）
+- ⚠️ 實作複雜度中等
+
+#### 2.6 實作複雜度
+- 技術複雜度: ⭐⭐⭐
+- 維護成本: ⭐⭐
+- 風險等級: 🟢 低
+
+#### 2.7 建議
+**強烈推薦**。這是最穩定、最合法、最可維護的方案。
 
 ---
 
-### 方案 C：混合模式（不推薦）
+### 方案 C: Webhook 橋接架構
 
-**概述：**
-使用不同的 bot tokens 分別處理不同的功能。
+#### 2.1 技術原理
+建立一個 Webhook Bridge 服務，接收所有 bot 的訊息，然後轉發給需要的 bot。
 
-**架構：**
-- OpenClaw Bot（webhook）- 接收用戶訊息
-- Andrea Bot（getUpdates）- AI 回覆
-- Umio Bot（getUpdates）- AI 回覆
+#### 2.2 架構設計
 
-**優點：**
-- ✅ 技術上可行
+```
+┌─────────────┐
+│  Telegram   │
+└──────┬──────┘
+       │
+   ┌───▼────────┐
+   │  Webhook   │
+   │   Bridge   │
+   └───┬────────┘
+       │
+       ├──────────┬──────────┐
+       │          │          │
+   ┌───▼───┐  ┌──▼────┐  ┌──▼────┐
+   │ Umio  │  │Andrea │  │ Linus │
+   │  Bot  │  │  Bot  │  │  Bot  │
+   └───────┘  └───────┘  └───────┘
+```
 
-**缺點：**
-- ❌ 需要管理多個 bot tokens
-- ❌ 用戶體驗差（看到多個不同的 bots）
-- ❌ 架構複雜且難以維護
-- ❌ 訊息流程混亂
-- ❌ 不符合單一 bot 的設計理念
+#### 2.3 優點
+- ✅ 實時性好
+- ✅ 架構簡單
+- ✅ 易於理解
 
-**結論：** 不推薦此方案
+#### 2.4 缺點
+- ❌ 仍然無法解決 bot 看不到其他 bot 訊息的問題
+- ❌ 需要額外的服務
+- ❌ 單點故障風險
+
+#### 2.5 實作複雜度
+- 技術複雜度: ⭐⭐
+- 維護成本: ⭐⭐⭐
+- 風險等級: 🟡 中
+
+#### 2.6 建議
+**不推薦作為主要方案**。可以作為方案 B 的補充。
 
 ---
 
-## 推薦方案
+### 方案 D: Inline Bot 架構
 
-### ⚠️ 更新：用戶選擇方案 B
+#### 2.1 技術原理
+使用 Telegram 的 Inline Bot 功能，讓用戶主動觸發不同的 bot。
 
-**決策日期：** 2026-03-15  
-**理由：** 成功率最高，實施風險最低
+#### 2.2 優點
+- ✅ 符合 Telegram 設計理念
+- ✅ 用戶體驗清晰
 
-詳細實施指南請參考：`GETUPDATES_IMPLEMENTATION_GUIDE.md`
+#### 2.3 缺點
+- ❌ 需要用戶手動選擇 bot
+- ❌ 無法自動化工作流程
+- ❌ 不適合複雜場景
 
----
-
-### 🎯 原推薦方案 A：統一使用 Webhook 模式
-
-**理由：**
-
-1. **性能最佳** - 即時接收訊息，無輪詢延遲
-2. **資源效率** - 不需要持續輪詢，節省伺服器資源
-3. **架構優勢** - 已有 Webhook Bridge 基礎設施
-4. **可擴展性** - 易於添加新的 bots 或功能
-5. **生產就緒** - 符合企業級應用最佳實踐
-
-**關鍵成功因素：**
-- ✅ Webhook Bridge 已部署並運行正常
-- ✅ 已有 n8n 工作流程基礎
-- ✅ 域名和 SSL 證書已配置
-- ✅ 團隊熟悉 webhook 架構
+#### 2.4 建議
+**不推薦**。不符合我們的自動化需求。
 
 ---
 
-## 詳細實施計劃
+## 3. 推薦方案：方案 B（中間層協調架構）
 
-### 階段 1：擴展 Webhook Bridge（2 小時）
+### 3.1 選擇理由
+1. **合法性**: 完全符合 Telegram 服務條款
+2. **穩定性**: 不依賴任何 hack 或非官方 API
+3. **可擴展性**: 易於添加新 bot 和新工作流程
+4. **可維護性**: 清晰的架構，易於除錯
+5. **已有基礎**: 我們已經有 PocketBase 和 n8n
 
-**任務 1.1：添加多 bot 端點**
+### 3.2 實作階段
 
-修改 `webhook-bridge/src/index.ts`：
+#### 階段 1: Schema 準備（已完成 ✅）
+- [x] 在 `messages` collection 添加 `sent_to_telegram` 欄位
+- [x] 在 `messages` collection 添加 `sent_at` 欄位
+- [x] 驗證欄位已正確添加
+- [x] 建立 `agent_workflows` collection（2026-03-19）
 
-```typescript
-// Andrea Bot webhook endpoint
-app.post('/webhook/andrea', async (req, res) => {
-    try {
-        const update = req.body;
-        const message = update.message;
-        
-        if (!message) {
-            return res.sendStatus(200);
-        }
-        
-        console.log('[Andrea] Received:', {
-            chat_id: message.chat.id,
-            text: message.text,
-            from: message.from.username
-        });
-        
-        // 轉發到 n8n 進行處理
-        const n8nResponse = await axios.post(
-            process.env.N8N_WEBHOOK_URL + '/andrea',
-            {
-                bot: 'andrea',
-                chat_id: message.chat.id,
-                message_id: message.message_id,
-                text: message.text,
-                from: message.from
-            }
-        );
-        
-        res.sendStatus(200);
-    } catch (error) {
-        console.error('[Andrea] Error:', error);
-        res.sendStatus(500);
-    }
-});
+#### 階段 2: n8n Workflow 建立（進行中）
+- [x] 建立 Message Router workflow（n8n/bot-collaboration-router.json）
+- [x] 建立 Agent Orchestrator workflow（n8n/bot-collaboration-orchestrator.json）
+- [x] 建立 Telegram Sender workflow（n8n/bot-collaboration-sender.json）
+- [x] n8n 已有 Webchat Batch Notification (Simple) workflow
+- [ ] 測試單一 bot 流程（需在 n8n UI 手動導入 workflow）
+- [ ] 測試多 bot 協作流程
 
-// Umio Bot webhook endpoint
-app.post('/webhook/umio', async (req, res) => {
-    // 類似的實作
-});
+#### 階段 3: Bot 整合
+- [x] Umio Bot 已儲存訊息到 PocketBase（15 條訊息已確認）
+- [ ] 更新 Andrea Bot 以讀取 PocketBase 訊息
+- [ ] 更新 Linus Bot 以讀取 PocketBase 訊息
+- [ ] 實作錯誤處理機制
+
+#### 階段 4: 測試與優化
+- [x] PocketBase API 端到端測試通過（2026-03-19）
+- [x] agent_workflows CRUD 測試通過
+- [x] messages sent_to_telegram 標記測試通過
+- [ ] Telegram 發送測試（需由 n8n 伺服器端執行）
+- [ ] 效能優化
+- [ ] 文件撰寫
+
+### 3.3 技術細節
+
+#### 3.3.1 PocketBase Schema
+
+**messages collection**:
+```javascript
+{
+  id: string,
+  conversation: relation(conversations),
+  sender: select("user", "assistant", "system", "agent"),
+  channel: select("web", "telegram"),
+  content: text,
+  intent: text,
+  metadata: json,
+  sent_to_telegram: bool,  // 新增
+  sent_at: date,           // 新增
+  created: datetime,
+  updated: datetime
+}
 ```
 
-**任務 1.2：更新環境變數**
-
-添加到 `webhook-bridge/.env`：
-```
-TELEGRAM_ANDREA_BOT_TOKEN=your_andrea_token
-TELEGRAM_UMIO_BOT_TOKEN=your_umio_token
-```
-
-**任務 1.3：部署更新**
-```bash
-cd webhook-bridge
-npm run build
-git add .
-git commit -m "Add Andrea and Umio webhook endpoints"
-git push
+**agent_workflows collection**:
+```javascript
+{
+  id: string,
+  conversation: relation(conversations),
+  message: relation(messages),
+  agents: json,  // ["umio", "andrea", "linus"]
+  current_agent: text,
+  status: select("pending", "processing", "completed", "failed"),
+  results: json,
+  created: datetime,
+  updated: datetime
+}
 ```
 
-### 階段 2：設定 Webhooks（30 分鐘）
+#### 3.3.2 n8n Workflow 邏輯
 
-**任務 2.1：設定 Andrea Bot webhook**
+**Message Router**:
+1. 監聽 PocketBase `messages` collection 的新記錄
+2. 分析 `intent` 欄位
+3. 決定需要哪些 agent
+4. 建立 `agent_workflows` 記錄
 
-```powershell
-$andreaToken = $env:TELEGRAM_ANDREA_BOT_TOKEN
-Invoke-RestMethod -Uri "https://api.telegram.org/bot$andreaToken/setWebhook" `
-    -Method Post `
-    -Body (@{
-        url = "https://webhook-bridge.neovega.cc/webhook/andrea"
-        max_connections = 40
-        allowed_updates = @("message", "edited_message")
-    } | ConvertTo-Json) `
-    -ContentType "application/json"
-```
+**Agent Orchestrator**:
+1. 監聽 `agent_workflows` collection
+2. 按順序執行 agents
+3. 將每個 agent 的回覆儲存到 `messages`
+4. 更新 workflow 狀態
 
-**任務 2.2：設定 Umio Bot webhook**
+**Telegram Sender**:
+1. 監聽 `messages` collection 中 `sent_to_telegram = false` 的記錄
+2. 透過 Telegram Bot API 發送訊息
+3. 更新 `sent_to_telegram = true` 和 `sent_at`
 
-```powershell
-$umioToken = $env:TELEGRAM_UMIO_BOT_TOKEN
-Invoke-RestMethod -Uri "https://api.telegram.org/bot$umioToken/setWebhook" `
-    -Method Post `
-    -Body (@{
-        url = "https://webhook-bridge.neovega.cc/webhook/umio"
-        max_connections = 40
-        allowed_updates = @("message", "edited_message")
-    } | ConvertTo-Json) `
-    -ContentType "application/json"
-```
+### 3.4 預期效果
 
-**任務 2.3：驗證 webhook 設定**
+#### 3.4.1 功能實現
+- ✅ Bot 可以「看到」其他 bot 的回覆（透過 PocketBase）
+- ✅ 支援順序執行（Umio → Andrea → Linus）
+- ✅ 支援並行執行（多個 bot 同時處理）
+- ✅ 支援條件執行（根據 intent 決定）
 
-```powershell
-# 檢查 Andrea
-Invoke-RestMethod -Uri "https://api.telegram.org/bot$andreaToken/getWebhookInfo"
+#### 3.4.2 效能指標
+- 單一 bot 回應時間: < 3 秒
+- 多 bot 協作回應時間: < 10 秒
+- 訊息處理成功率: > 99%
 
-# 檢查 Umio
-Invoke-RestMethod -Uri "https://api.telegram.org/bot$umioToken/getWebhookInfo"
-```
+#### 3.4.3 可靠性
+- 完整的錯誤處理
+- 訊息重試機制
+- 完整的審計日誌
 
-### 階段 3：修改 Zeabur Agents（1.5 小時）
+## 4. 替代方案考量
 
-**任務 3.1：停用 getUpdates 邏輯**
+### 4.1 混合方案
+結合方案 B 和方案 C：
+- 使用 PocketBase 作為主要協調層
+- 使用 Webhook Bridge 提升實時性
+- 在 Webhook Bridge 失敗時降級到輪詢模式
 
-在 Andrea 和 Umio 的 Zeabur 服務中：
-- 移除或註解掉 `bot.startPolling()` 或類似的輪詢代碼
-- 保留訊息處理邏輯
-- 改為被動等待 n8n 的調用
+### 4.2 未來擴展
+- 支援更多 bot
+- 支援更複雜的工作流程
+- 支援 A/B 測試
+- 支援機器學習模型選擇
 
-**任務 3.2：確認 n8n 工作流程**
+## 5. 風險評估
 
-確保 n8n 中有對應的工作流程：
-- `andrea-handler` - 接收並處理 Andrea 訊息
-- `umio-handler` - 接收並處理 Umio 訊息
+### 5.1 技術風險
+- **低**: 使用成熟的技術棧
+- **緩解**: 完整的測試和監控
 
-### 階段 4：測試與驗證（1 小時）
+### 5.2 效能風險
+- **中**: 多層架構可能導致延遲
+- **緩解**: 優化資料庫查詢，使用快取
 
-**任務 4.1：單元測試**
+### 5.3 維護風險
+- **低**: 清晰的架構，易於維護
+- **緩解**: 完整的文件和監控
 
-```powershell
-# 測試 Andrea webhook
-$body = @{
-    message = @{
-        chat = @{ id = 123456789 }
-        text = "測試 Andrea"
-        from = @{ username = "testuser" }
-    }
-} | ConvertTo-Json -Depth 10
+## 6. 結論
 
-Invoke-RestMethod -Uri "https://webhook-bridge.neovega.cc/webhook/andrea" `
-    -Method Post `
-    -ContentType "application/json" `
-    -Body $body
-```
+**推薦採用方案 B（中間層協調架構）**，理由如下：
 
-**任務 4.2：端到端測試**
+1. ✅ **合法性**: 完全符合 Telegram 服務條款
+2. ✅ **穩定性**: 不依賴任何非官方 API
+3. ✅ **可擴展性**: 易於添加新功能
+4. ✅ **已有基礎**: 可以利用現有的 PocketBase 和 n8n
+5. ✅ **風險低**: 技術成熟，風險可控
 
-1. 在 Telegram 向 Andrea bot 發送訊息
-2. 檢查 Webhook Bridge 日誌
-3. 檢查 n8n 執行記錄
-4. 確認收到回覆
+## 7. 下一步行動
 
-**任務 4.3：壓力測試**
+### 7.1 立即行動
+1. ✅ 完成 PocketBase schema 更新（已完成）
+2. 建立 n8n Message Router workflow
+3. 測試單一 bot 流程
 
-發送多條訊息，確認系統穩定性。
+### 7.2 短期目標（1-2 週）
+1. 完成所有 n8n workflows
+2. 整合所有 bots
+3. 端到端測試
+
+### 7.3 長期目標（1-3 個月）
+1. 效能優化
+2. 添加更多 bots
+3. 實作進階功能（A/B 測試、機器學習）
 
 ---
 
-## 風險評估與緩解
-
-### 風險 1：Webhook 遺失訊息
-
-**風險等級：** 中  
-**影響：** 用戶訊息可能遺失  
-**緩解措施：**
-- 實作重試機制
-- 添加訊息佇列（如 Redis）
-- 監控 webhook 失敗率
-
-### 風險 2：Zeabur Agents 修改失敗
-
-**風險等級：** 低  
-**影響：** 需要回滾到方案 B  
-**緩解措施：**
-- 保留原始代碼備份
-- 分階段修改和測試
-- 準備快速回滾方案
-
-### 風險 3：n8n 工作流程配置錯誤
-
-**風險等級：** 中  
-**影響：** 訊息路由失敗  
-**緩解措施：**
-- 詳細測試每個工作流程
-- 添加錯誤處理和日誌
-- 準備備用路由邏輯
-
----
-
-## 成功標準
-
-✅ **技術標準：**
-1. 所有 bots 的 webhook 設定成功
-2. Webhook Bridge 正常接收所有 bots 的訊息
-3. n8n 工作流程正確路由訊息
-4. 端到端測試 100% 通過
-5. 無訊息遺失或延遲
-
-✅ **業務標準：**
-1. 用戶可以正常與所有 bots 互動
-2. 回覆時間 < 2 秒
-3. 系統穩定運行 24 小時無故障
-
----
-
-## 時程規劃
-
-| 階段 | 任務 | 預估時間 | 負責人 |
-|------|------|----------|--------|
-| 1 | 擴展 Webhook Bridge | 2 小時 | 開發團隊 |
-| 2 | 設定 Webhooks | 30 分鐘 | 開發團隊 |
-| 3 | 修改 Zeabur Agents | 1.5 小時 | 開發團隊 |
-| 4 | 測試與驗證 | 1 小時 | QA 團隊 |
-| **總計** | | **5 小時** | |
-
-**建議實施時間：** 非高峰時段（例如：週末或深夜）
-
----
-
-## 總結
-
-本計畫解決了 Telegram Bot 互動問題的根本原因（Webhook/getUpdates 衝突），並提供了三種解決方案的詳細評估。
-
-**推薦採用方案 A（統一 Webhook 模式）**，因為：
-- 性能和資源效率最佳
-- 架構統一且易於維護
-- 已有基礎設施支援
-- 符合生產環境最佳實踐
-
-預估總工時 5 小時，風險可控，建議盡快實施。
-
----
-
-**文件版本：** 1.0  
-**最後更新：** 2026-03-15  
-**狀態：** 待審核
-
-
+**文件版本**: 1.0  
+**最後更新**: 2026-03-18  
+**審核狀態**: 待審核

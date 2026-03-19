@@ -1,0 +1,187 @@
+{
+    "name": "Webchat Batch Notification",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 5
+                        }
+                    ]
+                }
+            },
+            "id": "cron-trigger",
+            "name": "Every 5 Minutes",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://www.neovega.cc/pb/api/collections/messages/records",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "filter",
+                            "value": "={{\"sent_to_telegram=false && created>='\"+$now.minus({minutes: 6}).toISO()+\"'\"}}"
+                        },
+                        {
+                            "name": "expand",
+                            "value": "conversation"
+                        },
+                        {
+                            "name": "sort",
+                            "value": "created"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "query-messages",
+            "name": "Query New Messages",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "number": [
+                        {
+                            "value1": "={{$json.items.length}}",
+                            "operation": "larger",
+                            "value2": 0
+                        }
+                    ]
+                }
+            },
+            "id": "check-messages",
+            "name": "Has New Messages?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const messages = $input.all()[0].json.items;\n\nif (messages.length === 0) {\n  return [];\n}\n\nconst conversations = {};\nmessages.forEach(msg => {\n  const convId = msg.expand?.conversation?.id || msg.conversation;\n  if (!conversations[convId]) {\n    conversations[convId] = {\n      session: msg.expand?.conversation?.guest_session_id || 'unknown',\n      messages: []\n    };\n  }\n  conversations[convId].messages.push({\n    sender: msg.sender,\n    content: msg.content,\n    time: msg.created\n  });\n});\n\nlet text = '@neovegaandrea_bot, @neovegalele_bot, @neovegalinus_bot, @neovegalittleq_bot\\n\\n';\ntext += '📬 新的 Webchat 對話\\n';\ntext += '━━━━━━━━━━━━━━━━\\n\\n';\n\nObject.values(conversations).forEach((conv, index) => {\n  text += `💬 對話 ${index + 1} (${conv.session})\\n`;\n  conv.messages.forEach(msg => {\n    const icon = msg.sender === 'user' ? '👤' : '🤖';\n    text += `${icon} ${msg.content}\\n`;\n  });\n  text += '\\n';\n});\n\nreturn [{\n  json: {\n    text: text,\n    messageIds: messages.map(m => m.id)\n  }\n}];"
+            },
+            "id": "format-message",
+            "name": "Format Message",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                850,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "chatId": "-1002329510026",
+                "text": "={{$json.text}}",
+                "additionalFields": {}
+            },
+            "id": "send-telegram",
+            "name": "Send to Telegram",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.1,
+            "position": [
+                1050,
+                200
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "1",
+                    "name": "Telegram account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const messageIds = $input.all()[0].json.messageIds;\nconst pbUrl = 'https://www.neovega.cc/pb';\n\nconst updates = [];\nfor (const id of messageIds) {\n  const response = await $http.request({\n    method: 'PATCH',\n    url: `${pbUrl}/api/collections/messages/records/${id}`,\n    headers: {\n      'Content-Type': 'application/json'\n    },\n    body: {\n      sent_to_telegram: true,\n      sent_at: new Date().toISOString()\n    }\n  });\n  updates.push(response);\n}\n\nreturn [{\n  json: {\n    updated: updates.length,\n    ids: messageIds\n  }\n}];"
+            },
+            "id": "update-messages",
+            "name": "Mark as Sent",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1250,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "Every 5 Minutes": {
+            "main": [
+                [
+                    {
+                        "node": "Query New Messages",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Query New Messages": {
+            "main": [
+                [
+                    {
+                        "node": "Has New Messages?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Has New Messages?": {
+            "main": [
+                [
+                    {
+                        "node": "Format Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Format Message": {
+            "main": [
+                [
+                    {
+                        "node": "Send to Telegram",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send to Telegram": {
+            "main": [
+                [
+                    {
+                        "node": "Mark as Sent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": []
+}

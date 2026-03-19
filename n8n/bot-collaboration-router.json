@@ -1,0 +1,228 @@
+{
+    "name": "Bot Collaboration Router",
+    "nodes": [
+        {
+            "id": "schedule-trigger",
+            "name": "Every 2 Minutes",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [
+                250,
+                300
+            ],
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 2
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "query-new-messages",
+            "name": "Query New Messages",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                450,
+                300
+            ],
+            "parameters": {
+                "url": "https://www.neovega.cc/pb/api/collections/messages/records",
+                "method": "GET",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "filter",
+                            "value": "sent_to_telegram=false && sender='user'"
+                        },
+                        {
+                            "name": "sort",
+                            "value": "-created"
+                        },
+                        {
+                            "name": "perPage",
+                            "value": "10"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "check-messages",
+            "name": "Has Messages?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                650,
+                300
+            ],
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "check-total",
+                            "leftValue": "={{ $json.totalItems }}",
+                            "rightValue": 0,
+                            "operator": {
+                                "type": "number",
+                                "operation": "gt"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                }
+            }
+        },
+        {
+            "id": "split-items",
+            "name": "Split Messages",
+            "type": "n8n-nodes-base.splitOut",
+            "typeVersion": 1,
+            "position": [
+                850,
+                200
+            ],
+            "parameters": {
+                "fieldToSplitOut": "items",
+                "options": {}
+            }
+        },
+        {
+            "id": "analyze-intent",
+            "name": "Set Workflow Data",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                1050,
+                200
+            ],
+            "parameters": {
+                "mode": "manual",
+                "duplicateItem": false,
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "set-messageId",
+                            "name": "messageId",
+                            "value": "={{ $json.id }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "set-conversationId",
+                            "name": "conversationId",
+                            "value": "={{ $json.conversation }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "set-agents",
+                            "name": "agents",
+                            "value": "=[\"umio\",\"andrea\"]",
+                            "type": "string"
+                        },
+                        {
+                            "id": "set-currentAgent",
+                            "name": "currentAgent",
+                            "value": "umio",
+                            "type": "string"
+                        },
+                        {
+                            "id": "set-status",
+                            "name": "status",
+                            "value": "pending",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": {}
+            }
+        },
+        {
+            "id": "create-workflow",
+            "name": "Create Agent Workflow",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1250,
+                200
+            ],
+            "parameters": {
+                "url": "https://www.neovega.cc/pb/api/collections/agent_workflows/records",
+                "method": "POST",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"messageId\": \"{{ $json.messageId }}\",\n  \"conversationId\": \"{{ $json.conversationId }}\",\n  \"agents\": {{ $json.agents }},\n  \"currentAgent\": \"{{ $json.currentAgent }}\",\n  \"status\": \"{{ $json.status }}\"\n}"
+            }
+        }
+    ],
+    "connections": {
+        "Every 2 Minutes": {
+            "main": [
+                [
+                    {
+                        "node": "Query New Messages",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Query New Messages": {
+            "main": [
+                [
+                    {
+                        "node": "Has Messages?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Has Messages?": {
+            "main": [
+                [
+                    {
+                        "node": "Split Messages",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Split Messages": {
+            "main": [
+                [
+                    {
+                        "node": "Set Workflow Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Workflow Data": {
+            "main": [
+                [
+                    {
+                        "node": "Create Agent Workflow",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

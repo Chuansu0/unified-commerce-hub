@@ -1,0 +1,247 @@
+{
+    "name": "Bot Collaboration Sender",
+    "nodes": [
+        {
+            "id": "schedule-trigger",
+            "name": "Every 2 Minutes",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [
+                250,
+                300
+            ],
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 2
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "unsent-messages",
+            "name": "Get Unsent Messages",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                450,
+                300
+            ],
+            "parameters": {
+                "url": "https://www.neovega.cc/pb/api/collections/messages/records",
+                "method": "GET",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "filter",
+                            "value": "sent_to_telegram=false"
+                        },
+                        {
+                            "name": "sort",
+                            "value": "created"
+                        },
+                        {
+                            "name": "perPage",
+                            "value": "20"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "check-messages",
+            "name": "Has Messages?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                650,
+                300
+            ],
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "check-total",
+                            "leftValue": "={{ $json.totalItems }}",
+                            "rightValue": 0,
+                            "operator": {
+                                "type": "number",
+                                "operation": "gt"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                }
+            }
+        },
+        {
+            "id": "split-items",
+            "name": "Split Messages",
+            "type": "n8n-nodes-base.splitOut",
+            "typeVersion": 1,
+            "position": [
+                850,
+                200
+            ],
+            "parameters": {
+                "fieldToSplitOut": "items",
+                "options": {}
+            }
+        },
+        {
+            "id": "format-text",
+            "name": "Format Text",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                1050,
+                200
+            ],
+            "parameters": {
+                "mode": "manual",
+                "duplicateItem": false,
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "set-text",
+                            "name": "text",
+                            "value": "={{ $json.sender === 'user' ? '👤 User' : '🤖 ' + ($json.metadata && $json.metadata.agent ? $json.metadata.agent : 'Bot') }}: {{ $json.content }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "set-msg-id",
+                            "name": "msgId",
+                            "value": "={{ $json.id }}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": {}
+            }
+        },
+        {
+            "id": "send-to-telegram",
+            "name": "Send to Telegram",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1250,
+                200
+            ],
+            "parameters": {
+                "url": "https://api.telegram.org/bot8751641141:AAGeQKXV4WvOguP4H5UpUWegVcq2obdzIVw/sendMessage",
+                "method": "POST",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"chat_id\": \"-1003806455231\",\n  \"text\": \"{{ $json.text }}\"\n}",
+                "batching": {
+                    "batch": {
+                        "batchSize": 1,
+                        "batchInterval": 1000
+                    }
+                },
+                "options": {
+                    "timeout": 30000
+                }
+            }
+        },
+        {
+            "id": "mark-sent",
+            "name": "Mark as Sent",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1450,
+                200
+            ],
+            "parameters": {
+                "url": "=https://www.neovega.cc/pb/api/collections/messages/records/{{ $json.msgId }}",
+                "method": "PATCH",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"sent_to_telegram\": true,\n  \"sent_at\": \"{{ $now.toISO() }}\"\n}"
+            }
+        }
+    ],
+    "connections": {
+        "Every 2 Minutes": {
+            "main": [
+                [
+                    {
+                        "node": "Get Unsent Messages",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Unsent Messages": {
+            "main": [
+                [
+                    {
+                        "node": "Has Messages?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Has Messages?": {
+            "main": [
+                [
+                    {
+                        "node": "Split Messages",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Split Messages": {
+            "main": [
+                [
+                    {
+                        "node": "Format Text",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format Text": {
+            "main": [
+                [
+                    {
+                        "node": "Send to Telegram",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send to Telegram": {
+            "main": [
+                [
+                    {
+                        "node": "Mark as Sent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

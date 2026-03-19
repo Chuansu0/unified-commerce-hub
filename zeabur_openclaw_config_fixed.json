@@ -199,12 +199,22 @@
         "controlUi": {
             "dangerouslyAllowHostHeaderOriginFallback": true,
             "allowInsecureAuth": true,
-            "dangerouslyDisableDeviceAuth": true
+            "dangerouslyDisableDeviceAuth": true,
+            "insecureSkipVerify": true
         },
         "trustedProxies": [
             "10.0.0.0/8",
-            "172.16.0.0/12"
-        ]
+            "172.16.0.0/12",
+            "172.70.0.0/16",
+            "104.23.0.0/16",
+            "104.21.0.0/16"
+        ],
+        "websocket": {
+            "allowOrigins": [
+                "https://openclaw.neovega.cc"
+            ],
+            "allowInsecure": true
+        }
     },
     "plugins": {
         "entries": {

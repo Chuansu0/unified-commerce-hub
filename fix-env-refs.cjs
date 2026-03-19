@@ -1,0 +1,10 @@
+const fs = require('fs');
+const path = 'd:\\WSL\\unified-commerce-hub\\n8n\\webchat-batch-notification.json';
+let content = fs.readFileSync(path, 'utf8');
+const before = content.includes('$env');
+content = content.replace(/\$env\.POCKETBASE_URL/g, "'https://www.neovega.cc/pb'");
+content = content.replace(/\$env\.TELEGRAM_GROUP_CHAT_ID/g, "'-1002403417498'");
+content = content.replace(/\$env\.TELEGRAM_BOT_API/g, "'https://api.telegram.org/bot8751641141:AAGeQKXV4WvOguP4H5UpUWegVcq2obdzIVw'");
+fs.writeFileSync(path, content);
+const after = content.includes('$env');
+console.log('Before had $env:', before, '| After has $env:', after);
