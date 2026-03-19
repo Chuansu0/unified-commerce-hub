@@ -169,7 +169,7 @@
                 200
             ],
             "parameters": {
-                "url": "=https://www.neovega.cc/pb/api/collections/agent_workflows/records/{{ $json.workflowId }}",
+                "url": "=https://www.neovega.cc/pb/api/collections/agent_workflows/records/{{ $('Process Agent').item.json.workflowId }}",
                 "method": "PATCH",
                 "sendBody": true,
                 "specifyBody": "json",

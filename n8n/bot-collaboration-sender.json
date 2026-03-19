@@ -146,7 +146,7 @@
                 "batching": {
                     "batch": {
                         "batchSize": 1,
-                        "batchInterval": 1000
+                        "batchInterval": 15000
                     }
                 },
                 "options": {
@@ -164,7 +164,7 @@
                 200
             ],
             "parameters": {
-                "url": "=https://www.neovega.cc/pb/api/collections/messages/records/{{ $json.msgId }}",
+                "url": "=https://www.neovega.cc/pb/api/collections/messages/records/{{ $('Format Text').item.json.msgId }}",
                 "method": "PATCH",
                 "sendBody": true,
                 "specifyBody": "json",

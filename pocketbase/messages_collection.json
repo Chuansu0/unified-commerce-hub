@@ -94,6 +94,29 @@
                 "options": {
                     "maxSize": 2000000
                 }
+            },
+            {
+                "id": "field_sent_to_telegram",
+                "name": "sent_to_telegram",
+                "type": "bool",
+                "system": false,
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {}
+            },
+            {
+                "id": "field_sent_at",
+                "name": "sent_at",
+                "type": "date",
+                "system": false,
+                "required": false,
+                "presentable": false,
+                "unique": false,
+                "options": {
+                    "min": "",
+                    "max": ""
+                }
             }
         ],
         "indexes": [
