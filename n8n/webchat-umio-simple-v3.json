@@ -1,0 +1,148 @@
+{
+    "name": "WebChat Umio Simple V3",
+    "nodes": [
+        {
+            "id": "webhook-node",
+            "name": "WebChat Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "parameters": {
+                "httpMethod": "POST",
+                "responseMode": "responseNode",
+                "path": "umio-chat",
+                "options": {}
+            },
+            "webhookId": "umio-chat"
+        },
+        {
+            "id": "check-message",
+            "name": "Has Message?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                450,
+                300
+            ],
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "has-message",
+                            "leftValue": "={{ $json.body.message }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "string",
+                                "operation": "isNotEmpty"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                }
+            }
+        },
+        {
+            "id": "send-telegram",
+            "name": "Send to Telegram",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                650,
+                200
+            ],
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.telegram.org/bot8751641141:AAGeQKXV4WvOguP4H5UpUWegVcq2obdzIVw/sendMessage",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"chat_id\": \"-1003806455231\",\n  \"text\": \"👤 WebChat → Umio\\n\\n💬 訊息: {{ $json.body.message }}\\n\\n📋 詳細資訊:\\n• Session ID: {{ $json.body.sessionId }}\\n• 平台: {{ $json.body.context?.platform || 'webchat' }}\\n• 時間: {{ new Date().toISOString() }}\",\n  \"parse_mode\": \"HTML\"\n}",
+                "options": {
+                    "timeout": 30000
+                }
+            }
+        },
+        {
+            "id": "respond-success",
+            "name": "Respond Success",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                850,
+                200
+            ],
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { success: true, message: 'Message forwarded to Umio' } }}"
+            }
+        },
+        {
+            "id": "respond-skip",
+            "name": "Respond Skip",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                650,
+                400
+            ],
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { success: false, message: 'No message content' } }}"
+            }
+        }
+    ],
+    "connections": {
+        "WebChat Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Has Message?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Has Message?": {
+            "main": [
+                [
+                    {
+                        "node": "Send to Telegram",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Respond Skip",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send to Telegram": {
+            "main": [
+                [
+                    {
+                        "node": "Respond Success",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": []
+}

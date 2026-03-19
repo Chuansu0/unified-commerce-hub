@@ -27,10 +27,11 @@ location /api/umio/ {
 **需要重新部署到 Zeabur 才能生效！**
 
 ### 2. 使用新的簡化版 workflow
-使用 `n8n/webchat-umio-simple-v2.json`：
+使用 `n8n/webchat-umio-simple-v3.json`（最新版本）：
 - ✅ 使用 HTTP Request 節點直接呼叫 Telegram API（無需 credential）
 - ✅ 單一線性流程（無並行路徑）
 - ✅ 使用 `responseNode` 模式確保正確回應
+- ✅ **新增條件判斷**：只有當訊息不為空時才發送到 Telegram
 - ✅ 內建 Bot Token 和 Chat ID
 
 ## 部署步驟
@@ -44,7 +45,7 @@ location /api/umio/ {
 1. 登入 n8n: `https://n8n.zeabur.app`
 2. 點擊 **Add Workflow**
 3. 點擊右上角 **...** → **Import from JSON**
-4. 貼上 `n8n/webchat-umio-simple-v2.json` 的內容
+4. 貼上 `n8n/webchat-umio-simple-v3.json` 的內容
 5. 點擊 **Save**
 
 ### 步驟 3：啟動 Workflow
