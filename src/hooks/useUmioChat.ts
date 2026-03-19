@@ -122,14 +122,38 @@ export function useUmioChat() {
                     sessionIdRef.current
                 );
 
-                // 添加 AI 回覆到本地狀態
-                const assistantMessage: ChatMessage = {
-                    id: `assistant-${Date.now()}`,
-                    sender: "assistant",
-                    content: response,
-                    timestamp: new Date()
-                };
-                setMessages((prev) => [...prev, assistantMessage]);
+                // 檢查回覆內容
+                // 如果是「訊息已發送」或「Message forwarded」類型的回覆，
+                // 表示沒有同步回覆，需要啟用訂閱模式
+                const isPlaceholderReply =
+                    response === "訊息已發送" ||
+                    response === "Message forwarded to Umio" ||
+                    response.includes("訊息已發送，等待") ||
+                    response.includes("forwarded");
+
+                if (isPlaceholderReply) {
+                    // 啟動訂閱等待非同步回覆
+                    console.log("[useUmioChat] No sync reply, switching to subscription mode");
+                    startSubscription();
+                    // 顯示暫時訊息
+                    const tempMessage: ChatMessage = {
+                        id: `temp-${Date.now()}`,
+                        sender: "assistant",
+                        content: "訊息已發送，等待 Umio 回覆中...",
+                        timestamp: new Date()
+                    };
+                    setMessages((prev) => [...prev, tempMessage]);
+                } else {
+                    // 有實際回覆，直接顯示
+                    const assistantMessage: ChatMessage = {
+                        id: `assistant-${Date.now()}`,
+                        sender: "assistant",
+                        content: response,
+                        timestamp: new Date()
+                    };
+                    setMessages((prev) => [...prev, assistantMessage]);
+                    setIsLoading(false);
+                }
 
                 return true;
             } catch (err) {
@@ -137,6 +161,7 @@ export function useUmioChat() {
                     err instanceof Error ? err.message : "發送訊息失敗";
                 console.error("[useUmioChat] Error:", err);
                 setError(errorMsg);
+                setIsLoading(false);
 
                 // 添加錯誤訊息
                 const errorMessage: ChatMessage = {
@@ -148,11 +173,9 @@ export function useUmioChat() {
                 setMessages((prev) => [...prev, errorMessage]);
 
                 return false;
-            } finally {
-                setIsLoading(false);
             }
         },
-        []
+        [startSubscription]
     );
 
     // 發送訊息（非同步版本 - 使用訂閱）

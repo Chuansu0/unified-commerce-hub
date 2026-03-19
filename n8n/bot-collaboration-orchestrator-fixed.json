@@ -1,0 +1,350 @@
+{
+    "name": "Bot Collaboration Orchestrator Fixed",
+    "nodes": [
+        {
+            "id": "schedule-trigger",
+            "name": "Every 3 Minutes",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [
+                250,
+                300
+            ],
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 3
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "query-workflows",
+            "name": "Query Pending Workflows",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                450,
+                300
+            ],
+            "parameters": {
+                "url": "https://www.neovega.cc/pb/api/collections/agent_workflows/records",
+                "method": "GET",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "filter",
+                            "value": "status='pending'"
+                        },
+                        {
+                            "name": "perPage",
+                            "value": "10"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "check-workflows",
+            "name": "Has Workflows?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                650,
+                300
+            ],
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "check-total",
+                            "leftValue": "={{ $json.totalItems }}",
+                            "rightValue": 0,
+                            "operator": {
+                                "type": "number",
+                                "operation": "gt"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                }
+            }
+        },
+        {
+            "id": "split-workflows",
+            "name": "Split Workflows",
+            "type": "n8n-nodes-base.splitOut",
+            "typeVersion": 1,
+            "position": [
+                850,
+                200
+            ],
+            "parameters": {
+                "fieldToSplitOut": "items",
+                "options": {}
+            }
+        },
+        {
+            "id": "process-agent",
+            "name": "Process Agent",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.4,
+            "position": [
+                1050,
+                200
+            ],
+            "parameters": {
+                "mode": "manual",
+                "duplicateItem": false,
+                "assignments": {
+                    "assignments": [
+                        {
+                            "id": "set-workflowId",
+                            "name": "workflowId",
+                            "value": "={{ $json.id }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "set-agent",
+                            "name": "agent",
+                            "value": "={{ $json.currentAgent }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "set-messageId",
+                            "name": "messageId",
+                            "value": "={{ $json.messageId }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "set-conversationId",
+                            "name": "conversationId",
+                            "value": "={{ $json.conversationId }}",
+                            "type": "string"
+                        },
+                        {
+                            "id": "set-agents",
+                            "name": "agents",
+                            "value": "={{ $json.agents }}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": {}
+            }
+        },
+        {
+            "id": "check-existing-reply",
+            "name": "Check Existing Reply",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1250,
+                200
+            ],
+            "parameters": {
+                "url": "https://www.neovega.cc/pb/api/collections/messages/records",
+                "method": "GET",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "filter",
+                            "value": "={{ 'conversation=\"' + $json.conversationId + '\" && sender=\"assistant\" && content~\"is processing your request\"' }}"
+                        },
+                        {
+                            "name": "perPage",
+                            "value": "1"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "has-existing-reply",
+            "name": "Already Notified?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                1450,
+                200
+            ],
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "check-existing",
+                            "leftValue": "={{ $json.totalItems }}",
+                            "rightValue": 0,
+                            "operator": {
+                                "type": "number",
+                                "operation": "gt"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                }
+            }
+        },
+        {
+            "id": "skip-notification",
+            "name": "Skip - Already Notified",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                1450,
+                400
+            ],
+            "parameters": {}
+        },
+        {
+            "id": "create-reply",
+            "name": "Create Bot Reply",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1650,
+                200
+            ],
+            "parameters": {
+                "url": "https://www.neovega.cc/pb/api/collections/messages/records",
+                "method": "POST",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"conversation\": \"{{ $('Process Agent').item.json.conversationId }}\",\n  \"content\": \"{{ $('Process Agent').item.json.agent }} is processing your request...\",\n  \"sender\": \"assistant\",\n  \"metadata\": {\n    \"agent\": \"{{ $('Process Agent').item.json.agent }}\"\n  }\n}"
+            }
+        },
+        {
+            "id": "update-workflow",
+            "name": "Update Workflow Status",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1850,
+                200
+            ],
+            "parameters": {
+                "url": "=https://www.neovega.cc/pb/api/collections/agent_workflows/records/{{ $('Process Agent').item.json.workflowId }}",
+                "method": "PATCH",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"status\": \"processing\"\n}"
+            }
+        }
+    ],
+    "connections": {
+        "Every 3 Minutes": {
+            "main": [
+                [
+                    {
+                        "node": "Query Pending Workflows",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Query Pending Workflows": {
+            "main": [
+                [
+                    {
+                        "node": "Has Workflows?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Has Workflows?": {
+            "main": [
+                [
+                    {
+                        "node": "Split Workflows",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Split Workflows": {
+            "main": [
+                [
+                    {
+                        "node": "Process Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Process Agent": {
+            "main": [
+                [
+                    {
+                        "node": "Check Existing Reply",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Existing Reply": {
+            "main": [
+                [
+                    {
+                        "node": "Already Notified?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Already Notified?": {
+            "main": [
+                [
+                    {
+                        "node": "Skip - Already Notified",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Create Bot Reply",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Create Bot Reply": {
+            "main": [
+                [
+                    {
+                        "node": "Update Workflow Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

@@ -92,14 +92,18 @@ export async function sendToUmio(
         console.log(`[UmioChat] Response data:`, data);
 
         if (!data.success) {
-            throw new Error(data.error || "Unknown error");
+            throw new Error(data.message || data.error || "Unknown error");
         }
 
-        // 取得回覆內容（支援兩種格式）
-        const replyContent = data.response || data.message || "收到訊息";
+        // 取得回覆內容（支援多種格式）
+        // data.message 是 n8n 回傳的訊息（可能是 'Message forwarded to Umio'）
+        // data.response 是 Umio 的實際回覆
+        const replyContent = data.response || data.message || "訊息已發送";
 
-        // 儲存 AI 回覆到 PocketBase
-        await saveAssistantMessage(sessionId, replyContent);
+        // 如果有直接回覆，儲存到 PocketBase
+        if (data.response) {
+            await saveAssistantMessage(sessionId, replyContent);
+        }
 
         return {
             success: true,
