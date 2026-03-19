@@ -34,22 +34,25 @@
 
 ### 步驟 3: 測試
 
-執行測試腳本驗證：
+**重要**: PowerShell 預設編碼可能導致中文變成 `????`，請使用提供的測試腳本：
 
 ```powershell
-# PowerShell
+# 使用測試腳本（已處理 UTF-8 編碼）
+.\test-umio-webhook.ps1
+
+# 或手動測試（使用 ASCII 訊息避免編碼問題）
 $body = @{
-    message = "測試訊息"
+    message = "Hello from PowerShell"
     sessionId = "test-$(Get-Random)"
     context = @{
         platform = "webchat"
-        userName = "測試用戶"
+        userName = "Test User"
     }
 } | ConvertTo-Json
 
-$response = Invoke-RestMethod -Uri "https://n8n-9m9kfdy0q-pr7yhkckog.us-west-1.svcs.zeabur.net/webhook/umio-chat" `
+$response = Invoke-RestMethod -Uri "https://n8n.neovega.cc/webhook/umio-chat" `
     -Method POST `
-    -ContentType "application/json" `
+    -ContentType "application/json; charset=utf-8" `
     -Body $body
 
 $response
