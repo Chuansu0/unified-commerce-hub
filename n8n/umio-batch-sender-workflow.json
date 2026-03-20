@@ -1,0 +1,274 @@
+{
+    "name": "Umio Batch Sender - 10min Scheduled",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 10
+                        }
+                    ]
+                }
+            },
+            "id": "schedule-trigger-001",
+            "name": "ScheduleTrigger",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const now = new Date();\nconst threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);\nreturn [{\n  json: {\n    filter: `sent_to_telegram = false && created >= '${threeDaysAgo.toISOString()}'`,\n    threeDaysAgo: threeDaysAgo.toISOString(),\n    now: now.toISOString()\n  }\n}];"
+            },
+            "id": "prepare-filter-002",
+            "name": "PrepareFilter",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "collection": "messages",
+                "filter": "={{ $json.filter }}",
+                "sort": "+created"
+            },
+            "id": "pocketbase-get-003",
+            "name": "PocketBaseGetMessages",
+            "type": "n8n-nodes-base.pocketbase",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ],
+            "credentials": {
+                "pocketbaseApi": {
+                    "id": "pocketbase-credentials",
+                    "name": "PocketBase Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const messages = items.map(item => item.json);\nif (messages.length === 0) {\n  return [{ json: { hasMessages: false, count: 0 } }];\n}\nconst formattedMessages = messages.map((msg, index) => {\n  const date = new Date(msg.created).toLocaleString('zh-TW', {\n    month: 'short',\n    day: 'numeric',\n    hour: '2-digit',\n    minute: '2-digit'\n  });\n  return `${index + 1}. [${date}] ${msg.content}`;\n}).join('\\n\\n');\nconst botMentions = '@neovegaandrea_bot @neovegalinus_bot @neovegalele_bot @neovegamako_bot @neovegaumio_bot';\nconst batchMessage = `${botMentions}\\n\\n📋 待處理訊息 (${messages.length} 則):\\n\\n${formattedMessages}\\n\\n---\\n💡 請協助回覆以上訊息`;\nreturn [{\n  json: {\n    hasMessages: true,\n    count: messages.length,\n    messages: messages,\n    messageIds: messages.map(m => m.id),\n    batchMessage: batchMessage\n  }\n}];"
+            },
+            "id": "format-message-004",
+            "name": "FormatMessage",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "condition-has-messages",
+                            "leftValue": "={{ $json.hasMessages }}",
+                            "rightValue": true,
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                }
+            },
+            "id": "check-has-messages-005",
+            "name": "CheckHasMessages",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                1050,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "=https://api.telegram.org/bot8751641141:AAGeQKXV4WvOguP4H5UpUWegVcq2obdzIVw/sendMessage",
+                "sendBody": true,
+                "contentType": "json",
+                "body": {
+                    "chat_id": "-1003806455231",
+                    "text": "={{ $json.batchMessage }}",
+                    "parse_mode": "HTML",
+                    "disable_web_page_preview": true
+                }
+            },
+            "id": "send-telegram-006",
+            "name": "SendToTelegram",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1250,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const messageIds = $input.first().json.messageIds;\nreturn messageIds.map(id => ({\n  json: { messageId: id }\n}));"
+            },
+            "id": "split-ids-007",
+            "name": "SplitMessageIds",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1250,
+                350
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "collection": "messages",
+                "id": "={{ $json.messageId }}",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "sent_to_telegram",
+                            "fieldValue": "true"
+                        },
+                        {
+                            "fieldId": "batch_sent_at",
+                            "fieldValue": "={{ $now }}"
+                        }
+                    ]
+                }
+            },
+            "id": "update-messages-008",
+            "name": "UpdateMessages",
+            "type": "n8n-nodes-base.pocketbase",
+            "typeVersion": 1,
+            "position": [
+                1450,
+                350
+            ],
+            "credentials": {
+                "pocketbaseApi": {
+                    "id": "pocketbase-credentials",
+                    "name": "PocketBase Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "return [{\n  json: {\n    success: true,\n    skipped: true,\n    reason: 'No pending messages',\n    timestamp: new Date().toISOString()\n  }\n}];"
+            },
+            "id": "no-messages-010",
+            "name": "NoMessages",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1250,
+                500
+            ]
+        }
+    ],
+    "connections": {
+        "ScheduleTrigger": {
+            "main": [
+                [
+                    {
+                        "node": "PrepareFilter",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PrepareFilter": {
+            "main": [
+                [
+                    {
+                        "node": "PocketBaseGetMessages",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PocketBaseGetMessages": {
+            "main": [
+                [
+                    {
+                        "node": "FormatMessage",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "FormatMessage": {
+            "main": [
+                [
+                    {
+                        "node": "CheckHasMessages",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "CheckHasMessages": {
+            "main": [
+                [
+                    {
+                        "node": "SendToTelegram",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "SplitMessageIds",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "NoMessages",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "SplitMessageIds": {
+            "main": [
+                [
+                    {
+                        "node": "UpdateMessages",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [
+        "umio",
+        "batch",
+        "scheduled"
+    ]
+}
