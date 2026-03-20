@@ -42,7 +42,7 @@ const activeSubscriptions = new Map<string, () => void>();
 
 /**
  * 發送訊息給 Umio (OpenClaw AI Bot)
- * 使用 HTTP 同步回覆，無需 WebSocket
+ * Fire-and-Forget 模式：只發送，不等待回應
  * @param message 使用者訊息
  * @param sessionId 會話 ID
  * @param userName 用戶名稱（可選）
@@ -60,9 +60,10 @@ export async function sendToUmio(
     try {
         // 儲存用戶訊息到 PocketBase
         await saveUserMessage(sessionId, message, userName, metadata);
+        console.log(`[UmioChat] User message saved to PocketBase`);
 
-        // 呼叫 n8n Webhook
-        const response = await fetch(UMIO_API_URL, {
+        // Fire-and-forget: 發送請求但不等待回應
+        fetch(UMIO_API_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -76,66 +77,23 @@ export async function sendToUmio(
                     ...metadata
                 }
             })
+        }).catch(err => {
+            // 非阻塞錯誤處理 - 記錄但不影響使用者體驗
+            console.warn("[UmioChat] Background send error (non-blocking):", err);
         });
 
-        console.log(`[UmioChat] Response status: ${response.status}`);
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error(`[UmioChat] HTTP error:`, errorData);
-            throw new Error(
-                errorData.error || `HTTP ${response.status}: ${response.statusText}`
-            );
-        }
-
-        const data = await response.json();
-        console.log(`[UmioChat] Response data:`, data);
-
-        if (!data.success) {
-            throw new Error(data.message || data.error || "Unknown error");
-        }
-
-        // 取得回覆內容（支援多種格式）
-        // data.message 是 n8n 回傳的訊息（可能是 'Message forwarded to Umio'）
-        // data.response 是 Umio 的實際回覆
-        const replyContent = data.response || data.message || "訊息已發送";
-
-        // 如果有直接回覆，儲存到 PocketBase
-        if (data.response) {
-            await saveAssistantMessage(sessionId, replyContent);
-        }
-
+        // 立即返回成功，不等待 n8n 回應
         return {
             success: true,
-            message: replyContent,
-            sessionId: data.sessionId || sessionId
+            message: "訊息已發送",
+            sessionId
         };
     } catch (error) {
         console.error("[UmioChat] Error:", error);
 
-        // 提供友善的錯誤訊息
-        if (error instanceof Error) {
-            if (error.message.includes("Failed to fetch")) {
-                return {
-                    success: false,
-                    message: "無法連接到 Umio 服務，請檢查網路連線。"
-                };
-            }
-            if (error.message.includes("timeout")) {
-                return {
-                    success: false,
-                    message: "Umio 回應時間過長，請稍後再試。"
-                };
-            }
-            return {
-                success: false,
-                message: `Umio 服務錯誤: ${error.message}`
-            };
-        }
-
         return {
             success: false,
-            message: "Umio 暫時無法回應，請稍後再試。"
+            message: "訊息儲存失敗，請稍後再試。"
         };
     }
 }
