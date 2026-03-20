@@ -63,6 +63,10 @@ export async function sendToUmio(
         console.log(`[UmioChat] User message saved to PocketBase`);
 
         // Fire-and-forget: 發送請求但不等待回應
+        // 使用 AbortController 確保不會長時間等待
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 秒後強制中止
+
         fetch(UMIO_API_URL, {
             method: "POST",
             headers: {
@@ -76,11 +80,26 @@ export async function sendToUmio(
                     platform: "webchat",
                     ...metadata
                 }
+            }),
+            signal: controller.signal
+        })
+            .then(response => {
+                clearTimeout(timeoutId);
+                if (response.ok) {
+                    console.log("[UmioChat] Message sent successfully");
+                } else {
+                    console.warn("[UmioChat] Send returned status:", response.status);
+                }
             })
-        }).catch(err => {
-            // 非阻塞錯誤處理 - 記錄但不影響使用者體驗
-            console.warn("[UmioChat] Background send error (non-blocking):", err);
-        });
+            .catch(err => {
+                clearTimeout(timeoutId);
+                // 中止錯誤是正常的，因為我們使用 fire-and-forget
+                if (err.name === "AbortError") {
+                    console.log("[UmioChat] Request aborted (expected for fire-and-forget)");
+                } else {
+                    console.warn("[UmioChat] Background send error (non-blocking):", err);
+                }
+            });
 
         // 立即返回成功，不等待 n8n 回應
         return {
