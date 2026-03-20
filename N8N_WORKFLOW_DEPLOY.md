@@ -1,5 +1,16 @@
 # n8n Workflow 部署說明
 
+## 重要提醒：PowerShell 編碼問題
+
+⚠️ **如果你看到 `message:????` 或 `userName:????`**，這是 **PowerShell 編碼問題**，不是 n8n workflow 的問題！
+
+**根因**: Windows PowerShell 預設使用 Big5/ANSI 編碼，導致中文字元傳輸時變成問號。
+
+**解決方案**:
+1. 使用提供的 UTF-8 測試腳本: `.\test-umio-webhook-fixed.ps1`
+2. 或使用 curl 發送請求
+3. 或將中文字元轉為 UTF-8 bytes 後發送
+
 ## 問題修復摘要
 
 ### 問題 1: "No message content" 錯誤
@@ -7,7 +18,7 @@
 
 **解決方案**: 
 - 新增 **Extract Data** 節點統一提取資料
-- 支援兩種格式：`$json.body.message` 和 `$json.message`
+- 支援多種格式：`$json.body.message`、`$json.message`、`$json.body.body.message`
 
 ### 問題 2: 重複訊息發送
 **根因**: Bot Collaboration Orchestrator workflow 缺乏去重機制。
@@ -19,10 +30,10 @@
 
 ### 步驟 1: 匯入新版 Workflow
 
-1. 登入 n8n: https://n8n-9m9kfdy0q-pr7yhkckog.us-west-1.svcs.zeabur.net
+1. 登入 n8n: https://n8n.neovega.cc
 2. 進入 Workflow 列表
 3. 點擊「Import」>「Import from File」
-4. 選擇檔案: `n8n/webchat-umio-simple-v4.json`
+4. 選擇檔案: `n8n/webchat-umio-simple-v6.json` ⚠️ **使用 v6 版本**
 5. 啟用 workflow
 
 ### 步驟 2: 停用舊版 Workflow
@@ -31,16 +42,21 @@
 - ❌ `webchat-umio-simple`
 - ❌ `webchat-umio-simple-v2`
 - ❌ `webchat-umio-simple-v3`
+- ❌ `webchat-umio-simple-v4`
+- ❌ `webchat-umio-simple-v5`
 
 ### 步驟 3: 測試
 
-**重要**: PowerShell 預設編碼可能導致中文變成 `????`，請使用提供的測試腳本：
+**重要**: 請使用提供的 UTF-8 測試腳本：
 
 ```powershell
-# 使用測試腳本（已處理 UTF-8 編碼）
-.\test-umio-webhook.ps1
+# 使用 UTF-8 測試腳本（推薦）
+.\test-umio-webhook-fixed.ps1
+```
 
-# 或手動測試（使用 ASCII 訊息避免編碼問題）
+或手動測試（避免中文）：
+
+```powershell
 $body = @{
     message = "Hello from PowerShell"
     sessionId = "test-$(Get-Random)"
@@ -50,7 +66,7 @@ $body = @{
     }
 } | ConvertTo-Json
 
-$response = Invoke-RestMethod -Uri "https://n8n.neovega.cc/webhook/umio-chat" `
+$response = Invoke-RestMethod -Uri "https://n8n.neovega.cc/webhook/umio-chat-v6" `
     -Method POST `
     -ContentType "application/json; charset=utf-8" `
     -Body $body
@@ -58,12 +74,55 @@ $response = Invoke-RestMethod -Uri "https://n8n.neovega.cc/webhook/umio-chat" `
 $response
 ```
 
-預期回應：
+預期回應（成功）：
 ```json
 {
     "success": true,
-    "message": "Message forwarded to Umio",
-    "received": "測試訊息"
+    "message": "Forwarded to Umio",
+    "received": "Hello from PowerShell",
+    "sessionId": "test-123456"
+}
+```
+
+預期回應（編碼錯誤）：
+```json
+{
+    "success": false,
+    "error": "No message",
+    "debug": {
+        "message": "????",
+        "input": { ... }
+    }
+}
+```
+
+### 步驟 4: 修復 PowerShell 編碼（如需要）
+
+如果中文變成 `????`，請：
+
+**方法 1**: 使用 curl
+```powershell
+$json = '{"message":"你好","sessionId":"test-123","context":{"platform":"webchat"}}'
+$json | Out-File -FilePath "test.json" -Encoding utf8
+curl -X POST "https://n8n.neovega.cc/webhook/umio-chat-v6" -H "Content-Type: application/json" -d "@test.json"
+```
+
+**方法 2**: 使用 bytes
+```powershell
+$body = @{ message = "你好"; sessionId = "test-123" } | ConvertTo-Json
+$bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
+Invoke-RestMethod -Uri "https://n8n.neovega.cc/webhook/umio-chat-v6" -Method POST -ContentType "application/json" -Body $bytes
+```
+
+**方法 3**: 使用 PowerShell 7+
+```powershell
+# 安裝 PowerShell 7
+winget install Microsoft.PowerShell
+
+# 使用 pwsh 執行
+pwsh -Command {
+    $body = @{ message = "你好"; sessionId = "test-123" } | ConvertTo-Json
+    Invoke-RestMethod -Uri "https://n8n.neovega.cc/webhook/umio-chat-v6" -Method POST -Body $body
 }
 ```
 
