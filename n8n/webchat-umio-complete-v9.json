@@ -1,0 +1,159 @@
+{
+    "name": "WebChat Umio Complete V9 - Fire and Forget with OpenClaw",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "responseMode": "responseNode",
+                "path": "umio-chat-v9",
+                "options": {}
+            },
+            "id": "webhook-node",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "umio-chat-v9"
+        },
+        {
+            "parameters": {
+                "jsCode": "// 解析輸入資料\nconst input = items[0].json;\nconst data = input.body || input;\n\nreturn [{\n  json: {\n    message: data.message || '',\n    sessionId: data.sessionId || 'unknown-' + Date.now(),\n    conversationId: data.conversationId || data.context?.conversationId || '',\n    platform: data.context?.platform || 'webchat',\n    received: true\n  }\n}];"
+            },
+            "id": "extract-node",
+            "name": "Extract Data",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ { success: true, message: 'Message received and processing', sessionId: $json.sessionId } }}"
+            },
+            "id": "response-node",
+            "name": "Immediate Response",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                650,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://openclaw.neovega.cc/api/chat",
+                "method": "POST",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"message\": \"{{ $json.message }}\",\n  \"sessionId\": \"{{ $json.sessionId }}\",\n  \"platform\": \"{{ $json.platform }}\",\n  \"agentId\": \"umio\"\n}",
+                "options": {
+                    "timeout": 45000
+                }
+            },
+            "id": "openclaw-node",
+            "name": "Call OpenClaw API",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://www.neovega.cc/pb/api/collections/messages/records",
+                "method": "POST",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"conversation\": \"{{ $('Extract Data').item.json.conversationId }}\",\n  \"content\": \"{{ $json.response }}\",\n  \"sender\": \"assistant\",\n  \"metadata\": {\n    \"agent\": \"umio\",\n    \"source\": \"openclaw\",\n    \"sessionId\": \"{{ $('Extract Data').item.json.sessionId }}\"\n  }\n}"
+            },
+            "id": "save-reply-node",
+            "name": "Save Reply to PocketBase",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1050,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://api.telegram.org/bot8751641141:AAGeQKXV4WvOguP4H5UpUWegVcq2obdzIVw/sendMessage",
+                "method": "POST",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"chat_id\": \"-1003806455231\",\n  \"text\": \"👤 WebChat → Umio\\n\\n💬 用戶: {{ $('Extract Data').item.json.message }}\\n\\n🤖 Umio: {{ $('Call OpenClaw API').item.json.response }}\",\n  \"parse_mode\": \"HTML\"\n}"
+            },
+            "id": "telegram-node",
+            "name": "Send to Telegram",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1250,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Data": {
+            "main": [
+                [
+                    {
+                        "node": "Immediate Response",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Call OpenClaw API",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Call OpenClaw API": {
+            "main": [
+                [
+                    {
+                        "node": "Save Reply to PocketBase",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Save Reply to PocketBase": {
+            "main": [
+                [
+                    {
+                        "node": "Send to Telegram",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": []
+}
