@@ -41,8 +41,8 @@ const replyCallbacks = new Map<string, (message: UmioMessage) => void>();
 const activeSubscriptions = new Map<string, () => void>();
 
 /**
- * 發送訊息給 Umio (OpenClaw AI Bot)
- * Fire-and-Forget 模式：只發送，不等待回應
+ * 發送訊息給 Umio (OpenClaw AI Bot) V9
+ * Fire-and-Forget 模式：立即回應，背景處理
  * @param message 使用者訊息
  * @param sessionId 會話 ID
  * @param userName 用戶名稱（可選）
@@ -58,15 +58,20 @@ export async function sendToUmio(
     console.log(`[UmioChat] Sending message: "${message.substring(0, 50)}..." to session: ${sessionId}`);
 
     try {
+        // 先取得或建立對話，獲取 conversationId
+        const conversation = await getOrCreateConversation(sessionId);
+        console.log(`[UmioChat] Got conversation: ${conversation.id}`);
+
         // 儲存用戶訊息到 PocketBase
-        await saveUserMessage(sessionId, message, userName, metadata);
+        await saveUserMessageEnabled(sessionId, message, userName, metadata);
         console.log(`[UmioChat] User message saved to PocketBase`);
 
         // Fire-and-forget: 發送請求但不等待回應
         // 使用 AbortController 確保不會長時間等待
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 秒後強制中止
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 秒後強制中止
 
+        // V9: 需要傳遞 conversationId 給 n8n workflow
         fetch(UMIO_API_URL, {
             method: "POST",
             headers: {
@@ -75,9 +80,10 @@ export async function sendToUmio(
             body: JSON.stringify({
                 message,
                 sessionId,
+                conversationId: conversation.id, // V9 需要此參數
                 context: {
                     userName,
-                    platform: "webchat",
+                    platform: "umio",
                     ...metadata
                 }
             }),
@@ -86,7 +92,7 @@ export async function sendToUmio(
             .then(response => {
                 clearTimeout(timeoutId);
                 if (response.ok) {
-                    console.log("[UmioChat] Message sent successfully");
+                    console.log("[UmioChat] Message sent to n8n successfully");
                 } else {
                     console.warn("[UmioChat] Send returned status:", response.status);
                 }
