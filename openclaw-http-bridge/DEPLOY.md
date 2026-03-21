@@ -58,9 +58,12 @@ curl -X POST https://openclaw-http-bridge.zeabur.app/api/umio/chat \
 ```
 OPENCLAW_WS_URL=ws://openclaw.zeabur.internal:18789
 OPENCLAW_GATEWAY_TOKEN=<從 OpenClaw 服務複製>
+DEVICE_ID=bridge-device-001
 N8N_REPLY_WEBHOOK=https://n8n.neovega.cc/webhook/openclaw-reply
 PORT=3000
 ```
+
+**注意**: `DEVICE_ID` 是必需的，用於 OpenClaw Gateway 的 device identity 驗證。
 
 ## 前端整合
 

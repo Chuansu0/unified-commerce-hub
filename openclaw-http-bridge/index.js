@@ -21,6 +21,7 @@ app.use(express.json());
 
 const OPENCLAW_WS = process.env.OPENCLAW_WS_URL || 'ws://openclaw.zeabur.internal:18789';
 const OPENCLAW_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN;
+const DEVICE_ID = process.env.DEVICE_ID || 'bridge-device-001';
 const N8N_REPLY_WEBHOOK = process.env.N8N_REPLY_WEBHOOK || 'https://n8n.neovega.cc/webhook/openclaw-reply';
 
 app.post('/api/chat', async (req, res) => {
@@ -31,7 +32,7 @@ app.post('/api/chat', async (req, res) => {
     }
 
     try {
-        const ws = new WebSocket(`${OPENCLAW_WS}?token=${OPENCLAW_TOKEN}`);
+        const ws = new WebSocket(`${OPENCLAW_WS}?token=${OPENCLAW_TOKEN}&deviceId=${DEVICE_ID}`);
         let responseText = '';
         const timeout = setTimeout(() => {
             ws.close();
@@ -100,9 +101,10 @@ app.post('/api/umio/chat', async (req, res) => {
     }
 
     try {
-        const wsUrl = `${OPENCLAW_WS}?token=${OPENCLAW_TOKEN}`;
+        const wsUrl = `${OPENCLAW_WS}?token=${OPENCLAW_TOKEN}&deviceId=${DEVICE_ID}`;
         console.log(`[Umio] Connecting to OpenClaw: ${OPENCLAW_WS}`);
         console.log(`[Umio] Token available:`, !!OPENCLAW_TOKEN);
+        console.log(`[Umio] Device ID:`, DEVICE_ID);
 
         const ws = new WebSocket(wsUrl);
         let responseText = '';
