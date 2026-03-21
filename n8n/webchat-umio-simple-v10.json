@@ -10,24 +10,26 @@
                 250,
                 300
             ],
-            "webhookId": "umio-chat-v10",
-            "method": "POST",
-            "path": "umio-chat-v10",
-            "responseMode": "responseNode",
-            "options": {}
+            "parameters": {
+                "httpMethod": "POST",
+                "responseMode": "responseNode",
+                "path": "umio-chat-v10",
+                "options": {}
+            },
+            "webhookId": "umio-chat-v10"
         },
         {
             "id": "response-v10",
             "name": "Immediate Response",
             "type": "n8n-nodes-base.respondToWebhook",
-            "typeVersion": 1,
+            "typeVersion": 1.1,
             "position": [
                 450,
                 200
             ],
-            "options": {
+            "parameters": {
                 "respondWith": "json",
-                "json": "{\"success\":true,\"message\":\"訊息已發送給 Umio\",\"status\":\"processing\"}"
+                "responseBody": "={{ { success: true, message: \"訊息已發送給 Umio\", status: \"processing\" } }}"
             }
         },
         {
@@ -39,7 +41,7 @@
                 450,
                 400
             ],
-            "options": {
+            "parameters": {
                 "mode": "manual",
                 "fields": {
                     "values": [
@@ -101,7 +103,7 @@
                 850,
                 400
             ],
-            "options": {
+            "parameters": {
                 "mode": "manual",
                 "fields": {
                     "values": [
