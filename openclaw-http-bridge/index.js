@@ -1,3 +1,4 @@
+5
 import express from 'express';
 import WebSocket from 'ws';
 
@@ -151,7 +152,18 @@ app.post('/api/umio/chat', async (req, res) => {
         ws.on('message', (data) => {
             try {
                 const msg = JSON.parse(data.toString());
-                console.log(`[Umio] Received message:`, JSON.stringify(msg, null, 2).substring(0, 200));
+                console.log(`[Umio] Received message:`, JSON.stringify(msg, null, 2).substring(0, 500));
+
+                // Handle connect.challenge - respond to keep connection alive
+                if (msg.type === 'event' && msg.event === 'connect.challenge') {
+                    console.log(`[Umio] Received challenge, responding...`);
+                    ws.send(JSON.stringify({
+                        type: 'event',
+                        event: 'connect.challenge_response',
+                        payload: { nonce: msg.payload.nonce }
+                    }));
+                    return;
+                }
 
                 // Handle streaming partial responses
                 if (msg.result) {
