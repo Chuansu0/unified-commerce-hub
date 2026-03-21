@@ -1,0 +1,217 @@
+{
+    "name": "Webchat Umio Simple V10 (No Code Nodes)",
+    "nodes": [
+        {
+            "id": "webhook-v10",
+            "name": "Umio Chat Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "umio-chat-v10",
+            "method": "POST",
+            "path": "umio-chat-v10",
+            "responseMode": "responseNode",
+            "options": {}
+        },
+        {
+            "id": "response-v10",
+            "name": "Immediate Response",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                450,
+                200
+            ],
+            "options": {
+                "respondWith": "json",
+                "json": "{\"success\":true,\"message\":\"訊息已發送給 Umio\",\"status\":\"processing\"}"
+            }
+        },
+        {
+            "id": "prepare-v10",
+            "name": "Prepare Request",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 2,
+            "position": [
+                450,
+                400
+            ],
+            "options": {
+                "mode": "manual",
+                "fields": {
+                    "values": [
+                        {
+                            "name": "sessionId",
+                            "type": "string",
+                            "value": "={{ $json.body.sessionId }}"
+                        },
+                        {
+                            "name": "conversationId",
+                            "type": "string",
+                            "value": "={{ $json.body.conversationId }}"
+                        },
+                        {
+                            "name": "message",
+                            "type": "string",
+                            "value": "={{ $json.body.message }}"
+                        },
+                        {
+                            "name": "platform",
+                            "type": "string",
+                            "value": "={{ $json.body.context.platform || 'umio' }}"
+                        },
+                        {
+                            "name": "chat_id",
+                            "type": "string",
+                            "value": "={{ $json.body.context.chatId || $json.body.sessionId }}"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "call-openclaw-v10",
+            "name": "Call OpenClaw",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                650,
+                400
+            ],
+            "options": {
+                "method": "POST",
+                "url": "=https://neovegaopenclaw.zeabur.app/webhooks/payload",
+                "body": {
+                    "contents": "={{ JSON.stringify({chat_id: $json.chat_id, text: $json.message, platform: $json.platform, conversationId: $json.conversationId, sessionId: $json.sessionId}) }}"
+                },
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "responseFormat": "json",
+                "timeout": 30000
+            }
+        },
+        {
+            "id": "extract-reply-v10",
+            "name": "Extract Reply",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 2,
+            "position": [
+                850,
+                400
+            ],
+            "options": {
+                "mode": "manual",
+                "fields": {
+                    "values": [
+                        {
+                            "name": "sessionId",
+                            "type": "string",
+                            "value": "={{ $('Prepare Request').first().json.sessionId }}"
+                        },
+                        {
+                            "name": "conversationId",
+                            "type": "string",
+                            "value": "={{ $('Prepare Request').first().json.conversationId }}"
+                        },
+                        {
+                            "name": "replyText",
+                            "type": "string",
+                            "value": "={{ $json.text || $json.response || $json.message || '收到您的訊息，我來想想該如何回覆' }}"
+                        },
+                        {
+                            "name": "fullResponse",
+                            "type": "object",
+                            "value": "={{ $json }}"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "save-to-pocketbase-v10",
+            "name": "Save to PocketBase",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                1050,
+                400
+            ],
+            "options": {
+                "method": "POST",
+                "url": "=https://neovegapocketbase.zeabur.app/api/collections/messages/records",
+                "body": {
+                    "contents": "={{ JSON.stringify({conversation: $json.conversationId, sender: 'assistant', channel: 'web', content: $json.replyText, metadata: {agent: 'umio', source: 'openclaw-v10'}}) }}"
+                },
+                "headers": {
+                    "Content-Type": "application/json"
+                },
+                "timeout": 10000
+            }
+        }
+    ],
+    "connections": {
+        "Umio Chat Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Immediate Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Prepare Request",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Prepare Request": {
+            "main": [
+                [
+                    {
+                        "node": "Call OpenClaw",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Call OpenClaw": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Reply",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Reply": {
+            "main": [
+                [
+                    {
+                        "node": "Save to PocketBase",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1",
+        "saveExecutionProgress": false,
+        "saveManualExecutions": false,
+        "callerPolicy": "workflowsFromSameOwner"
+    },
+    "staticData": null,
+    "tags": []
+}
