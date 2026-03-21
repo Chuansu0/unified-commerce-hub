@@ -1,43 +1,20 @@
+cat << 'EOF' > ~/.openclaw/openclaw.json
 {
     "meta": {
         "lastTouchedVersion": "2026.3.2",
-        "lastTouchedAt": "2026-03-10T08:32:07.515Z"
+        "lastTouchedAt": "2026-03-21T10:21:49.258Z"
     },
     "wizard": {
-        "lastRunAt": "2026-03-05T00:39:17.138Z",
+        "lastRunAt": "2026-03-20T06:13:23.697Z",
         "lastRunVersion": "2026.3.2",
         "lastRunCommand": "doctor",
         "lastRunMode": "local"
     },
     "models": {
         "providers": {
-            "anthropic": {
-                "baseUrl": "https://api.whatai.cc",
-                "apiKey": "${ANTHROPIC_API_KEY}",
-                "api": "anthropic-messages",
-                "models": [
-                    {
-                        "id": "claude-sonnet-4-6",
-                        "name": "Claude Sonnet 4.6",
-                        "api": "anthropic-messages",
-                        "reasoning": false,
-                        "input": [
-                            "text"
-                        ],
-                        "cost": {
-                            "input": 0,
-                            "output": 0,
-                            "cacheRead": 0,
-                            "cacheWrite": 0
-                        },
-                        "contextWindow": 200000,
-                        "maxTokens": 8192
-                    }
-                ]
-            },
             "opencode-go": {
                 "baseUrl": "https://opencode.ai/zen/go/v1",
-                "apiKey": "${ANTHROPIC_API_KEY}",
+                "apiKey": "sk-LlyHKvZDoWJpUoSVED3gS7kmrS3kOvZlsCjndZ3RNg8Qcj1zSyH1HaGIQf9VPZq0",
                 "api": "openai-completions",
                 "models": [
                     {
@@ -92,6 +69,30 @@
                         "maxTokens": 8192
                     }
                 ]
+            },
+            "anthropic": {
+                "baseUrl": "https://api.whatai.cc",
+                "apiKey": "${ANTHROPIC_API_KEY}",
+                "api": "anthropic-messages",
+                "models": [
+                    {
+                        "id": "claude-sonnet-4-6",
+                        "name": "Claude Sonnet 4.6",
+                        "api": "anthropic-messages",
+                        "reasoning": false,
+                        "input": [
+                            "text"
+                        ],
+                        "cost": {
+                            "input": 0,
+                            "output": 0,
+                            "cacheRead": 0,
+                            "cacheWrite": 0
+                        },
+                        "contextWindow": 200000,
+                        "maxTokens": 8192
+                    }
+                ]
             }
         }
     },
@@ -104,6 +105,10 @@
                 "opencode-go/glm-5": {
                     "alias": "glm5"
                 }
+            },
+            "maxConcurrent": 4,
+            "subagents": {
+                "maxConcurrent": 8
             }
         },
         "list": [
@@ -123,15 +128,28 @@
                 "id": "andrea",
                 "name": "Andrea (Executive Assistant)",
                 "workspace": "~/.openclaw/workspace-andrea",
+                "model": "opencode-go/kimi-k2.5"
+            },
+            {
+                "id": "lele",
+                "name": "LeLe (Empathetic Support)",
+                "model": "opencode-go/minimax-m2.5"
+            },
+            {
+                "id": "mako",
+                "name": "Mako (Rational QC)",
                 "model": "opencode-go/glm-5"
             },
             {
                 "id": "umio",
-                "name": "Umio (Digital Content Clerk)",
+                "name": "Umio (Kimi Assistant)",
                 "workspace": "~/.openclaw/workspace-umio",
-                "model": "opencode-go/glm-5"
+                "model": "opencode-go/kimi-k2.5"
             }
         ]
+    },
+    "tools": {
+        "profile": "full"
     },
     "bindings": [
         {
@@ -146,6 +164,27 @@
             "match": {
                 "channel": "telegram",
                 "accountId": "andrea"
+            }
+        },
+        {
+            "agentId": "lele",
+            "match": {
+                "channel": "telegram",
+                "accountId": "lele"
+            }
+        },
+        {
+            "agentId": "mako",
+            "match": {
+                "channel": "telegram",
+                "accountId": "mako"
+            }
+        },
+        {
+            "agentId": "umio",
+            "match": {
+                "channel": "telegram",
+                "accountId": "umio"
             }
         },
         {
@@ -167,12 +206,24 @@
             "dmPolicy": "pairing",
             "groups": {
                 "*": {
-                    "requireMention": true
+                    "requireMention": false
                 }
             },
             "groupPolicy": "allowlist",
             "streaming": "partial",
             "accounts": {
+                "andrea": {
+                    "dmPolicy": "open",
+                    "botToken": "${TELEGRAM_ANDREA_BOT_TOKEN}",
+                    "allowFrom": [
+                        "*"
+                    ],
+                    "groupAllowFrom": [
+                        "*"
+                    ],
+                    "groupPolicy": "open",
+                    "streaming": "partial"
+                },
                 "linus": {
                     "dmPolicy": "open",
                     "botToken": "${TELEGRAM_LINUS_BOT_TOKEN}",
@@ -185,9 +236,9 @@
                     "groupPolicy": "open",
                     "streaming": "partial"
                 },
-                "andrea": {
+                "lele": {
                     "dmPolicy": "open",
-                    "botToken": "${TELEGRAM_ANDREA_BOT_TOKEN}",
+                    "botToken": "${TELEGRAM_LELE_BOT_TOKEN}",
                     "allowFrom": [
                         "*"
                     ],
@@ -196,31 +247,57 @@
                     ],
                     "groupPolicy": "open",
                     "streaming": "partial"
+                },
+                "mako": {
+                    "dmPolicy": "open",
+                    "botToken": "${TELEGRAM_MAKO_BOT_TOKEN}",
+                    "allowFrom": [
+                        "*"
+                    ],
+                    "groupAllowFrom": [
+                        "*"
+                    ],
+                    "groupPolicy": "open",
+                    "streaming": "partial"
+                },
+                "umio": {
+                    "dmPolicy": "open",
+                    "botToken": "${TELEGRAM_UMIO_BOT_TOKEN}",
+                    "allowFrom": [
+                        "*"
+                    ],
+                    "groupAllowFrom": [
+                        "*"
+                    ],
+                    "groupPolicy": "open",
+                    "streaming": "partial"
+                },
+                "default": {
+                    "dmPolicy": "pairing",
+                    "groupPolicy": "open",
+                    "streaming": "partial"
                 }
             }
         }
     },
     "gateway": {
         "mode": "local",
+		"port": 18789,
+		"bind": "lan",
+        "auth": {
+          "mode": "token",
+          "token": "FCo0g2jyi864v9VxEqQw753GSbkdWn1X",
+		},
+	},
         "controlUi": {
             "dangerouslyAllowHostHeaderOriginFallback": true,
             "allowInsecureAuth": true,
-            "dangerouslyDisableDeviceAuth": true,
-            "insecureSkipVerify": true
+            "dangerouslyDisableDeviceAuth": true
         },
         "trustedProxies": [
             "10.0.0.0/8",
-            "172.16.0.0/12",
-            "172.70.0.0/16",
-            "104.23.0.0/16",
-            "104.21.0.0/16"
-        ],
-        "websocket": {
-            "allowOrigins": [
-                "https://openclaw.neovega.cc"
-            ],
-            "allowInsecure": true
-        }
+            "172.16.0.0/12"
+        ]
     },
     "plugins": {
         "entries": {
@@ -230,3 +307,4 @@
         }
     }
 }
+EOF
