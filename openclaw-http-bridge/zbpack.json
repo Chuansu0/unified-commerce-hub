@@ -1,16 +1,5 @@
 {
-    "runtime": "node",
-    "build": {
-        "dockerfile": "Dockerfile"
-    },
-    "port": 3000,
-    "healthcheck": {
-        "path": "/health",
-        "interval": 30,
-        "timeout": 5,
-        "retries": 3
-    },
-    "env": {
-        "PORT": "3000"
-    }
+    "install_command": "npm install",
+    "start_command": "npm start",
+    "port": 3000
 }
