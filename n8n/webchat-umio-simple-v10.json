@@ -81,17 +81,15 @@
                 650,
                 400
             ],
-            "options": {
+            "parameters": {
                 "method": "POST",
-                "url": "=https://neovegaopenclaw.zeabur.app/webhooks/payload",
-                "body": {
-                    "contents": "={{ JSON.stringify({chat_id: $json.chat_id, text: $json.message, platform: $json.platform, conversationId: $json.conversationId, sessionId: $json.sessionId}) }}"
-                },
-                "headers": {
-                    "Content-Type": "application/json"
-                },
-                "responseFormat": "json",
-                "timeout": 30000
+                "url": "https://openclaw.neovega.cc/api/chat",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"message\": \"{{ $json.message }}\",\n  \"sessionId\": \"{{ $json.sessionId }}\",\n  \"platform\": \"{{ $json.platform }}\",\n  \"agentId\": \"umio\"\n}",
+                "options": {
+                    "timeout": 45000
+                }
             }
         },
         {
@@ -140,16 +138,12 @@
                 1050,
                 400
             ],
-            "options": {
+            "parameters": {
                 "method": "POST",
-                "url": "=https://neovegapocketbase.zeabur.app/api/collections/messages/records",
-                "body": {
-                    "contents": "={{ JSON.stringify({conversation: $json.conversationId, sender: 'assistant', channel: 'web', content: $json.replyText, metadata: {agent: 'umio', source: 'openclaw-v10'}}) }}"
-                },
-                "headers": {
-                    "Content-Type": "application/json"
-                },
-                "timeout": 10000
+                "url": "https://www.neovega.cc/pb/api/collections/messages/records",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"conversation\": \"{{ $('Prepare Request').item.json.conversationId }}\",\n  \"content\": \"{{ $json.response }}\",\n  \"sender\": \"assistant\",\n  \"metadata\": {\n    \"agent\": \"umio\",\n    \"source\": \"openclaw\",\n    \"sessionId\": \"{{ $('Prepare Request').item.json.sessionId }}\"\n  }\n}"
             }
         }
     ],
