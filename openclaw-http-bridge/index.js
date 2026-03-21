@@ -162,6 +162,25 @@ app.post('/api/umio/chat', async (req, res) => {
                         event: 'connect.challenge_response',
                         payload: { nonce: msg.payload.nonce }
                     }));
+
+                    // After challenge, send device.announce to register
+                    console.log(`[Umio] Sending device.announce...`);
+                    ws.send(JSON.stringify({
+                        type: 'event',
+                        event: 'device.announce',
+                        payload: {
+                            deviceId: DEVICE_ID,
+                            name: 'OpenClaw HTTP Bridge',
+                            capabilities: ['agent.chat'],
+                            timestamp: new Date().toISOString()
+                        }
+                    }));
+                    return;
+                }
+
+                // Handle device.announce acknowledgment
+                if (msg.type === 'event' && msg.event === 'device.ack') {
+                    console.log(`[Umio] Device registered successfully`);
                     return;
                 }
 
