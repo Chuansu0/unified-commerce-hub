@@ -48,22 +48,22 @@
                         {
                             "name": "sessionId",
                             "type": "string",
-                            "value": "={{ $json.body.sessionId }}"
+                            "value": "={{ $json.sessionId }}"
                         },
                         {
                             "name": "conversationId",
                             "type": "string",
-                            "value": "={{ $json.body.conversationId }}"
+                            "value": "={{ $json.conversationId }}"
                         },
                         {
                             "name": "message",
                             "type": "string",
-                            "value": "={{ $json.body.message }}"
+                            "value": "={{ $json.message }}"
                         },
                         {
                             "name": "platform",
                             "type": "string",
-                            "value": "={{ $json.body.context.platform || 'umio' }}"
+                            "value": "={{ $json.context?.platform || 'umio' }}"
                         }
                     ]
                 }
