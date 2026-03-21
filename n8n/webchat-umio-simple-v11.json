@@ -48,22 +48,22 @@
                         {
                             "name": "sessionId",
                             "type": "string",
-                            "value": "={{ $json.sessionId }}"
+                            "value": "={{ $('Umio Chat Webhook').item.json.body.sessionId }}"
                         },
                         {
                             "name": "conversationId",
                             "type": "string",
-                            "value": "={{ $json.conversationId }}"
+                            "value": "={{ $('Umio Chat Webhook').item.json.body.conversationId }}"
                         },
                         {
                             "name": "message",
                             "type": "string",
-                            "value": "={{ $json.message }}"
+                            "value": "={{ $('Umio Chat Webhook').item.json.body.message }}"
                         },
                         {
                             "name": "platform",
                             "type": "string",
-                            "value": "={{ $json.context?.platform || 'umio' }}"
+                            "value": "={{ $('Umio Chat Webhook').item.json.body.context?.platform || 'umio' }}"
                         }
                     ]
                 }
@@ -83,7 +83,7 @@
                 "url": "https://openclaw-http-bridge.zeabur.app/api/umio/chat",
                 "sendBody": true,
                 "specifyBody": "json",
-                "jsonBody": "={\n  \"message\": \"{{ $json.message }}\",\n  \"sessionId\": \"{{ $json.sessionId }}\"\n}",
+                "jsonBody": "={\n  \"message\": \"{{ $('Prepare Request').item.json.message }}\",\n  \"sessionId\": \"{{ $('Prepare Request').item.json.sessionId }}\"\n}",
                 "options": {
                     "timeout": 60000
                 }
@@ -105,12 +105,12 @@
                         {
                             "name": "sessionId",
                             "type": "string",
-                            "value": "={{ $('Prepare Request').first().json.sessionId }}"
+                            "value": "={{ $('Prepare Request').item.json.sessionId }}"
                         },
                         {
                             "name": "conversationId",
                             "type": "string",
-                            "value": "={{ $('Prepare Request').first().json.conversationId }}"
+                            "value": "={{ $('Prepare Request').item.json.conversationId }}"
                         },
                         {
                             "name": "replyText",
@@ -140,7 +140,7 @@
                 "url": "https://www.neovega.cc/pb/api/collections/messages/records",
                 "sendBody": true,
                 "specifyBody": "json",
-                "jsonBody": "={\n  \"conversation\": \"{{ $('Extract Reply').first().json.conversationId }}\",\n  \"content\": \"{{ $('Extract Reply').first().json.replyText }}\",\n  \"sender\": \"assistant\",\n  \"channel\": \"web\",\n  \"metadata\": {\n    \"agent\": \"umio\",\n    \"source\": \"openclaw\",\n    \"sessionId\": \"{{ $('Extract Reply').first().json.sessionId }}\"\n  }\n}"
+                "jsonBody": "={\n  \"conversation\": \"{{ $('Extract Reply').item.json.conversationId }}\",\n  \"content\": \"{{ $('Extract Reply').item.json.replyText }}\",\n  \"sender\": \"assistant\",\n  \"channel\": \"web\",\n  \"metadata\": {\n    \"agent\": \"umio\",\n    \"source\": \"openclaw\",\n    \"sessionId\": \"{{ $('Extract Reply').item.json.sessionId }}\"\n  }\n}"
             }
         }
     ],
