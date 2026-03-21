@@ -145,7 +145,7 @@
                 "url": "https://www.neovega.cc/pb/api/collections/messages/records",
                 "sendBody": true,
                 "specifyBody": "json",
-                "jsonBody": "={\n  \"conversation\": \"{{ $('Prepare Request').item.json.conversationId }}\",\n  \"content\": \"{{ $json.response }}\",\n  \"sender\": \"assistant\",\n  \"metadata\": {\n    \"agent\": \"umio\",\n    \"source\": \"openclaw\",\n    \"sessionId\": \"{{ $('Prepare Request').item.json.sessionId }}\"\n  }\n}"
+                "jsonBody": "={\n  \"conversation\": \"{{ $('Extract Reply').first().json.conversationId }}\",\n  \"content\": \"{{ $('Extract Reply').first().json.replyText }}\",\n  \"sender\": \"assistant\",\n  \"channel\": \"web\",\n  \"metadata\": {\n    \"agent\": \"umio\",\n    \"source\": \"openclaw\",\n    \"sessionId\": \"{{ $('Extract Reply').first().json.sessionId }}\"\n  }\n}"
             }
         }
     ],
