@@ -233,7 +233,8 @@ app.get('/health', (req, res) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
+// Use port 8080 to match Zeabur public domain binding
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`OpenClaw HTTP Bridge running on port ${PORT}`);
 });
