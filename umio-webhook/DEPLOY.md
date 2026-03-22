@@ -27,7 +27,7 @@ UMIO_CHAT_ID=neovegaumio_bot 監聽的 Chat ID（群組或私聊）
 POCKETBASE_URL=http://pocketbase.zeabur.internal:8090
 
 # 服務設定
-PORT=3000
+PORT=8080
 ```
 
 ## Zeabur 部署步驟
@@ -53,7 +53,7 @@ git push origin main
 
 在服務的 Environment Variables 頁面添加：
 
-- `PORT` = `3000`
+- `PORT` = `8080`
 - `POCKETBASE_URL` = `http://pocketbase.zeabur.internal:8090`
 - `UMIO_BOT_TOKEN` = `your_bot_token_here`
 - `UMIO_CHAT_ID` = `your_chat_id_here`

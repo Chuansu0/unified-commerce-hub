@@ -2,7 +2,7 @@
     "name": "umio-webhook",
     "type": "node",
     "version": "20",
-    "port": 3000,
+    "port": 8080,
     "build": {
         "command": "npm install && npm run build"
     },
