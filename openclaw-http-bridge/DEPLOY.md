@@ -51,7 +51,7 @@ curl -X POST https://openclaw-http-bridge.zeabur.app/api/umio/chat \
   }'
 ```
 
-### 4. 環境變數
+### 4. 環境變數VITE_OPENCLAW_BRIDGE_URL=https://openclaw-http-bridge.zeabur.app
 
 確保以下環境變數已設定：
 
@@ -72,7 +72,7 @@ PORT=3000
 在 `.env` 中設定：
 
 ```bash
-VITE_OPENCLAW_BRIDGE_URL=https://openclaw-http-bridge.zeabur.app
+
 ```
 
 ### 使用範例

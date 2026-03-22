@@ -1,4 +1,4 @@
-# OpenClaw Gateway 設定修復指南
+開# OpenClaw Gateway 設定修復指南
 
 ## 問題確認
 
