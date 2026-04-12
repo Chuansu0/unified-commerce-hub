@@ -1,0 +1,404 @@
+{
+    "name": "hermes-sherlock-dispatcher",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "sherlock-output",
+                "responseMode": "onReceived",
+                "options": {
+                    "rawBody": true
+                }
+            },
+            "id": "webhook-trigger",
+            "name": "Sherlock Output Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                240,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// 解析 JSONL 格式，每行一個 JSON 物件\nconst raw = $input.item.json.body || $input.item.json;\nconst text = typeof raw === 'string' ? raw : JSON.stringify(raw);\n\nconst lines = text.split('\\n').filter(l => l.trim());\nconst actions = [];\n\nfor (const line of lines) {\n\ttry {\n\t\tconst obj = JSON.parse(line);\n\t\t// 驗證 schema\n\t\tif (obj.schema !== 'sherlock/v1') continue;\n\t\t// 只處理 type=action 的行\n\t\tif (obj.type === 'action' && obj.target && obj.action_type) {\n\t\t\tactions.push(obj);\n\t\t}\n\t} catch (e) {\n\t\t// 跳過無效行\n\t}\n}\n\nif (actions.length === 0) {\n\treturn [{ json: { skipped: true, reason: 'no valid actions found' } }];\n}\n\nreturn actions.map(a => ({ json: a }));"
+            },
+            "id": "parse-jsonl",
+            "name": "Parse JSONL",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "cond-conan",
+                            "leftValue": "={{ $json.target }}",
+                            "rightValue": "conan",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        },
+                        {
+                            "id": "cond-aria",
+                            "leftValue": "={{ $json.target }}",
+                            "rightValue": "aria",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        },
+                        {
+                            "id": "cond-all",
+                            "leftValue": "={{ $json.target }}",
+                            "rightValue": "all",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "or"
+                },
+                "options": {}
+            },
+            "id": "switch-target",
+            "name": "Switch by Target",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// 格式化發送給 Conan Bot 的訊息\nconst action = $json;\nconst emoji = {\n\t'alert': '🚨',\n\t'web_search': '🔍',\n\t'query_kb': '📚',\n\t'report': '📊'\n}[action.action_type] || '🔍';\n\nconst payloadStr = JSON.stringify(action.payload, null, 2);\nconst text = `${emoji} <b>Sherlock 指令</b>\\n動作: <code>${action.action_type}</code>\\n信心度: ${action.confidence || 'N/A'}\\n\\n<pre>${payloadStr}</pre>`;\n\nreturn [{ json: { ...action, telegram_text: text } }];"
+            },
+            "id": "format-conan",
+            "name": "Format for Conan",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                900,
+                160
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// 格式化發送給 Aria Bot 的訊息\nconst action = $json;\nconst emoji = {\n\t'local_scan': '🔎',\n\t'ingest_url': '📥',\n\t'run_script': '⚙️',\n\t'alert': '🚨',\n\t'report': '📊'\n}[action.action_type] || '🏠';\n\nconst payloadStr = JSON.stringify(action.payload, null, 2);\nconst text = `${emoji} <b>Sherlock 本地指令</b>\\n動作: <code>${action.action_type}</code>\\n\\n<pre>${payloadStr}</pre>`;\n\nreturn [{ json: { ...action, telegram_text: text } }];"
+            },
+            "id": "format-aria",
+            "name": "Format for Aria",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                900,
+                440
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://api.telegram.org/bot8622712926:AAFjLECd5xFxeveZAlRDmqLyFN3sXRIfpvg/sendMessage",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "chat_id",
+                            "value": "={{ $json.payload.chat_id || $env.SHERLOCK_CONAN_CHAT_ID }}"
+                        },
+                        {
+                            "name": "text",
+                            "value": "={{ $json.telegram_text }}"
+                        },
+                        {
+                            "name": "parse_mode",
+                            "value": "HTML"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "send-conan",
+            "name": "Send to Conan Bot",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1120,
+                160
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://api.telegram.org/bot8102780828:AAEZYs0cCNBGOr4_uR-7zVeeDPlXmyF1AN4/sendMessage",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "chat_id",
+                            "value": "={{ $json.payload.chat_id || $env.SHERLOCK_ARIA_CHAT_ID }}"
+                        },
+                        {
+                            "name": "text",
+                            "value": "={{ $json.telegram_text }}"
+                        },
+                        {
+                            "name": "parse_mode",
+                            "value": "HTML"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "send-aria",
+            "name": "Send to Aria Bot",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1120,
+                440
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// target=all: 複製給兩個 bot\nconst action = $json;\nconst conanEmoji = '🔍';\nconst ariaEmoji = '🏠';\nconst payloadStr = JSON.stringify(action.payload, null, 2);\n\nreturn [\n\t{ json: { ...action, _dest: 'conan', telegram_text: `${conanEmoji} <b>Sherlock 廣播</b>\\n動作: <code>${action.action_type}</code>\\n\\n<pre>${payloadStr}</pre>` } },\n\t{ json: { ...action, _dest: 'aria', telegram_text: `${ariaEmoji} <b>Sherlock 廣播</b>\\n動作: <code>${action.action_type}</code>\\n\\n<pre>${payloadStr}</pre>` } }\n];"
+            },
+            "id": "format-all",
+            "name": "Format for All",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {},
+                    "conditions": [
+                        {
+                            "id": "dest-conan",
+                            "leftValue": "={{ $json._dest }}",
+                            "rightValue": "conan",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "or"
+                },
+                "options": {}
+            },
+            "id": "route-all",
+            "name": "Route All",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3,
+            "position": [
+                1120,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://api.telegram.org/bot8622712926:AAFjLECd5xFxeveZAlRDmqLyFN3sXRIfpvg/sendMessage",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "chat_id",
+                            "value": "={{ $env.SHERLOCK_CONAN_CHAT_ID }}"
+                        },
+                        {
+                            "name": "text",
+                            "value": "={{ $json.telegram_text }}"
+                        },
+                        {
+                            "name": "parse_mode",
+                            "value": "HTML"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "send-all-conan",
+            "name": "Send All→Conan",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1340,
+                220
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://api.telegram.org/bot8102780828:AAEZYs0cCNBGOr4_uR-7zVeeDPlXmyF1AN4/sendMessage",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "chat_id",
+                            "value": "={{ $env.SHERLOCK_ARIA_CHAT_ID }}"
+                        },
+                        {
+                            "name": "text",
+                            "value": "={{ $json.telegram_text }}"
+                        },
+                        {
+                            "name": "parse_mode",
+                            "value": "HTML"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "send-all-aria",
+            "name": "Send All→Aria",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1340,
+                380
+            ]
+        }
+    ],
+    "connections": {
+        "Sherlock Output Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Parse JSONL",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse JSONL": {
+            "main": [
+                [
+                    {
+                        "node": "Switch by Target",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Switch by Target": {
+            "main": [
+                [
+                    {
+                        "node": "Format for Conan",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Format for Aria",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Format for All",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format for Conan": {
+            "main": [
+                [
+                    {
+                        "node": "Send to Conan Bot",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format for Aria": {
+            "main": [
+                [
+                    {
+                        "node": "Send to Aria Bot",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format for All": {
+            "main": [
+                [
+                    {
+                        "node": "Route All",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Route All": {
+            "main": [
+                [
+                    {
+                        "node": "Send All→Conan",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Send All→Aria",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "tags": [
+        "hermes",
+        "sherlock",
+        "dispatcher"
+    ]
+}
