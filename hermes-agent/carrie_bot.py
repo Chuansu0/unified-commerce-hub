@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-neovegaaria_bot - 本地執行者
+neovegacarrie_bot - 本地執行者
 位置: Home Workstation
 職責: 接收 neovegasherlock_bot 的 JSONL 指令，執行本地動作
 
 使用方式:
-    python aria_bot.py
+    python carrie_bot.py
 
 環境變數:
-    ARIA_BOT_TOKEN: Telegram Bot Token
+    CARRIE_BOT_TOKEN: Telegram Bot Token
     VAULT_PATH: Knowledge vault 路徑 (預設: D:\\knowledge-vault)
 """
 
@@ -26,7 +26,7 @@ from telegram import Update
 from telegram.ext import Application, MessageHandler, CommandHandler, ContextTypes, filters
 
 # 設定
-TOKEN = os.getenv("ARIA_BOT_TOKEN", "8102780828:AAEZYs0cCNBGOr4_uR-7zVeeDPlXmyF1AN4")
+TOKEN = os.getenv("CARRIE_BOT_TOKEN", "8615424711:AAGLoHijlMpqWX7yD_JhJjKeTS0Dd5H5GTg")
 VAULT_PATH = Path(os.getenv("VAULT_PATH", "D:\\knowledge-vault"))
 RAW_INBOX = VAULT_PATH / "raw" / "inbox"
 
@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	"""/start 指令"""
 	await update.message.reply_text(
-		"🏠 neovegaaria_bot 已啟動\n\n"
+		"🏠 neovegacarrie_bot 已啟動\n\n"
 		"我接收 Sherlock 的 JSONL 指令並執行本地動作。\n"
 		"使用 /status 查看狀態。"
 	)
@@ -59,7 +59,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	"""/status 指令"""
 	status_text = (
-		f"🏠 Aria Bot 狀態\n"
+		f"🏠 Carrie Bot 狀態\n"
 		f"• Vault 路徑: {VAULT_PATH}\n"
 		f"• Inbox: {RAW_INBOX}\n"
 		f"• Sherlock Bot ID: {SHERLOCK_BOT_ID or '未設定'}\n"
@@ -178,7 +178,7 @@ async def handle_ingest_url(payload: dict, update: Update, context: ContextTypes
 
 		RAW_INBOX.mkdir(parents=True, exist_ok=True)
 		with open(filepath, "w", encoding="utf-8") as f:
-			f.write(f"---\ntitle: {title}\nsource: {url}\ndate: {datetime.now().isoformat()}\nbot: aria\n---\n\n# {title}\n\n{content or ''}")
+			f.write(f"---\ntitle: {title}\nsource: {url}\ndate: {datetime.now().isoformat()}\nbot: carrie\n---\n\n# {title}\n\n{content or ''}")
 
 		await update.message.reply_text(f"✅ 已入庫: {filename}")
 	except Exception as e:
@@ -233,7 +233,7 @@ def main() -> None:
 	app.add_handler(CommandHandler("start", start_command))
 	app.add_handler(CommandHandler("status", status_command))
 	app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-	logger.info("neovegaaria_bot 啟動 (polling 模式)")
+	logger.info("neovegacarrie_bot 啟動 (polling 模式)")
 	app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
