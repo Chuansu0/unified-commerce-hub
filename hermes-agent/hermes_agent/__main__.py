@@ -121,8 +121,8 @@ async def web_api_status(request):
 
 
 async def web_health(request):
-    """健康檢查端點"""
-    return web.Response(text="OK")
+    """健康檢查端點 - Zeabur 用"""
+    return web.json_response({"status": "ok", "service": "hermes-agent"})
 
 
 async def start_web_server():
@@ -296,8 +296,9 @@ async def main_async():
     logger.info(f"n8n Webhook: {N8N_WEBHOOK_URL}")
     logger.info(f"Web Port: {WEB_PORT}")
     
-    # 啟動 Web Server
-    web_task = asyncio.create_task(start_web_server())
+    # 先啟動 Web Server（Zeabur 健康檢查需要）
+    await start_web_server()
+    logger.info("✅ Web Server 就緒，開始初始化 Telegram Bot...")
     
     # 建立 Telegram Application
     app = Application.builder().token(TOKEN).build()
