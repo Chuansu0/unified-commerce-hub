@@ -21,7 +21,8 @@ from typing import Optional
 
 import httpx
 import trafilatura
-from telegram import Update
+from aiohttp import web
+from telegram import Update, Bot
 from telegram.ext import Application, MessageHandler, CommandHandler, ContextTypes, filters
 
 # ── 設定 ──
@@ -522,23 +523,211 @@ async def handleReport(payload: dict, update: Update) -> None:
 	await update.message.reply_text(f"📊 {title}\n\n{content[:1000]}")
 
 
-def main() -> None:
-	# 載入多 vault 路徑對照表
+# ── Webhook 無 Update 版 ingest（供 HTTP webhook 呼叫）──
+async def webhookIngestToVault(url: str, vault_id: str, bot: Bot, chat_id: int) -> dict:
+	"""HTTP webhook 觸發的 ingest，不依賴 Telegram Update 物件"""
+	target_vault = getVaultPath(vault_id)
+	logger.info(f"🌐 Webhook ingest: {url} → {vault_id} ({target_vault})")
+
+	try:
+		await bot.send_message(chat_id, f"⏳ [webhook] 開始入庫: {url}\n📂 目標 vault: {vault_id}")
+	except Exception:
+		pass  # 通知失敗不影響 ingest
+
+	try:
+		# 1. 下載
+		downloaded = trafilatura.fetch_url(url)
+		if not downloaded:
+			return {"error": "download_failed", "url": url}
+
+		text = trafilatura.extract(downloaded, include_tables=True)
+		metadata = trafilatura.extract_metadata(downloaded)
+		title = metadata.title if metadata and metadata.title else "Untitled"
+
+		if not text or len(text.strip()) < 20:
+			return {"error": "extract_failed", "url": url}
+
+		# 2. SHA256 去重
+		sha = hashlib.sha256(text.encode()).hexdigest()[:12]
+		raw_inbox = target_vault / "raw" / "inbox"
+		raw_path = raw_inbox / f"{sha}.md"
+
+		if raw_path.exists():
+			return {"status": "already_exists", "path": str(raw_path)}
+
+		# 3. 儲存原始內容
+		raw_inbox.mkdir(parents=True, exist_ok=True)
+		raw_content = (
+			f"---\ntitle: \"{title}\"\nsource: \"{url}\"\n"
+			f"date: \"{datetime.now().isoformat()}\"\nsha: \"{sha}\"\n"
+			f"vault: \"{vault_id}\"\n---\n\n# {title}\n\n{text}"
+		)
+		raw_path.write_text(raw_content, encoding="utf-8")
+
+		# 4. LLM 摘要
+		summary = await callOllamaSummarize(text, url, title, sha)
+
+		# 5. wiki/sources/
+		wiki_sources = target_vault / "wiki" / "sources"
+		wiki_sources.mkdir(parents=True, exist_ok=True)
+		ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+		wiki_path = wiki_sources / f"{ts}_{sha}.md"
+		wiki_path.write_text(summary, encoding="utf-8")
+
+		# 6. embedding
+		embed_dir = target_vault / "embeddings"
+		embed_ok = await addEmbeddingToVault(wiki_path, summary, embed_dir)
+
+		# 7. log
+		log_path = target_vault / "wiki" / "log.md"
+		log_entry = f"- {datetime.now().isoformat()} ingest {url} {wiki_path.name}\n"
+		with open(log_path, "a", encoding="utf-8") as lf:
+			lf.write(log_entry)
+
+		# 通知使用者
+		try:
+			embed_status = "✅" if embed_ok else "⚠️"
+			await bot.send_message(
+				chat_id,
+				f"✅ [webhook] 入庫完成！\n📂 Vault: {vault_id}\n"
+				f"📖 {title}\n🔢 Embedding: {embed_status}"
+			)
+		except Exception:
+			pass
+
+		return {"status": "ok", "vault": vault_id, "raw": str(raw_path), "wiki": str(wiki_path), "title": title}
+
+	except Exception as e:
+		logger.error(f"Webhook ingest 失敗: {e}")
+		return {"error": str(e)}
+
+
+async def webhookDispatchAction(action_type: str, payload: dict, bot: Bot, chat_id: int) -> dict:
+	"""HTTP webhook 觸發的動作分發"""
+	if action_type == "ingest_url":
+		url = payload.get("url")
+		vault_id = payload.get("vault", DEFAULT_VAULT_ID)
+		if url:
+			return await webhookIngestToVault(url, vault_id, bot, chat_id)
+		return {"error": "missing_url"}
+	elif action_type == "alert":
+		level = payload.get("level", "info")
+		msg_text = payload.get("message", "")
+		emoji = {"high": "🚨", "medium": "⚠️", "low": "ℹ️"}.get(level, "📢")
+		try:
+			await bot.send_message(chat_id, f"{emoji} [{level.upper()}] {msg_text}")
+		except Exception:
+			pass
+		return {"status": "ok", "action": "alert"}
+	else:
+		return {"status": "ok", "action": action_type, "note": "not_implemented_via_webhook"}
+
+
+# ── HTTP Webhook Server ──
+WEBHOOK_PORT = int(os.getenv("CARRIE_WEBHOOK_PORT", "18791"))
+WEBHOOK_SECRET = os.getenv("CARRIE_WEBHOOK_SECRET", "hermes-carrie-2026")
+
+
+async def webhookDispatchHandler(request):
+	"""POST /webhook/dispatch — 接收 Sherlock 或 n8n 的 JSONL"""
+	# 簡易驗證
+	auth = request.headers.get("X-Webhook-Secret", "")
+	if auth != WEBHOOK_SECRET:
+		return web.json_response({"error": "unauthorized"}, status=401)
+
+	try:
+		body = await request.text()
+		logger.info(f"🌐 Webhook 收到: {body[:200]}...")
+	except Exception as e:
+		return web.json_response({"error": f"read_body: {e}"}, status=400)
+
+	bot = Bot(token=TOKEN)
+	results = []
+
+	for line in body.strip().split('\n'):
+		line = line.strip()
+		if not line:
+			continue
+		try:
+			obj = json.loads(line)
+			if obj.get("type") == "action" and obj.get("target") in ("aria", "carrie", "all"):
+				action_type = obj.get("action_type")
+				payload = obj.get("payload", {})
+				logger.info(f"📋 Webhook JSONL: {action_type}, vault={payload.get('vault', 'N/A')}")
+				result = await webhookDispatchAction(action_type, payload, bot, OWNER_CHAT_ID)
+				results.append(result)
+		except json.JSONDecodeError:
+			pass
+
+	return web.json_response({"processed": len(results), "results": results})
+
+
+async def webhookHealthHandler(request):
+	"""GET /health — 健康檢查"""
+	return web.json_response({
+		"status": "ok",
+		"service": "carrie-bot",
+		"vaults": list(VAULT_MAP.keys()),
+		"timestamp": datetime.now().isoformat(),
+	})
+
+
+async def startWebhookServer():
+	"""啟動 HTTP webhook server"""
+	app = web.Application()
+	app.router.add_post("/webhook/dispatch", webhookDispatchHandler)
+	app.router.add_get("/health", webhookHealthHandler)
+
+	runner = web.AppRunner(app)
+	await runner.setup()
+	site = web.TCPSite(runner, "0.0.0.0", WEBHOOK_PORT)
+	await site.start()
+	logger.info(f"🌐 Webhook server 已啟動: http://0.0.0.0:{WEBHOOK_PORT}")
+	logger.info(f"   POST /webhook/dispatch — 接收 JSONL")
+	logger.info(f"   GET  /health — 健康檢查")
+
+
+# ── 主程式（非同步版）──
+async def main_async() -> None:
+	"""非同步主程式：同時啟動 webhook server + Telegram polling"""
 	loadVaultMap()
 
+	logger.info("neovegacarrie_bot 啟動")
+	logger.info(f"預設 Vault: {VAULT_PATH}")
+	logger.info(f"已載入 Vault: {list(VAULT_MAP.keys())}")
+	logger.info(f"Ollama: {OLLAMA_CHAT_URL} / {OLLAMA_MODEL}")
+
+	# 啟動 webhook server
+	await startWebhookServer()
+
+	# 建立 Telegram bot
 	app = Application.builder().token(TOKEN).build()
 	app.add_handler(CommandHandler("start", start_command))
 	app.add_handler(CommandHandler("status", status_command))
 	app.add_handler(CommandHandler("ingest", ingest_command))
 	app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-	logger.info("neovegacarrie_bot 啟動 (polling 模式)")
-	logger.info(f"預設 Vault: {VAULT_PATH}")
-	logger.info(f"已載入 Vault: {list(VAULT_MAP.keys())}")
-	logger.info(f"Sherlock Bot ID: {SHERLOCK_BOT_ID}")
-	logger.info(f"Ollama: {OLLAMA_CHAT_URL} / {OLLAMA_MODEL}")
-	logger.info("📡 群組模式：監聽 Sherlock 在群組中發的 JSONL")
-	logger.info("📱 私聊模式：接受 URL 直接入庫")
-	app.run_polling(allowed_updates=Update.ALL_TYPES)
+
+	# 啟動 Telegram polling
+	await app.initialize()
+	await app.start()
+	logger.info("🤖 Telegram polling 已啟動")
+	logger.info("📱 私聊：直接傳 URL 入庫")
+	logger.info(f"🌐 Webhook：http://0.0.0.0:{WEBHOOK_PORT}/webhook/dispatch")
+	await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+
+	# 保持運行
+	try:
+		await asyncio.Event().wait()
+	except (KeyboardInterrupt, SystemExit):
+		logger.info("正在關閉...")
+	finally:
+		await app.updater.stop()
+		await app.stop()
+		await app.shutdown()
+
+
+def main() -> None:
+	asyncio.run(main_async())
 
 
 if __name__ == "__main__":
