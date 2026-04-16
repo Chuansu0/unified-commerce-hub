@@ -26,18 +26,46 @@ from telegram.ext import Application, MessageHandler, CommandHandler, ContextTyp
 
 # ── 設定 ──
 TOKEN = os.getenv("CARRIE_BOT_TOKEN", "8615424711:AAGLoHijlMpqWX7yD_JhJjKeTS0Dd5H5GTg")
-VAULT_PATH = Path(os.getenv("VAULT_PATH", "D:\\knowledge-vault"))
+VAULTS_BASE = Path(os.getenv("VAULTS_BASE", "D:\\vaults"))
+DEFAULT_VAULT_ID = os.getenv("DEFAULT_VAULT_ID", "rnd")
+VAULT_PATH = VAULTS_BASE / f"{DEFAULT_VAULT_ID}-vault"
 RAW_INBOX = VAULT_PATH / "raw" / "inbox"
 WIKI_SOURCES = VAULT_PATH / "wiki" / "sources"
 EMBED_DIR = VAULT_PATH / "embeddings"
+
+# Vault 路徑對照表（啟動時從 registry 載入）
+VAULT_MAP = {}
+
+
+def loadVaultMap():
+	"""從 VAULT_REGISTRY.json 載入 vault 路徑對照"""
+	global VAULT_MAP
+	registry_path = VAULTS_BASE / "meta-vault" / "schema" / "VAULT_REGISTRY.json"
+	if registry_path.exists():
+		try:
+			data = json.loads(registry_path.read_text(encoding="utf-8"))
+			for v in data.get("vaults", []):
+				VAULT_MAP[v["id"]] = Path(v["path"])
+			logger.info(f"已載入 {len(VAULT_MAP)} 個 vault: {list(VAULT_MAP.keys())}")
+		except Exception as e:
+			logger.error(f"載入 vault registry 失敗: {e}")
+	# 確保預設 vault 存在
+	if DEFAULT_VAULT_ID not in VAULT_MAP:
+		VAULT_MAP[DEFAULT_VAULT_ID] = VAULT_PATH
+
+
+def getVaultPath(vault_id: str) -> Path:
+	"""取得指定 vault 的路徑，不存在則回傳預設"""
+	return VAULT_MAP.get(vault_id, VAULT_MAP.get(DEFAULT_VAULT_ID, VAULT_PATH))
 
 OLLAMA_CHAT_URL = "http://127.0.0.1:11434/v1/chat/completions"
 OLLAMA_EMBED_URL = "http://127.0.0.1:11434/api/embeddings"
 OLLAMA_MODEL = "gemma:2b"
 EMBED_MODEL = "nomic-embed-text"
 
-# Sherlock bot 的 chat_id（設為 0 表示接受所有人）
-SHERLOCK_BOT_ID = int(os.getenv("SHERLOCK_BOT_ID", "0"))
+# Sherlock bot 的 user ID（token 冒號前的數字）
+# 用於在群組中過濾：只處理 Sherlock 發的 JSONL
+SHERLOCK_BOT_ID = int(os.getenv("SHERLOCK_BOT_ID", "8505666076"))
 
 # 腳本白名單
 SCRIPT_WHITELIST = {
@@ -95,9 +123,18 @@ async def ingest_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 # ── 核心 ingest 流程 ──
-async def doFullIngest(url: str, update: Update) -> dict:
-	"""完整 ingest 流程：下載 → 儲存 → LLM 摘要 → embedding → wiki 更新"""
-	msg = await update.message.reply_text(f"⏳ 開始入庫: {url}")
+async def doFullIngestToVault(url: str, vault_id: str, update: Update) -> dict:
+	"""多 vault 版 ingest：根據 vault_id 切換目標 vault"""
+	target_vault = getVaultPath(vault_id)
+	vault_name = vault_id
+	for v_id, v_path in VAULT_MAP.items():
+		if v_id == vault_id:
+			vault_name = v_id
+			break
+
+	msg = await update.message.reply_text(
+		f"⏳ 開始入庫: {url}\n📂 目標 vault: {vault_name} ({target_vault})"
+	)
 
 	try:
 		# 1. 下載並清理內容
@@ -116,57 +153,103 @@ async def doFullIngest(url: str, update: Update) -> dict:
 
 		# 2. SHA256 去重
 		sha = hashlib.sha256(text.encode()).hexdigest()[:12]
-		raw_path = RAW_INBOX / f"{sha}.md"
+		raw_inbox = target_vault / "raw" / "inbox"
+		raw_path = raw_inbox / f"{sha}.md"
 
 		if raw_path.exists():
-			await msg.edit_text(f"ℹ️ 已存在: {raw_path.name}")
+			await msg.edit_text(f"ℹ️ 已存在: {raw_path.name} (vault: {vault_name})")
 			return {"status": "already_exists", "path": str(raw_path)}
 
-		# 3. 儲存原始內容到 raw/inbox/
-		RAW_INBOX.mkdir(parents=True, exist_ok=True)
-		raw_content = f"---\ntitle: \"{title}\"\nsource: \"{url}\"\ndate: \"{datetime.now().isoformat()}\"\nsha: \"{sha}\"\n---\n\n# {title}\n\n{text}"
+		# 3. 儲存原始內容
+		raw_inbox.mkdir(parents=True, exist_ok=True)
+		raw_content = f"---\ntitle: \"{title}\"\nsource: \"{url}\"\ndate: \"{datetime.now().isoformat()}\"\nsha: \"{sha}\"\nvault: \"{vault_id}\"\n---\n\n# {title}\n\n{text}"
 		raw_path.write_text(raw_content, encoding="utf-8")
 
-		await msg.edit_text(f"📥 已下載到 raw/inbox/{sha}.md\n⏳ LLM 產生摘要中...")
+		await msg.edit_text(f"📥 已下載到 {vault_name}/raw/inbox/{sha}.md\n⏳ LLM 產生摘要中...")
 
 		# 4. LLM 產生摘要頁
 		summary = await callOllamaSummarize(text, url, title, sha)
 
 		# 5. 寫入 wiki/sources/
-		WIKI_SOURCES.mkdir(parents=True, exist_ok=True)
+		wiki_sources = target_vault / "wiki" / "sources"
+		wiki_sources.mkdir(parents=True, exist_ok=True)
 		ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-		wiki_path = WIKI_SOURCES / f"{ts}_{sha}.md"
+		wiki_path = wiki_sources / f"{ts}_{sha}.md"
 		wiki_path.write_text(summary, encoding="utf-8")
 
-		await msg.edit_text(f"📝 摘要已寫入 wiki/sources/\n⏳ 建立 embedding...")
+		await msg.edit_text(f"📝 摘要已寫入 {vault_name}/wiki/sources/\n⏳ 建立 embedding...")
 
-		# 6. 建立 embedding
-		embed_ok = await addEmbedding(wiki_path, summary)
+		# 6. 建立 embedding（使用目標 vault 的 embeddings/）
+		embed_dir = target_vault / "embeddings"
+		embed_ok = await addEmbeddingToVault(wiki_path, summary, embed_dir)
 
 		# 7. 更新 log.md
+		log_path = target_vault / "wiki" / "log.md"
 		log_entry = f"- {datetime.now().isoformat()} ingest {url} {wiki_path.name}\n"
-		log_path = VAULT_PATH / "wiki" / "log.md"
 		with open(log_path, "a", encoding="utf-8") as lf:
 			lf.write(log_entry)
 
-		# 8. 更新 index.md
-		await updateIndex(wiki_path.name, title, sha)
-
-		embed_status = "✅" if embed_ok else "⚠️ (embedding 失敗，夜間批次會重建)"
+		embed_status = "✅" if embed_ok else "⚠️"
 		await msg.edit_text(
 			f"✅ 入庫完成！\n\n"
-			f"📄 原始: raw/inbox/{sha}.md\n"
+			f"📂 Vault: {vault_name}\n"
+			f" 原始: raw/inbox/{sha}.md\n"
 			f"📝 摘要: wiki/sources/{wiki_path.name}\n"
 			f"🔢 Embedding: {embed_status}\n"
 			f"📖 標題: {title}"
 		)
 
-		return {"status": "ok", "raw": str(raw_path), "wiki": str(wiki_path)}
+		return {"status": "ok", "vault": vault_id, "raw": str(raw_path), "wiki": str(wiki_path)}
 
 	except Exception as e:
 		logger.error(f"Ingest 失敗: {e}")
 		await msg.edit_text(f"❌ 入庫失敗: {e}")
 		return {"error": str(e)}
+
+
+async def addEmbeddingToVault(wiki_path: Path, text: str, embed_dir: Path) -> bool:
+	"""為單一文件新增 embedding 到指定 vault 的 FAISS 索引"""
+	try:
+		import faiss
+		import numpy as np
+
+		async with httpx.AsyncClient(timeout=30.0) as client:
+			r = await client.post(
+				OLLAMA_EMBED_URL,
+				json={"model": EMBED_MODEL, "prompt": text[:2000]}
+			)
+			vec = r.json().get("embedding")
+			if not vec:
+				return False
+
+		embed_dir.mkdir(parents=True, exist_ok=True)
+		index_path = embed_dir / "index.faiss"
+		meta_path = embed_dir / "metadata.json"
+
+		if index_path.exists() and meta_path.exists():
+			index = faiss.read_index(str(index_path))
+			meta = json.loads(meta_path.read_text(encoding="utf-8"))
+		else:
+			dim = len(vec)
+			index = faiss.IndexFlatL2(dim)
+			meta = []
+
+		index.add(np.array([vec], dtype="float32"))
+		meta.append({"path": str(wiki_path), "title": wiki_path.stem, "size": len(text)})
+
+		faiss.write_index(index, str(index_path))
+		with open(meta_path, "w", encoding="utf-8") as mf:
+			json.dump(meta, mf, ensure_ascii=False, indent=2)
+
+		return True
+	except Exception as e:
+		logger.error(f"Embedding 失敗: {e}")
+		return False
+
+
+async def doFullIngest(url: str, update: Update) -> dict:
+	"""預設 vault 的 ingest（向後相容）"""
+	return await doFullIngestToVault(url, DEFAULT_VAULT_ID, update)
 
 
 async def callOllamaSummarize(text: str, url: str, title: str, sha: str) -> str:
@@ -306,30 +389,53 @@ async def updateIndex(wiki_filename: str, title: str, sha: str) -> None:
 	index_path.write_text(content, encoding="utf-8")
 
 
+# 使用者 chat_id（私聊時允許直接操作）
+OWNER_CHAT_ID = int(os.getenv("OWNER_CHAT_ID", "8240891231"))
+
+
 # ── JSONL 訊息處理 ──
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-	"""接收並解析 JSONL 指令或純 URL"""
+	"""接收並解析 JSONL 指令或純 URL
+	
+	支援兩種場景：
+	1. 群組：只處理 Sherlock bot 發的 JSONL（透過 from_user.id 過濾）
+	2. 私聊：允許 owner 直接傳 URL 或 JSONL
+	"""
 	if not update.message or not update.message.text:
 		return
 
 	text = update.message.text.strip()
 	sender_id = update.message.from_user.id if update.message.from_user else 0
+	chat_type = update.message.chat.type  # "private", "group", "supergroup"
+	is_group = chat_type in ("group", "supergroup")
 
-	# 安全驗證
-	if SHERLOCK_BOT_ID and sender_id != SHERLOCK_BOT_ID:
-		# 如果不是 Sherlock，檢查是否是純 URL（允許任何人傳 URL 入庫）
+	logger.info(f"收到訊息: chat_type={chat_type}, sender={sender_id}, text={text[:80]}...")
+
+	if is_group:
+		# ── 群組模式：只處理 Sherlock 發的 JSONL ──
+		if sender_id != SHERLOCK_BOT_ID:
+			logger.debug(f"群組中忽略非 Sherlock 訊息 (from {sender_id})")
+			return
+		# Sherlock 發的，解析 JSONL
+		await parseAndDispatchJsonl(text, update, context)
+	else:
+		# ── 私聊模式：允許 owner 直接操作 ──
+		# 純 URL → 直接入庫到預設 vault
 		if text.startswith("http://") or text.startswith("https://"):
 			await doFullIngest(text, update)
 			return
-		logger.warning(f"拒絕來自 {sender_id} 的非 URL 訊息")
-		return
 
-	# 檢查是否是純 URL
-	if text.startswith("http://") or text.startswith("https://"):
-		await doFullIngest(text, update)
-		return
+		# JSONL → 解析並執行
+		if text.startswith('{'):
+			await parseAndDispatchJsonl(text, update, context)
+			return
 
-	# 解析 JSONL
+		# 其他文字：忽略（避免回應無關訊息）
+		logger.info(f"私聊中忽略非指令訊息: {text[:50]}")
+
+
+async def parseAndDispatchJsonl(text: str, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+	"""解析 JSONL 文字並分發動作"""
 	processed = 0
 	for line in text.split('\n'):
 		line = line.strip()
@@ -340,6 +446,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 			if obj.get("type") == "action" and obj.get("target") in ("aria", "carrie", "all"):
 				action_type = obj.get("action_type")
 				payload = obj.get("payload", {})
+				logger.info(f"📋 JSONL 動作: {action_type}, vault={payload.get('vault', 'N/A')}")
 				await dispatchAction(action_type, payload, update, context)
 				processed += 1
 		except json.JSONDecodeError:
@@ -347,14 +454,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 	if processed == 0 and text.startswith('{'):
 		await update.message.reply_text("⚠️ 未找到有效的 JSONL 指令")
+	elif processed > 0:
+		logger.info(f"✅ 已處理 {processed} 個 JSONL 動作")
 
 
 async def dispatchAction(action_type: str, payload: dict, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-	"""分發動作"""
+	"""分發動作（支援多 vault 路由）"""
 	if action_type == "ingest_url":
 		url = payload.get("url")
+		vault_id = payload.get("vault", DEFAULT_VAULT_ID)
 		if url:
-			await doFullIngest(url, update)
+			await doFullIngestToVault(url, vault_id, update)
 	elif action_type == "local_scan":
 		await handleLocalScan(payload, update)
 	elif action_type == "run_script":
@@ -413,14 +523,21 @@ async def handleReport(payload: dict, update: Update) -> None:
 
 
 def main() -> None:
+	# 載入多 vault 路徑對照表
+	loadVaultMap()
+
 	app = Application.builder().token(TOKEN).build()
 	app.add_handler(CommandHandler("start", start_command))
 	app.add_handler(CommandHandler("status", status_command))
 	app.add_handler(CommandHandler("ingest", ingest_command))
 	app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 	logger.info("neovegacarrie_bot 啟動 (polling 模式)")
-	logger.info(f"Vault: {VAULT_PATH}")
+	logger.info(f"預設 Vault: {VAULT_PATH}")
+	logger.info(f"已載入 Vault: {list(VAULT_MAP.keys())}")
+	logger.info(f"Sherlock Bot ID: {SHERLOCK_BOT_ID}")
 	logger.info(f"Ollama: {OLLAMA_CHAT_URL} / {OLLAMA_MODEL}")
+	logger.info("📡 群組模式：監聽 Sherlock 在群組中發的 JSONL")
+	logger.info("📱 私聊模式：接受 URL 直接入庫")
 	app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 

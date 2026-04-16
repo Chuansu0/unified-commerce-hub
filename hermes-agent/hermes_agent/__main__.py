@@ -33,6 +33,12 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "kimi-k2.5")
 N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL", "https://n8n.neovega.cc/webhook/sherlock-output")
 WEB_PORT = int(os.getenv("PORT", "8080"))
 
+# Bot tokens 與 chat_id 設定（用於直接轉發 JSONL）
+CARRIE_BOT_TOKEN = os.getenv("CARRIE_BOT_TOKEN", "8615424711:AAGLoHijlMpqWX7yD_JhJjKeTS0Dd5H5GTg")
+CONAN_BOT_TOKEN = os.getenv("CONAN_BOT_TOKEN", "8622712926:AAFjLECd5xFxeveZAlRDmqLyFN3sXRIfpvg")
+# 發送者的 chat_id（Sherlock 用對方 bot token 發訊息給這個 chat）
+DISPATCH_CHAT_ID = int(os.getenv("DISPATCH_CHAT_ID", "8240891231"))
+
 # 初始化 OpenAI 客戶端
 client = AsyncOpenAI(
     api_key=OPENAI_API_KEY,
@@ -53,19 +59,44 @@ SYSTEM_PROMPT = """你是 Sherlock，一個專業的分析偵探 AI。
 
 目標 bot：
 - conan：雲端執行者（Zeabur），適合網路搜尋、查詢、警報
-- aria：本地執行者（Home Workstation），適合本地掃描、檔案入庫、腳本執行
+- carrie：本地執行者（Home Workstation），適合本地掃描、檔案入庫、腳本執行
 - all：廣播給所有 bot
 
-範例輸出：
-{"schema":"sherlock/v1","ts":"2026-04-12T12:00:00Z","session":"abc123","type":"analysis","summary":"偵測到異常登入行為","confidence":0.92}
-{"schema":"sherlock/v1","ts":"2026-04-12T12:00:00Z","session":"abc123","type":"action","target":"conan","action_type":"alert","payload":{"level":"high","message":"異常 IP 登入"}}
-{"schema":"sherlock/v1","ts":"2026-04-12T12:00:00Z","session":"abc123","type":"action","target":"aria","action_type":"local_scan","payload":{"path":"D:\\\\knowledge-vault","pattern":"*.log"}}
+多 Vault 系統（Carrie 管理的本地知識庫）：
+- life：生活（日常、家庭、旅遊、飲食）
+- work：工作（職場、專案、商業策略）
+- rnd：研發（軟體開發、AI/ML、DevOps）
+- humanities：人文（歷史、哲學、文學、藝術）
+- science：科學（物理、化學、生物、數學）
+- medicine：醫學（臨床、藥理、公衛、營養）
+- wellbeing：身心靈（冥想、心理學、靈性成長）
+
+當使用者要求入庫連結或文件時，你必須：
+1. 分析內容屬於哪個領域
+2. 在 payload 中加入 "vault" 欄位指定目標 vault ID
+3. 如果不確定，預設使用 "rnd"
+
+支援的 action_type：
+- ingest_url：下載連結入庫（payload 需含 url 和 vault）
+- local_scan：本地檔案掃描
+- run_script：執行白名單腳本
+- alert：發送警報
+- web_search：網路搜尋
+
+範例 — 使用者說「把這篇冥想文章存起來 https://example.com/meditation」：
+{"schema":"sherlock/v1","ts":"2026-04-16T12:00:00Z","session":"abc123","type":"analysis","summary":"使用者要求入庫冥想相關文章到身心靈 vault","confidence":0.95}
+{"schema":"sherlock/v1","ts":"2026-04-16T12:00:00Z","session":"abc123","type":"action","target":"carrie","action_type":"ingest_url","payload":{"url":"https://example.com/meditation","vault":"wellbeing"}}
+
+範例 — 使用者說「存這個 AI 論文 https://arxiv.org/xxx」：
+{"schema":"sherlock/v1","ts":"2026-04-16T12:00:00Z","session":"abc123","type":"analysis","summary":"AI 論文入庫到研發 vault","confidence":0.95}
+{"schema":"sherlock/v1","ts":"2026-04-16T12:00:00Z","session":"abc123","type":"action","target":"carrie","action_type":"ingest_url","payload":{"url":"https://arxiv.org/xxx","vault":"rnd"}}
 
 請確保：
 1. 所有 JSON 物件符合 sherlock/v1 schema
 2. ts 欄位為 ISO8601 格式
 3. session 欄位使用唯一 ID
 4. target 欄位正確指定 bot
+5. ingest_url 的 payload 必須包含 vault 欄位
 """
 
 
@@ -170,6 +201,76 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await update.message.reply_text(help_text)
 
 
+async def diag_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """/diag 診斷所有通道"""
+    msg = await update.message.reply_text("🔍 診斷中...")
+    results = []
+    
+    # 1. LLM API
+    try:
+        r = await client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[{"role": "user", "content": "ping"}],
+            max_tokens=5,
+        )
+        results.append(f"✅ LLM ({OPENAI_MODEL}): OK")
+    except Exception as e:
+        results.append(f"❌ LLM: {str(e)[:80]}")
+    
+    # 2. Carrie bot token
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"https://api.telegram.org/bot{CARRIE_BOT_TOKEN}/getMe") as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    results.append(f"✅ Carrie Token: @{data['result']['username']}")
+                else:
+                    results.append(f"❌ Carrie Token: HTTP {resp.status}")
+    except Exception as e:
+        results.append(f"❌ Carrie Token: {str(e)[:80]}")
+    
+    # 3. Conan bot token
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"https://api.telegram.org/bot{CONAN_BOT_TOKEN}/getMe") as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    results.append(f"✅ Conan Token: @{data['result']['username']}")
+                else:
+                    results.append(f"❌ Conan Token: HTTP {resp.status}")
+    except Exception as e:
+        results.append(f"❌ Conan Token: {str(e)[:80]}")
+    
+    # 4. n8n webhook
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(N8N_WEBHOOK_URL, data="ping", timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                results.append(f"{'✅' if resp.status == 200 else '⚠️'} n8n Webhook: HTTP {resp.status}")
+    except Exception as e:
+        results.append(f"❌ n8n Webhook: {str(e)[:80]}")
+    
+    # 5. Dispatch chat_id 測試（Carrie + Conan）
+    for name, token in [("Carrie", CARRIE_BOT_TOKEN), ("Conan", CONAN_BOT_TOKEN)]:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"https://api.telegram.org/bot{token}/sendMessage",
+                    json={"chat_id": DISPATCH_CHAT_ID, "text": f"🔧 [diag] Sherlock → {name} 通道測試"}
+                ) as resp:
+                    if resp.status == 200:
+                        results.append(f"✅ {name} 轉發 (chat {DISPATCH_CHAT_ID}): OK")
+                    else:
+                        err = await resp.text()
+                        results.append(f"❌ {name} 轉發: {err[:100]}")
+        except Exception as e:
+            results.append(f"❌ {name} 轉發: {str(e)[:80]}")
+    
+    await msg.edit_text(
+        f"🔍 Sherlock 診斷報告\n\n" + "\n".join(results) +
+        f"\n\n📊 分析次數: {len(recent_analyses)}"
+    )
+
+
 async def analyze_with_llm(text: str, session_id: str) -> str:
     """使用 LLM 分析輸入並產出 JSONL"""
     try:
@@ -191,7 +292,7 @@ async def analyze_with_llm(text: str, session_id: str) -> str:
 
 
 async def send_to_n8n(jsonl_data: str, session_id: str) -> bool:
-    """發送 JSONL 到 n8n webhook"""
+    """發送 JSONL 到 n8n webhook（備用）"""
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(
@@ -203,11 +304,62 @@ async def send_to_n8n(jsonl_data: str, session_id: str) -> bool:
                     logger.info(f"成功發送到 n8n: session={session_id}")
                     return True
                 else:
-                    logger.error(f"n8n 回應錯誤: {response.status}")
+                    logger.warning(f"n8n 回應: {response.status}（將使用直接轉發）")
                     return False
     except Exception as e:
-        logger.error(f"發送到 n8n 失敗: {e}")
+        logger.warning(f"n8n 不可用: {e}（將使用直接轉發）")
         return False
+
+
+async def dispatch_to_bots(jsonl_lines: list, session_id: str) -> dict:
+    """直接透過 Telegram Bot API 轉發 JSONL 給 Carrie/Conan"""
+    results = {"carrie": [], "conan": [], "errors": []}
+    
+    bot_tokens = {
+        "aria": CARRIE_BOT_TOKEN,
+        "carrie": CARRIE_BOT_TOKEN,
+        "conan": CONAN_BOT_TOKEN,
+        "all": None,  # 廣播
+    }
+    
+    for line in jsonl_lines:
+        try:
+            obj = json.loads(line)
+            if obj.get("type") != "action":
+                continue
+            
+            target = obj.get("target", "")
+            targets_to_send = []
+            
+            if target == "all":
+                targets_to_send = [("carrie", CARRIE_BOT_TOKEN), ("conan", CONAN_BOT_TOKEN)]
+            elif target in ("aria", "carrie"):
+                targets_to_send = [("carrie", CARRIE_BOT_TOKEN)]
+            elif target == "conan":
+                targets_to_send = [("conan", CONAN_BOT_TOKEN)]
+            
+            for bot_name, bot_token in targets_to_send:
+                try:
+                    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+                    async with aiohttp.ClientSession() as session:
+                        async with session.post(url, json={
+                            "chat_id": DISPATCH_CHAT_ID,
+                            "text": line,
+                        }) as resp:
+                            if resp.status == 200:
+                                results[bot_name].append(obj.get("action_type", "unknown"))
+                                logger.info(f"✅ 已轉發給 {bot_name}: {obj.get('action_type')}")
+                            else:
+                                err = await resp.text()
+                                results["errors"].append(f"{bot_name}: {resp.status}")
+                                logger.error(f"轉發給 {bot_name} 失敗: {err}")
+                except Exception as e:
+                    results["errors"].append(f"{bot_name}: {str(e)}")
+                    logger.error(f"轉發給 {bot_name} 異常: {e}")
+        except json.JSONDecodeError:
+            continue
+    
+    return results
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -252,37 +404,27 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await processing_msg.edit_text(f"⚠️ 無法產出 JSONL 指令\n\nLLM 回應:\n{llm_response[:500]}")
             return
         
-        # 發送到 n8n
-        success = await send_to_n8n(jsonl_data, session_id)
+        # 直接轉發 JSONL 給 Carrie/Conan（主要通道）
+        dispatch_results = await dispatch_to_bots(jsonl_lines, session_id)
         
-        if success:
-            # 解析目標 bot
-            targets = []
-            for line in jsonl_lines:
-                try:
-                    obj = json.loads(line)
-                    if obj.get("type") == "action":
-                        target = obj.get("target", "unknown")
-                        if target not in targets:
-                            targets.append(target)
-                except:
-                    pass
-            
-            target_text = ", ".join(targets) if targets else "unknown"
-            
-            await processing_msg.edit_text(
-                f"✅ 分析完成！\n\n"
-                f"📤 已發送指令給: {target_text}\n"
-                f"🆔 Session: {session_id}\n\n"
-                f"```jsonl\n{jsonl_data[:300]}...\n```",
-                parse_mode="Markdown",
-            )
-        else:
-            await processing_msg.edit_text(
-                f"⚠️ 分析完成但發送到 n8n 失敗\n\n"
-                f"```jsonl\n{jsonl_data[:500]}\n```",
-                parse_mode="Markdown",
-            )
+        # 也嘗試發送到 n8n（備用/記錄用）
+        await send_to_n8n(jsonl_data, session_id)
+        
+        # 組裝結果訊息
+        dispatched = []
+        if dispatch_results["carrie"]:
+            dispatched.append(f"🏠 Carrie: {', '.join(dispatch_results['carrie'])}")
+        if dispatch_results["conan"]:
+            dispatched.append(f"☁️ Conan: {', '.join(dispatch_results['conan'])}")
+        
+        dispatch_text = "\n".join(dispatched) if dispatched else "⚠️ 無目標 bot"
+        error_text = f"\n❌ 錯誤: {', '.join(dispatch_results['errors'])}" if dispatch_results["errors"] else ""
+        
+        await processing_msg.edit_text(
+            f"✅ 分析完成！\n\n"
+            f"📤 已轉發指令：\n{dispatch_text}{error_text}\n\n"
+            f"🆔 Session: {session_id}",
+        )
         
     except Exception as e:
         logger.error(f"處理訊息錯誤: {e}")
@@ -306,6 +448,7 @@ async def main_async():
     # 添加 handlers
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("diag", diag_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
     # 啟動 Telegram Bot
