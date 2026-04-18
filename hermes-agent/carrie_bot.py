@@ -25,9 +25,20 @@ from aiohttp import web
 from telegram import Update, Bot
 from telegram.ext import Application, MessageHandler, CommandHandler, ContextTypes, filters
 
+# ── 平台偵測 ──
+import platform
+IS_WSL = platform.system() != "Windows"
+
 # ── 設定 ──
 TOKEN = os.getenv("CARRIE_BOT_TOKEN", "8615424711:AAGLoHijlMpqWX7yD_JhJjKeTS0Dd5H5GTg")
-VAULTS_BASE = Path(os.getenv("VAULTS_BASE", "D:\\vaults"))
+_vaults_base_raw = os.getenv("VAULTS_BASE", "D:\\vaults")
+# WSL 自動轉換：D:\vaults → /mnt/d/vaults
+if IS_WSL and len(_vaults_base_raw) >= 2 and _vaults_base_raw[1] in (":", "\\"):
+	_drive = _vaults_base_raw[0].lower()
+	_rest = _vaults_base_raw[2:].replace("\\", "/")
+	VAULTS_BASE = Path(f"/mnt/{_drive}{_rest}")
+else:
+	VAULTS_BASE = Path(_vaults_base_raw)
 DEFAULT_VAULT_ID = os.getenv("DEFAULT_VAULT_ID", "rnd")
 VAULT_PATH = VAULTS_BASE / f"{DEFAULT_VAULT_ID}-vault"
 RAW_INBOX = VAULT_PATH / "raw" / "inbox"
@@ -38,16 +49,30 @@ EMBED_DIR = VAULT_PATH / "embeddings"
 VAULT_MAP = {}
 
 
+def winPathToLocal(p: str) -> Path:
+	"""將 Windows 路徑轉換為當前平台路徑（WSL 自動轉 /mnt/d/...）"""
+	import platform
+	if platform.system() != "Windows" and len(p) >= 2 and p[1] in (":", "/"):
+		# WSL: D:/vaults/xxx → /mnt/d/vaults/xxx
+		drive = p[0].lower()
+		rest = p[2:].replace("\\", "/")
+		return Path(f"/mnt/{drive}{rest}")
+	return Path(p)
+
+
 def loadVaultMap():
-	"""從 VAULT_REGISTRY.json 載入 vault 路徑對照"""
+	"""從 VAULT_REGISTRY.json 載入 vault 路徑對照（自動處理 Windows/WSL 路徑）"""
 	global VAULT_MAP
 	registry_path = VAULTS_BASE / "meta-vault" / "schema" / "VAULT_REGISTRY.json"
 	if registry_path.exists():
 		try:
 			data = json.loads(registry_path.read_text(encoding="utf-8"))
 			for v in data.get("vaults", []):
-				VAULT_MAP[v["id"]] = Path(v["path"])
+				VAULT_MAP[v["id"]] = winPathToLocal(v["path"])
 			logger.info(f"已載入 {len(VAULT_MAP)} 個 vault: {list(VAULT_MAP.keys())}")
+			if VAULT_MAP:
+				sample = next(iter(VAULT_MAP.values()))
+				logger.info(f"路徑範例: {sample} (exists={sample.exists()})")
 		except Exception as e:
 			logger.error(f"載入 vault registry 失敗: {e}")
 	# 確保預設 vault 存在
@@ -59,9 +84,10 @@ def getVaultPath(vault_id: str) -> Path:
 	"""取得指定 vault 的路徑，不存在則回傳預設"""
 	return VAULT_MAP.get(vault_id, VAULT_MAP.get(DEFAULT_VAULT_ID, VAULT_PATH))
 
-OLLAMA_CHAT_URL = "http://127.0.0.1:11434/v1/chat/completions"
+# Chat: llama-server (port 8080), Embedding: Ollama (port 11434)
+OLLAMA_CHAT_URL = "http://127.0.0.1:8080/v1/chat/completions"
 OLLAMA_EMBED_URL = "http://127.0.0.1:11434/api/embeddings"
-OLLAMA_MODEL = "gemma:2b"
+OLLAMA_MODEL = "qwen-big-tools"
 EMBED_MODEL = "nomic-embed-text"
 
 # Sherlock bot 的 user ID（token 冒號前的數字）
@@ -538,6 +564,10 @@ async def webhookIngestToVault(url: str, vault_id: str, bot: Bot, chat_id: int) 
 		# 1. 下載
 		downloaded = trafilatura.fetch_url(url)
 		if not downloaded:
+			try:
+				await bot.send_message(chat_id, f"❌ [webhook] 無法下載: {url}\n（可能被目標網站擋住 403）")
+			except Exception:
+				pass
 			return {"error": "download_failed", "url": url}
 
 		text = trafilatura.extract(downloaded, include_tables=True)
@@ -545,6 +575,10 @@ async def webhookIngestToVault(url: str, vault_id: str, bot: Bot, chat_id: int) 
 		title = metadata.title if metadata and metadata.title else "Untitled"
 
 		if not text or len(text.strip()) < 20:
+			try:
+				await bot.send_message(chat_id, f"❌ [webhook] 內容太短或無法擷取: {url}")
+			except Exception:
+				pass
 			return {"error": "extract_failed", "url": url}
 
 		# 2. SHA256 去重
@@ -624,7 +658,7 @@ async def webhookDispatchAction(action_type: str, payload: dict, bot: Bot, chat_
 
 
 # ── HTTP Webhook Server ──
-WEBHOOK_PORT = int(os.getenv("CARRIE_WEBHOOK_PORT", "18791"))
+WEBHOOK_PORT = int(os.getenv("CARRIE_WEBHOOK_PORT", "18800"))
 WEBHOOK_SECRET = os.getenv("CARRIE_WEBHOOK_SECRET", "hermes-carrie-2026")
 
 
@@ -687,6 +721,66 @@ async def startWebhookServer():
 	logger.info(f"   GET  /health — 健康檢查")
 
 
+# ── Sherlock 離線佇列拉取 ──
+SHERLOCK_API_URL = os.getenv("SHERLOCK_API_URL", "https://neovegahermes.zeabur.app")
+
+
+async def drainSherlockQueue():
+	"""啟動時從 Sherlock 的離線佇列拉取待處理的 JSONL"""
+	drain_url = f"{SHERLOCK_API_URL}/api/queue/drain"
+	try:
+		async with httpx.AsyncClient(timeout=15.0) as client:
+			r = await client.post(
+				drain_url,
+				headers={"X-Webhook-Secret": WEBHOOK_SECRET},
+			)
+			if r.status_code != 200:
+				logger.warning(f"佇列拉取失敗: HTTP {r.status_code}")
+				return 0
+
+			data = r.json()
+			items = data.get("items", [])
+			if not items:
+				logger.info("📦 Sherlock 佇列為空，無待處理項目")
+				return 0
+
+			logger.info(f"📦 從 Sherlock 佇列拉取 {len(items)} 筆待處理")
+			bot = Bot(token=TOKEN)
+			processed = 0
+
+			for item in items:
+				jsonl_text = item.get("jsonl", "")
+				session_id = item.get("session_id", "unknown")
+				for line in jsonl_text.strip().split('\n'):
+					line = line.strip()
+					if not line:
+						continue
+					try:
+						obj = json.loads(line)
+						if obj.get("type") == "action" and obj.get("target") in ("aria", "carrie", "all"):
+							action_type = obj.get("action_type")
+							payload = obj.get("payload", {})
+							logger.info(f"📦 佇列回放: {action_type} (session={session_id})")
+							await webhookDispatchAction(action_type, payload, bot, OWNER_CHAT_ID)
+							processed += 1
+					except json.JSONDecodeError:
+						pass
+
+			logger.info(f"✅ 佇列回放完成: {processed} 個動作")
+			try:
+				await bot.send_message(
+					OWNER_CHAT_ID,
+					f"📦 已從 Sherlock 佇列回放 {processed} 個離線動作"
+				)
+			except Exception:
+				pass
+			return processed
+
+	except Exception as e:
+		logger.warning(f"佇列拉取異常: {e}")
+		return 0
+
+
 # ── 主程式（非同步版）──
 async def main_async() -> None:
 	"""非同步主程式：同時啟動 webhook server + Telegram polling"""
@@ -699,6 +793,9 @@ async def main_async() -> None:
 
 	# 啟動 webhook server
 	await startWebhookServer()
+
+	# 拉取 Sherlock 離線佇列
+	await drainSherlockQueue()
 
 	# 建立 Telegram bot
 	app = Application.builder().token(TOKEN).build()
