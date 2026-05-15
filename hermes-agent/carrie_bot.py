@@ -492,6 +492,8 @@ async def dispatchAction(action_type: str, payload: dict, update: Update, contex
 		vault_id = payload.get("vault", DEFAULT_VAULT_ID)
 		if url:
 			await doFullIngestToVault(url, vault_id, update)
+	elif action_type == "ingest_text":
+		await handleIngestText(payload, update)
 	elif action_type == "local_scan":
 		await handleLocalScan(payload, update)
 	elif action_type == "run_script":
@@ -547,6 +549,146 @@ async def handleReport(payload: dict, update: Update) -> None:
 	title = payload.get("title", "報告")
 	content = payload.get("content", "")
 	await update.message.reply_text(f"📊 {title}\n\n{content[:1000]}")
+
+
+async def handleIngestText(payload: dict, update: Update) -> None:
+	"""將純文字筆記存入指定 vault"""
+	text = payload.get("text", "")
+	title = payload.get("title", "Untitled Note")
+	vault_id = payload.get("vault", DEFAULT_VAULT_ID)
+	target_vault = getVaultPath(vault_id)
+
+	if not text or len(text.strip()) < 5:
+		await update.message.reply_text("⚠️ ingest_text: 文字內容太短")
+		return
+
+	msg = await update.message.reply_text(
+		f"📝 儲存筆記到 {vault_id}-vault...\n📖 {title}"
+	)
+
+	try:
+		# SHA256 去重
+		sha = hashlib.sha256(text.encode()).hexdigest()[:12]
+		raw_inbox = target_vault / "raw" / "inbox"
+		raw_path = raw_inbox / f"{sha}.md"
+
+		if raw_path.exists():
+			await msg.edit_text(f"ℹ️ 已存在: {raw_path.name} (vault: {vault_id})")
+			return
+
+		# 儲存原始內容
+		raw_inbox.mkdir(parents=True, exist_ok=True)
+		raw_content = (
+			f"---\ntitle: \"{title}\"\n"
+			f"source: \"sherlock-ingest-text\"\n"
+			f"date: \"{datetime.now().isoformat()}\"\n"
+			f"sha: \"{sha}\"\n"
+			f"vault: \"{vault_id}\"\n"
+			f"---\n\n# {title}\n\n{text}"
+		)
+		raw_path.write_text(raw_content, encoding="utf-8")
+
+		# 寫入 wiki/sources/
+		wiki_sources = target_vault / "wiki" / "sources"
+		wiki_sources.mkdir(parents=True, exist_ok=True)
+		ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+		wiki_path = wiki_sources / f"{ts}_{sha}.md"
+		wiki_content = (
+			f"---\ntitle: \"{title}\"\n"
+			f"source: \"sherlock-ingest-text\"\n"
+			f"date: \"{datetime.now().isoformat()}\"\n"
+			f"sha: \"{sha}\"\n"
+			f"vault: \"{vault_id}\"\n"
+			f"tags: [筆記, sherlock]\n"
+			f"---\n\n# {title}\n\n{text}"
+		)
+		wiki_path.write_text(wiki_content, encoding="utf-8")
+
+		# 更新 log.md
+		log_path = target_vault / "wiki" / "log.md"
+		log_entry = f"- {datetime.now().isoformat()} ingest_text \"{title}\" {wiki_path.name}\n"
+		with open(log_path, "a", encoding="utf-8") as lf:
+			lf.write(log_entry)
+
+		await msg.edit_text(
+			f"✅ 筆記已存入！\n\n"
+			f"📂 Vault: {vault_id}\n"
+			f"📄 raw/inbox/{sha}.md\n"
+			f"📝 wiki/sources/{wiki_path.name}\n"
+			f"📖 標題: {title}"
+		)
+	except Exception as e:
+		logger.error(f"ingest_text 失敗: {e}")
+		await msg.edit_text(f"❌ 儲存失敗: {e}")
+
+
+async def webhookIngestText(payload: dict, bot: Bot, chat_id: int) -> dict:
+	"""HTTP webhook 觸發的純文字入庫"""
+	text = payload.get("text", "")
+	title = payload.get("title", "Untitled Note")
+	vault_id = payload.get("vault", DEFAULT_VAULT_ID)
+	target_vault = getVaultPath(vault_id)
+
+	if not text or len(text.strip()) < 5:
+		return {"error": "text_too_short"}
+
+	try:
+		await bot.send_message(chat_id, f"📝 [webhook] 儲存筆記: {title}\n📂 vault: {vault_id}")
+	except Exception:
+		pass
+
+	try:
+		sha = hashlib.sha256(text.encode()).hexdigest()[:12]
+		raw_inbox = target_vault / "raw" / "inbox"
+		raw_path = raw_inbox / f"{sha}.md"
+
+		if raw_path.exists():
+			return {"status": "already_exists", "path": str(raw_path)}
+
+		raw_inbox.mkdir(parents=True, exist_ok=True)
+		raw_content = (
+			f"---\ntitle: \"{title}\"\n"
+			f"source: \"sherlock-ingest-text\"\n"
+			f"date: \"{datetime.now().isoformat()}\"\n"
+			f"sha: \"{sha}\"\n"
+			f"vault: \"{vault_id}\"\n"
+			f"---\n\n# {title}\n\n{text}"
+		)
+		raw_path.write_text(raw_content, encoding="utf-8")
+
+		wiki_sources = target_vault / "wiki" / "sources"
+		wiki_sources.mkdir(parents=True, exist_ok=True)
+		ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+		wiki_path = wiki_sources / f"{ts}_{sha}.md"
+		wiki_content = (
+			f"---\ntitle: \"{title}\"\n"
+			f"source: \"sherlock-ingest-text\"\n"
+			f"date: \"{datetime.now().isoformat()}\"\n"
+			f"sha: \"{sha}\"\n"
+			f"vault: \"{vault_id}\"\n"
+			f"tags: [筆記, sherlock]\n"
+			f"---\n\n# {title}\n\n{text}"
+		)
+		wiki_path.write_text(wiki_content, encoding="utf-8")
+
+		log_path = target_vault / "wiki" / "log.md"
+		log_entry = f"- {datetime.now().isoformat()} ingest_text \"{title}\" {wiki_path.name}\n"
+		with open(log_path, "a", encoding="utf-8") as lf:
+			lf.write(log_entry)
+
+		try:
+			await bot.send_message(
+				chat_id,
+				f"✅ [webhook] 筆記已存入！\n📂 Vault: {vault_id}\n📖 {title}"
+			)
+		except Exception:
+			pass
+
+		return {"status": "ok", "vault": vault_id, "raw": str(raw_path), "wiki": str(wiki_path), "title": title}
+
+	except Exception as e:
+		logger.error(f"webhookIngestText 失敗: {e}")
+		return {"error": str(e)}
 
 
 # ── Webhook 無 Update 版 ingest（供 HTTP webhook 呼叫）──
@@ -644,6 +786,8 @@ async def webhookDispatchAction(action_type: str, payload: dict, bot: Bot, chat_
 		if url:
 			return await webhookIngestToVault(url, vault_id, bot, chat_id)
 		return {"error": "missing_url"}
+	elif action_type == "ingest_text":
+		return await webhookIngestText(payload, bot, chat_id)
 	elif action_type == "alert":
 		level = payload.get("level", "info")
 		msg_text = payload.get("message", "")
@@ -781,6 +925,20 @@ async def drainSherlockQueue():
 		return 0
 
 
+# ── 定期拉取 Sherlock 佇列 ──
+async def periodicDrainLoop():
+	"""每 60 秒嘗試從 Sherlock 佇列拉取待處理項目"""
+	await asyncio.sleep(30)  # 啟動後等 30 秒再開始
+	while True:
+		try:
+			count = await drainSherlockQueue()
+			if count > 0:
+				logger.info(f"🔄 定期 drain 成功: {count} 筆")
+		except Exception as e:
+			logger.debug(f"定期 drain 異常: {e}")
+		await asyncio.sleep(60)
+
+
 # ── 主程式（非同步版）──
 async def main_async() -> None:
 	"""非同步主程式：同時啟動 webhook server + Telegram polling"""
@@ -794,8 +952,11 @@ async def main_async() -> None:
 	# 啟動 webhook server
 	await startWebhookServer()
 
-	# 拉取 Sherlock 離線佇列
+	# 拉取 Sherlock 離線佇列（啟動時嘗試一次）
 	await drainSherlockQueue()
+
+	# 啟動定期 drain 背景任務（每 60 秒）
+	asyncio.create_task(periodicDrainLoop())
 
 	# 建立 Telegram bot
 	app = Application.builder().token(TOKEN).build()
