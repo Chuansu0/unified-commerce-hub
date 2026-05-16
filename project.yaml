@@ -278,7 +278,7 @@ spec:
       template: PREBUILT_V2
       spec:
         source:
-          image: ghcr.io/openclaw/openclaw:2026.05.05
+          image: ghcr.io/openclaw/openclaw:2026.05.12
           command:
             - /bin/sh
             - -c
