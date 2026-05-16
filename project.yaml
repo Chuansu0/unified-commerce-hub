@@ -278,7 +278,7 @@ spec:
       template: PREBUILT_V2
       spec:
         source:
-          image: ghcr.io/openclaw/openclaw:2026.3.2
+          image: ghcr.io/openclaw/openclaw:2026.05.05
           command:
             - /bin/sh
             - -c
@@ -371,6 +371,28 @@ spec:
               PROVIDERS_DIR="$CONFIG_DIR/providers"
               mkdir -p "$CONFIG_DIR" "$PROVIDERS_DIR"
               chmod 700 "$CONFIG_DIR"
+              # ==== Auto-restore from backup (one-time) ====
+              # To restore: upload backup .tar.gz to /home/node/ via Zeabur Files tab, then restart.
+              # Supported patterns: openclaw-config-backup*.tar.gz  or  backup-*.tar.gz
+              set +e
+              RESTORE_FILE=""
+              for _f in /home/node/openclaw-config-backup*.tar.gz /home/node/backup-*.tar.gz; do
+                if [ -f "$_f" ]; then
+                  RESTORE_FILE="$_f"
+                  break
+                fi
+              done
+              if [ -n "$RESTORE_FILE" ]; then
+                echo "=== Auto-restoring from: $RESTORE_FILE ==="
+                cd /home/node
+                tar -xzvf "$RESTORE_FILE" && \
+                  echo "=== Restore OK. Removing backup file. ===" && \
+                  rm -f "$RESTORE_FILE" || \
+                  echo "WARNING: Restore had errors. Backup kept at: $RESTORE_FILE"
+                cd - > /dev/null
+              fi
+              set -e
+              # ==== End auto-restore ====
 
               # Check if API key is a real value (not an unresolved template variable like '${ZEABUR_AI_HUB_API_KEY}')
               HAS_AI_HUB_KEY=false
