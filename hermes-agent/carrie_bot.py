@@ -129,6 +129,21 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 	wiki_count = len(list(WIKI_SOURCES.glob("*.md"))) if WIKI_SOURCES.exists() else 0
 	faiss_exists = (EMBED_DIR / "index.faiss").exists()
 
+	# Sherlock drain 狀態
+	drain_info = ""
+	if _last_drain_result.get("time"):
+		drain_time = _last_drain_result["time"]
+		drain_count = _last_drain_result.get("count", 0)
+		drain_error = _last_drain_result.get("error")
+		if drain_error:
+			drain_info = f"• Sherlock Drain: ❌ {drain_error} (at {drain_time})\n"
+		elif drain_count > 0:
+			drain_info = f"• Sherlock Drain: ✅ {drain_count} 筆 (at {drain_time})\n"
+		else:
+			drain_info = f"• Sherlock Drain: 📦 空佇列 (at {drain_time})\n"
+	else:
+		drain_info = "• Sherlock Drain: ⏳ 尚未嘗試\n"
+
 	await update.message.reply_text(
 		f"🏠 Carrie Bot 狀態\n"
 		f"• Vault: {VAULT_PATH}\n"
@@ -136,7 +151,8 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 		f"• wiki/sources: {wiki_count} 頁面\n"
 		f"• FAISS 索引: {'✅' if faiss_exists else '❌'}\n"
 		f"• Ollama: {OLLAMA_CHAT_URL}\n"
-		f"• Embed: {EMBED_MODEL}"
+		f"• Embed: {EMBED_MODEL}\n"
+		+ drain_info
 	)
 
 
@@ -868,24 +884,40 @@ async def startWebhookServer():
 # ── Sherlock 離線佇列拉取 ──
 SHERLOCK_API_URL = os.getenv("SHERLOCK_API_URL", "https://neovegahermes.zeabur.app")
 
+# 記錄最後一次 drain 結果供 /status 查詢
+_last_drain_result = {"time": None, "count": 0, "error": None}
+
 
 async def drainSherlockQueue():
-	"""啟動時從 Sherlock 的離線佇列拉取待處理的 JSONL"""
+	"""從 Sherlock 的離線佇列拉取待處理的 JSONL"""
+	global _last_drain_result
 	drain_url = f"{SHERLOCK_API_URL}/api/queue/drain"
+	logger.info(f"🔍 嘗試 drain Sherlock: {drain_url}")
 	try:
-		async with httpx.AsyncClient(timeout=15.0) as client:
+		async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
 			r = await client.post(
 				drain_url,
 				headers={"X-Webhook-Secret": WEBHOOK_SECRET},
 			)
+			logger.info(f"🔍 drain 回應: HTTP {r.status_code}, body={r.text[:200]}")
 			if r.status_code != 200:
-				logger.warning(f"佇列拉取失敗: HTTP {r.status_code}")
+				logger.warning(f"佇列拉取失敗: HTTP {r.status_code}, body={r.text[:300]}")
+				_last_drain_result = {
+					"time": datetime.now().isoformat(),
+					"count": 0,
+					"error": f"HTTP {r.status_code}",
+				}
 				return 0
 
 			data = r.json()
 			items = data.get("items", [])
 			if not items:
 				logger.info("📦 Sherlock 佇列為空，無待處理項目")
+				_last_drain_result = {
+					"time": datetime.now().isoformat(),
+					"count": 0,
+					"error": None,
+				}
 				return 0
 
 			logger.info(f"📦 從 Sherlock 佇列拉取 {len(items)} 筆待處理")
@@ -911,6 +943,11 @@ async def drainSherlockQueue():
 						pass
 
 			logger.info(f"✅ 佇列回放完成: {processed} 個動作")
+			_last_drain_result = {
+				"time": datetime.now().isoformat(),
+				"count": processed,
+				"error": None,
+			}
 			try:
 				await bot.send_message(
 					OWNER_CHAT_ID,
@@ -921,13 +958,18 @@ async def drainSherlockQueue():
 			return processed
 
 	except Exception as e:
-		logger.warning(f"佇列拉取異常: {e}")
+		logger.warning(f"佇列拉取異常: {type(e).__name__}: {e}")
+		_last_drain_result = {
+			"time": datetime.now().isoformat(),
+			"count": 0,
+			"error": f"{type(e).__name__}: {e}",
+		}
 		return 0
 
 
 # ── 定期拉取 Sherlock 佇列 ──
 async def periodicDrainLoop():
-	"""每 60 秒嘗試從 Sherlock 佇列拉取待處理項目"""
+	"""每 5 分鐘嘗試從 Sherlock 佇列拉取待處理項目"""
 	await asyncio.sleep(30)  # 啟動後等 30 秒再開始
 	while True:
 		try:
@@ -935,8 +977,8 @@ async def periodicDrainLoop():
 			if count > 0:
 				logger.info(f"🔄 定期 drain 成功: {count} 筆")
 		except Exception as e:
-			logger.debug(f"定期 drain 異常: {e}")
-		await asyncio.sleep(60)
+			logger.warning(f"定期 drain 異常: {e}")
+		await asyncio.sleep(300)
 
 
 # ── 主程式（非同步版）──
@@ -955,7 +997,7 @@ async def main_async() -> None:
 	# 拉取 Sherlock 離線佇列（啟動時嘗試一次）
 	await drainSherlockQueue()
 
-	# 啟動定期 drain 背景任務（每 60 秒）
+	# 啟動定期 drain 背景任務（每 5 分鐘）
 	asyncio.create_task(periodicDrainLoop())
 
 	# 建立 Telegram bot
